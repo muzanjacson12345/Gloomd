@@ -6,8 +6,6 @@
   const COLS = 48;
   const ROWS = 32;
   const TILE = 18;
-  canvas.width = COLS * TILE;
-  canvas.height = ROWS * TILE;
 
   const $ = (id) => document.getElementById(id);
   const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -21,7 +19,56 @@
   let timer = null;
   let spawnCount = 0;
   let selectedId = null;
+  let selectedBerry = null;
   let events = [];
+
+  const view = {
+    width: window.innerWidth, height: window.innerHeight, dpr: 1,
+    baseScale: 1, scale: 1, panX: 0, panY: 0, offsetX: 0, offsetY: 0,
+    initialized: false, pointer: null, dragged: false, suppressClick: false
+  };
+
+  function updateViewOffset() {
+    view.offsetX = (view.width - COLS * TILE * view.scale) / 2 + view.panX;
+    view.offsetY = (view.height - ROWS * TILE * view.scale) / 2 + view.panY;
+  }
+
+  function resizeCanvas() {
+    const oldZoom = view.initialized ? view.scale / view.baseScale : 1;
+    view.width = window.innerWidth;
+    view.height = window.innerHeight;
+    view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(view.width * view.dpr);
+    canvas.height = Math.round(view.height * view.dpr);
+    view.baseScale = Math.max(view.width / (COLS * TILE), view.height / (ROWS * TILE));
+    view.scale = view.baseScale * oldZoom;
+    view.scale = clamp(view.scale, view.baseScale * 0.72, view.baseScale * 3);
+    view.panX = 0;
+    view.panY = 0;
+    view.initialized = true;
+    updateViewOffset();
+  }
+
+  function changeZoom(factor) {
+    const worldCenterX = (view.width / 2 - view.offsetX) / view.scale;
+    const worldCenterY = (view.height / 2 - view.offsetY) / view.scale;
+    view.scale = clamp(view.scale * factor, view.baseScale * 0.72, view.baseScale * 3);
+    view.panX = (COLS * TILE / 2 - worldCenterX) * view.scale;
+    view.panY = (ROWS * TILE / 2 - worldCenterY) * view.scale;
+    updateViewOffset();
+    drawWorld();
+  }
+
+  function centerMap() {
+    view.scale = view.baseScale;
+    view.panX = 0;
+    view.panY = 0;
+    updateViewOffset();
+    drawWorld();
+  }
+
+  resizeCanvas();
+  window.addEventListener("resize", () => { resizeCanvas(); update(); });
 
   function isLand(x, y) {
     return x >= 0 && y >= 0 && x < COLS && y < ROWS && terrain[y][x] !== "water";
@@ -50,6 +97,9 @@
     tick = 0;
     spawnCount = 0;
     selectedId = null;
+    selectedBerry = null;
+    $("inspectPanel").hidden = true;
+    $("logPanel").hidden = true;
     glooms = [];
     events = [];
 
@@ -116,6 +166,7 @@
     };
     glooms.push(gloom);
     selectedId = gloom.id;
+    selectedBerry = null;
     addEvent(gloom.name + " appeared on the " + terrain[y][x] + ".");
 
     if (spawnCount === 1) {
@@ -265,7 +316,13 @@
   }
 
   function drawWorld() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#183326";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(
+      view.dpr * view.scale, 0, 0, view.dpr * view.scale,
+      view.dpr * view.offsetX, view.dpr * view.offsetY
+    );
     for (let y = 0; y < ROWS; y += 1) {
       for (let x = 0; x < COLS; x += 1) {
         const type = terrain[y][x];
@@ -337,7 +394,7 @@
     $("population").textContent = living.length + " GLOOMS";
     $("populationBig").textContent = String(living.length);
     $("berryCount").textContent = String(berries.reduce((total, bush) => total + bush.food, 0));
-    $("startBtn").textContent = running ? "Pause world" : "Start world";
+    $("startBtn").innerHTML = running ? '<span class="button-icon">Ⅱ</span><span>Pause</span>' : '<span class="button-icon">▶</span><span>Start</span>';
     $("startBtn").disabled = spawnCount < 2;
     $("stepBtn").disabled = running || spawnCount < 2;
     $("randomBtn").disabled = running || spawnCount >= 2;
@@ -345,18 +402,59 @@
     $("runState").textContent = running ? "WORLD RUNNING" : "WORLD PAUSED";
 
     const selected = glooms.find((gloom) => gloom.id === selectedId && gloom.alive);
-    $("selectedName").textContent = selected ? selected.name : "No Gloom selected";
-    $("selectedDetails").textContent = selected
-      ? "Age " + selected.age + " ticks · " + selected.ambition
-      : "Choose a Gloom on the map to inspect its needs and ambition.";
-    if (selected) renderStats(selected);
-    else $("selectedStats").innerHTML = "";
+    const panel = $("inspectPanel");
+    if (selected) {
+      panel.hidden = false;
+      $("inspectType").textContent = "CREATURE DETAILS";
+      $("selectedName").textContent = selected.name;
+      $("selectedDetails").textContent = "Age " + selected.age + " ticks · Current ambition: " + selected.ambition + ". Tap another icon to inspect it.";
+      renderStats(selected);
+    } else if (selectedBerry) {
+      panel.hidden = false;
+      $("inspectType").textContent = "NATURE DETAILS";
+      $("selectedName").textContent = "Wild berry bush";
+      $("selectedDetails").textContent = selectedBerry.food + " of 3 berries available · Glooms can eat from this bush. It slowly regrows over time.";
+      $("selectedStats").innerHTML = "";
+    } else {
+      panel.hidden = true;
+      $("selectedName").textContent = "Nothing selected";
+      $("selectedDetails").textContent = "Tap a Gloom or berry bush on the map to inspect it.";
+      $("selectedStats").innerHTML = "";
+    }
   }
 
+  canvas.addEventListener("pointerdown", (event) => {
+    view.pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    view.dragged = false;
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!view.pointer || view.pointer.id !== event.pointerId) return;
+    const dx = event.clientX - view.pointer.x;
+    const dy = event.clientY - view.pointer.y;
+    if (Math.abs(dx) + Math.abs(dy) > 5) view.dragged = true;
+    if (view.dragged) {
+      view.panX += dx;
+      view.panY += dy;
+      updateViewOffset();
+      drawWorld();
+    }
+    view.pointer.x = event.clientX;
+    view.pointer.y = event.clientY;
+  });
+  function finishMapDrag(event) {
+    if (!view.pointer || view.pointer.id !== event.pointerId) return;
+    if (view.dragged) view.suppressClick = true;
+    view.pointer = null;
+  }
+  canvas.addEventListener("pointerup", finishMapDrag);
+  canvas.addEventListener("pointercancel", finishMapDrag);
+
   canvas.addEventListener("click", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(((event.clientX - rect.left) / rect.width) * COLS);
-    const y = Math.floor(((event.clientY - rect.top) / rect.height) * ROWS);
+    if (view.suppressClick) { view.suppressClick = false; return; }
+    const x = Math.floor((event.clientX - view.offsetX) / (TILE * view.scale));
+    const y = Math.floor((event.clientY - view.offsetY) / (TILE * view.scale));
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return;
 
     if (spawnCount < 2 && !running) {
       spawnGloom(x, y);
@@ -365,11 +463,29 @@
     const clicked = glooms.find((gloom) => gloom.alive && gloom.x === x && gloom.y === y);
     if (clicked) {
       selectedId = clicked.id;
+      selectedBerry = null;
       update();
+      return;
     }
+    const bush = berries.find((berry) => berry.x === x && berry.y === y);
+    if (bush) {
+      selectedId = null;
+      selectedBerry = bush;
+      update();
+      return;
+    }
+    selectedId = null;
+    selectedBerry = null;
+    update();
   });
 
   $("randomBtn").addEventListener("click", randomLocations);
+  $("zoomInBtn").addEventListener("click", () => changeZoom(1.22));
+  $("zoomOutBtn").addEventListener("click", () => changeZoom(1 / 1.22));
+  $("centerMapBtn").addEventListener("click", centerMap);
+  $("closeInspectBtn").addEventListener("click", () => { $("inspectPanel").hidden = true; });
+  $("logBtn").addEventListener("click", () => { $("logPanel").hidden = !$("logPanel").hidden; });
+  $("closeLogBtn").addEventListener("click", () => { $("logPanel").hidden = true; });
   $("stepBtn").addEventListener("click", doTick);
   $("startBtn").addEventListener("click", () => {
     if (spawnCount < 2) return;
