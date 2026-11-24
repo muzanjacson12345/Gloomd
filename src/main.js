@@ -172,7 +172,7 @@
     if (spawnCount === 1) {
       $("mapHint").textContent = "Choose a land tile for Gloom 2";
     } else {
-      $("mapHint").textContent = "Two Glooms are here. Start the world when ready.";
+      $("mapHint").textContent = "Tap a Gloom or pink berry icon to inspect · drag to explore";
       $("helpText").textContent = "Two Glooms have spawned. Start the simulation to watch their needs and choices change with every tick.";
     }
     update();
@@ -444,7 +444,10 @@
   });
   function finishMapDrag(event) {
     if (!view.pointer || view.pointer.id !== event.pointerId) return;
-    if (view.dragged) view.suppressClick = true;
+    if (view.dragged) {
+      view.suppressClick = true;
+      window.setTimeout(() => { view.suppressClick = false; }, 120);
+    }
     view.pointer = null;
   }
   canvas.addEventListener("pointerup", finishMapDrag);
@@ -483,7 +486,11 @@
   $("zoomInBtn").addEventListener("click", () => changeZoom(1.22));
   $("zoomOutBtn").addEventListener("click", () => changeZoom(1 / 1.22));
   $("centerMapBtn").addEventListener("click", centerMap);
-  $("closeInspectBtn").addEventListener("click", () => { $("inspectPanel").hidden = true; });
+  $("closeInspectBtn").addEventListener("click", () => {
+    selectedId = null;
+    selectedBerry = null;
+    update();
+  });
   $("logBtn").addEventListener("click", () => { $("logPanel").hidden = !$("logPanel").hidden; });
   $("closeLogBtn").addEventListener("click", () => { $("logPanel").hidden = true; });
   $("stepBtn").addEventListener("click", doTick);
