@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#142018">
+  <meta name="description" content="GLOOMD — a self-contained living-world simulation.">
+  <title>GLOOMD — A living world</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">A SELF-CONTAINED LIVING WORLD</div>
+      <h1>GLOOMD<span>®</span></h1>
+    </div>
+    <div class="live-status"><i id="liveDot"></i><span id="runState">WORLD PAUSED</span></div>
+  </header>
+
+  <main>
+    <section class="world-panel">
+      <div class="section-heading">
+        <div><div class="eyebrow">THE OBSERVATORY</div><h2>Your world</h2></div>
+        <div class="world-meta"><span id="tickCount">TICK 0</span><span id="population">0 GLOOMS</span></div>
+      </div>
+
+      <div class="map-wrap">
+        <canvas id="worldMap" aria-label="Gloomd world map"></canvas>
+        <div class="map-hint" id="mapHint">Choose a land tile for Gloom 1</div>
+      </div>
+      <div class="map-legend">
+        <span><i class="swatch grass"></i>Grassland</span>
+        <span><i class="swatch sand"></i>Sand</span>
+        <span><i class="swatch water"></i>Ocean</span>
+        <span><i class="swatch berry"></i>Berry bush</span>
+        <span><i class="swatch gloom"></i>Gloom</span>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="startBtn" disabled>Start world</button>
+        <button id="stepBtn" disabled>Advance 1 tick</button>
+        <button id="randomBtn">Random locations</button>
+        <button class="quiet" id="resetBtn">New world</button>
+      </div>
+      <p class="help" id="helpText">Tap any two land tiles to place the first two Glooms. Ocean and occupied tiles are invalid locations.</p>
+    </section>
+
+    <aside class="side-panel">
+      <section class="card">
+        <div class="eyebrow">WORLD STATUS</div>
+        <div class="big-number" id="populationBig">0</div>
+        <div class="muted">living Glooms</div>
+        <div class="stat-line"><span>Simulation tick</span><strong id="tickSide">0</strong></div>
+        <div class="stat-line"><span>Berries on map</span><strong id="berryCount">0</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="eyebrow">SELECTED GLOOM</div>
+        <h3 id="selectedName">No Gloom selected</h3>
+        <div id="selectedDetails" class="muted">Choose a Gloom on the map to inspect its needs and ambition.</div>
+        <div id="selectedStats"></div>
+      </section>
+
+      <section class="card log-card">
+        <div class="eyebrow">WORLD OBSERVATIONS</div>
+        <div id="eventLog" class="event-log"><p>The world is waiting to begin.</p></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer>GLOOMD · Every tick is one world update · No external AI required</footer>
+  <script src="src/main.js"></script>
+</body>
+</html>
