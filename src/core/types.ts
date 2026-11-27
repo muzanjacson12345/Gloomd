@@ -78,6 +78,8 @@ export interface ResourceNode {
   quantity: number;
   maxQuantity: number;
   regrowEveryTicks: number | null;
+  /** Next local recovery time; null means no recovery is currently scheduled. */
+  nextRegrowTick?: number | null;
 }
 
 export interface Agent {
