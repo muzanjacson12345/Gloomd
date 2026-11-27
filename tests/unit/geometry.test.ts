@@ -59,4 +59,8 @@ describe("map geometry", () => {
     expect(getCappedPixelRatio(1.5)).toBe(1.5);
     expect(getCappedPixelRatio(3)).toBe(2);
   });
+  it("returns the centre of a chosen settlement tile for camera focus", () => {
+    expect(getTileCenter({ x: 17, y: 23 })).toEqual({ x: 17.5, y: 23.5 });
+  });
+
 });
