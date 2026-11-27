@@ -30,6 +30,7 @@ The first playable build includes:
 - An **OBSERVE** panel with optional route, recent travel trail, vision and destination overlays for selected inhabitants. Vision is calculated separately from resource-search radius and blocked by impassable map tiles and buildings. Overlays are off by default.
 - A minimap showing terrain, inhabitants, the stockpile and current camera view; click it to navigate. **Fit world** frames the whole map, and **Hide UI** provides a cinematic view with a restore button.
 - A versioned local world-save format and IndexedDB autosave. The app checkpoints every 15 seconds while active, saves when paused or hidden, and resumes the last local save on startup. The **WORLD SAVE** menu provides Save Now, Load Last Save, Export File and Import File. Exported JSON includes the seed, complete world state and chosen starting point.
+- An installable web-app manifest and a lightweight service worker that caches the self-contained app page, manifest and icon. After the first successful online load and service-worker installation, GLOOMD can reopen offline; saved worlds remain in browser-local IndexedDB.
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 - A New World action from the active simulation. The world is held in memory and paused while the creation screen is open; Back to Current World returns to it. Creating a replacement discards the current unsaved world.
 
@@ -100,9 +101,10 @@ The approved design includes further stages that are not yet implemented:
 3. Food sharing, multiple stockpiles, cooperative building, farming, hunting, crafting, production chains and trade.
 4. Migration, governance, conflict, technology and culture.
 5. Named save slots, save history and schema migrations beyond save format v1.
-6. Offline-first PWA caching and safe app updates.
+6. Browser verification of the offline-first PWA cache, installation and safe update behaviour.
 7. Performance testing on real hardware before increasing the population beyond the current 30-person cap.
 8. Full ecological populations for trees, fish and wildlife, plus seasonal effects.
+9. More detailed survival balance, health recovery, ageing and population growth.
 
 These features will only be described as complete after they are built and tested.
 
