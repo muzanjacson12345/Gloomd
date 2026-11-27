@@ -20,6 +20,7 @@ function makeWorld(rows: string[]): WorldState {
     height: rows.length,
     tiles,
     resources: [],
+    stockpile: { id: "test-stockpile", x: -1, y: -1, inventory: { wood: 0, stone: 0 }, capacityPerResource: 120 },
     buildings: [],
     agents: [],
     tick: 0,
@@ -74,6 +75,18 @@ describe("grid pathfinding", () => {
     const site = world.buildings[0];
     if (!site) throw new Error("Test building was not created");
     site.status = "complete";
+    expect(findPath(world, { x: 1, y: 1 }, { x: 2, y: 1 })).toBeNull();
+  });
+
+  it("treats the communal stockpile as a blocked map tile", () => {
+    const world = makeWorld([".....", ".....", "....."]);
+    world.stockpile.x = 2;
+    world.stockpile.y = 1;
+
+    const route = findPath(world, { x: 1, y: 1 }, { x: 3, y: 1 });
+    expect(route).not.toBeNull();
+    expect(route).toHaveLength(4);
+    expect(route).not.toContainEqual({ x: 2, y: 1 });
     expect(findPath(world, { x: 1, y: 1 }, { x: 2, y: 1 })).toBeNull();
   });
 

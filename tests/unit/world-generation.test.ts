@@ -14,6 +14,7 @@ describe("procedural world generation", () => {
     expect(first.tiles).toEqual(second.tiles);
     expect(first.resources).toEqual(second.resources);
     expect(first.randomState).toBe(second.randomState);
+    expect(first.stockpile).toEqual(second.stockpile);
   });
 
   it("creates a 128 by 96 world with land, ocean and freshwater", async () => {
@@ -33,6 +34,10 @@ describe("procedural world generation", () => {
     expect(tiles.some((tile: { waterKind: string }) => tile.waterKind === "freshwater")).toBe(true);
     expect(world.resources.length).toBeGreaterThan(0);
     expect(world.buildings).toEqual([]);
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.capacityPerResource).toBe(120);
+    expect(world.tiles[world.stockpile.y]?.[world.stockpile.x]?.walkable).toBe(true);
+    expect(world.resources.some((node: { x: number; y: number; quantity: number }) => node.x === world.stockpile.x && node.y === world.stockpile.y && node.quantity > 0)).toBe(false);
   });
 
   it("rejects dimensions that are too small or too large", async () => {
@@ -90,7 +95,7 @@ describe("procedural world generation", () => {
     let location: { x: number; y: number } | null = null;
     for (let y = 0; y < world.height && location === null; y += 1) {
       for (let x = 0; x < world.width; x += 1) {
-        if (world.tiles[y]?.[x]?.walkable) {
+        if (world.tiles[y]?.[x]?.walkable && (x !== world.stockpile.x || y !== world.stockpile.y)) {
           location = { x, y };
           break;
         }

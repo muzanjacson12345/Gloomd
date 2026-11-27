@@ -24,6 +24,7 @@ function makeWorld(): WorldState {
     height,
     tiles,
     resources: [],
+    stockpile: { id: "settlement-stockpile", x: 14, y: 14, inventory: { wood: 0, stone: 0 }, capacityPerResource: 120 },
     buildings: [],
     agents: [],
     tick: 0,
@@ -64,6 +65,19 @@ function makeBuilder(overrides: Partial<Agent> = {}): Agent & {
   return Object.assign(agent, { role: "builder" as const, homeId: null, buildingId: null });
 }
 
+function makeHauler(overrides: Partial<Agent> = {}): Agent & {
+  role: "hauler";
+  homeId: string | null;
+  buildingId: string | null;
+} {
+  const agent = makeAgent({
+    needs: { hunger: 0, thirst: 0, energy: 100, health: 100 },
+    inventory: { food: 0, wood: 0, stone: 0 },
+    ...overrides
+  });
+  return Object.assign(agent, { role: "hauler" as const, homeId: null, buildingId: null });
+}
+
 describe("autonomous agents and consequential actions", () => {
   it("spawns the requested population on unique walkable tiles", () => {
     const world = createWorld(77, { width: 32, height: 24 });
@@ -71,6 +85,9 @@ describe("autonomous agents and consequential actions", () => {
 
     expect(agents).toHaveLength(30);
     expect(agents.filter((agent) => agent.role === "builder")).toHaveLength(6);
+    expect(agents.filter((agent) => agent.role === "hauler")).toHaveLength(6);
+    expect(agents.filter((agent) => agent.role === "forager")).toHaveLength(18);
+    expect(agents.some((agent) => agent.x === world.stockpile.x && agent.y === world.stockpile.y)).toBe(false);
     expect(new Set(agents.map((agent) => agent.id)).size).toBe(30);
     expect(new Set(agents.map((agent) => `${agent.x},${agent.y}`)).size).toBe(30);
     for (const agent of agents) {
@@ -222,16 +239,19 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.events.some((event) => event.kind === "gather_food")).toBe(false);
   });
 
-  it("lets builders gather wood and stone with exact source-to-inventory accounting", () => {
+
+  it("lets haulers gather wood and stone and physically return exact amounts to the stockpile", () => {
     const world = makeWorld();
+    world.stockpile.x = 4;
+    world.stockpile.y = 1;
     world.resources.push(
       {
         id: "wood-nearby",
         kind: "wood",
         x: 2,
         y: 1,
-        quantity: 5,
-        maxQuantity: 5,
+        quantity: 3,
+        maxQuantity: 3,
         regrowEveryTicks: null
       },
       {
@@ -244,20 +264,25 @@ describe("autonomous agents and consequential actions", () => {
         regrowEveryTicks: null
       }
     );
-    const builder = makeBuilder();
-    world.agents.push(builder);
+    const hauler = makeHauler();
+    world.agents.push(hauler);
 
-    stepWorld(world, 8);
+    stepWorld(world, 20);
 
-    expect(builder.inventory.wood).toBe(5);
-    expect(builder.inventory.stone).toBe(2);
+    expect(hauler.inventory.wood).toBe(0);
+    expect(hauler.inventory.stone).toBe(0);
+    expect(world.stockpile.inventory).toEqual({ wood: 3, stone: 2 });
     expect(world.resources.map((node) => node.quantity)).toEqual([0, 0]);
-    expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(5);
+    expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(3);
     expect(world.events.filter((event) => event.kind === "gather_stone")).toHaveLength(2);
+    expect(world.events.filter((event) => event.kind === "deliver_resources")).toHaveLength(5);
+    expect(world.events.every((event) => event.kind !== "deliver_resources" || event.message.includes("stockpile"))).toBe(true);
   });
 
-  it("prevents builders from collectively gathering more than a resource node contains", () => {
+  it("does not let two haulers gather more units than a resource node contains", () => {
     const world = makeWorld();
+    world.stockpile.x = 4;
+    world.stockpile.y = 1;
     world.resources.push({
       id: "single-log",
       kind: "wood",
@@ -267,23 +292,64 @@ describe("autonomous agents and consequential actions", () => {
       maxQuantity: 1,
       regrowEveryTicks: null
     });
-    const first = makeBuilder({ id: "builder-a", name: "Ari" });
-    const second = makeBuilder({ id: "builder-b", name: "Bo", x: 1, y: 2 });
+    const first = makeHauler({ id: "hauler-a", name: "Ari" });
+    const second = makeHauler({ id: "hauler-b", name: "Bo", x: 1, y: 2 });
     world.agents.push(first, second);
 
-    stepWorld(world, 6);
+    stepWorld(world, 20);
 
-    expect(first.inventory.wood + second.inventory.wood).toBe(1);
+    expect(first.inventory.wood + second.inventory.wood + world.stockpile.inventory.wood).toBe(1);
     expect(world.resources[0]?.quantity).toBe(0);
     expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(1);
   });
 
+  it("keeps materials on the hauler when the stockpile cannot be reached", () => {
+    const world = makeWorld();
+    world.stockpile.x = 4;
+    world.stockpile.y = 1;
+    for (let y = 0; y < world.height; y += 1) {
+      const barrier = world.tiles[y]?.[2];
+      if (barrier) {
+        barrier.terrain = "mountain";
+        barrier.walkable = false;
+      }
+    }
+    const hauler = makeHauler({
+      inventory: { food: 0, wood: 2, stone: 1 }
+    });
+    world.agents.push(hauler);
+
+    stepWorld(world, 4);
+
+    expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.events.some((event) => event.kind === "deliver_resources")).toBe(false);
+  });
+
+  it("deposits only remaining stockpile capacity and keeps the undelivered load", () => {
+    const world = makeWorld();
+    world.stockpile.x = 4;
+    world.stockpile.y = 1;
+    world.stockpile.inventory.wood = 119;
+    const hauler = makeHauler({
+      x: 3,
+      y: 1,
+      inventory: { food: 0, wood: 5, stone: 0 }
+    });
+    world.agents.push(hauler);
+
+    stepWorld(world);
+
+    expect(world.stockpile.inventory.wood).toBe(120);
+    expect(hauler.inventory.wood).toBe(4);
+    expect(world.events.filter((event) => event.kind === "deliver_resources")).toHaveLength(1);
+  });
+
+
   it("spends shelter materials once and gives the builder a home after twelve work ticks", () => {
     const world = makeWorld();
-    const builder = makeBuilder({
-      inventory: { food: 0, wood: 5, stone: 2 },
-      currentGoal: "build_shelter"
-    });
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
     stepWorld(world);
@@ -300,6 +366,7 @@ describe("autonomous agents and consequential actions", () => {
     });
     expect(builder.inventory.wood).toBe(0);
     expect(builder.inventory.stone).toBe(0);
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
     expect(builder.buildingId).toBe(site?.id);
     expect(builder.homeId).toBeNull();
 
@@ -323,17 +390,16 @@ describe("autonomous agents and consequential actions", () => {
         tile.walkable = false;
       }
     }
-    const builder = makeBuilder({
-      inventory: { food: 0, wood: 5, stone: 2 },
-      currentGoal: "build_shelter"
-    });
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
     stepWorld(world);
 
     expect(world.buildings).toHaveLength(0);
-    expect(builder.inventory.wood).toBe(5);
-    expect(builder.inventory.stone).toBe(2);
+    expect(builder.inventory.wood).toBe(0);
+    expect(builder.inventory.stone).toBe(0);
+    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2 });
     expect(builder.buildingId).toBeNull();
   });
 
@@ -348,10 +414,8 @@ describe("autonomous agents and consequential actions", () => {
       maxQuantity: 1,
       regrowEveryTicks: null
     });
-    const builder = makeBuilder({
-      inventory: { food: 0, wood: 5, stone: 2 },
-      currentGoal: "build_shelter"
-    });
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const builder = makeBuilder({ currentGoal: "build_shelter" });
     const neighbour = makeAgent({ id: "neighbour", name: "Bo", x: 1, y: 2 });
     world.agents.push(builder, neighbour);
 
@@ -363,6 +427,33 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.buildings[0]?.y).not.toBe(2);
     expect(builder.inventory.wood).toBe(0);
     expect(builder.inventory.stone).toBe(0);
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+  });
+
+  it("does not let competing builders spend the same shared shelter recipe twice", () => {
+    const world = makeWorld();
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const first = makeBuilder({ id: "builder-a", name: "Ari" });
+    const second = makeBuilder({ id: "builder-b", name: "Bo", x: 1, y: 2 });
+    world.agents.push(first, second);
+
+    stepWorld(world);
+
+    expect(world.buildings).toHaveLength(1);
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.events.filter((event) => event.kind === "shelter_started")).toHaveLength(1);
+    expect([first.buildingId, second.buildingId].filter((id) => id !== null)).toHaveLength(1);
+  });
+
+  it("does not start a shelter when the shared stockpile is missing part of the recipe", () => {
+    const world = makeWorld();
+    world.stockpile.inventory = { wood: 4, stone: 2 };
+    world.agents.push(makeBuilder());
+
+    stepWorld(world);
+
+    expect(world.buildings).toHaveLength(0);
+    expect(world.stockpile.inventory).toEqual({ wood: 4, stone: 2 });
   });
 
   it("pauses shelter work while urgent thirst is handled, then resumes the same site", () => {
@@ -372,10 +463,8 @@ describe("autonomous agents and consequential actions", () => {
     water.terrain = "river";
     water.waterKind = "freshwater";
     water.walkable = false;
-    const builder = makeBuilder({
-      inventory: { food: 0, wood: 5, stone: 2 },
-      currentGoal: "build_shelter"
-    });
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
     stepWorld(world);
