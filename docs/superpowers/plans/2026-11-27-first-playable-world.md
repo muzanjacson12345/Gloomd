@@ -308,3 +308,24 @@ The following requirements remain part of the approved design and are not droppe
 - Use GitHub Actions as the remote test/build environment. Do not claim commands passed until their fresh workflow output has been inspected.
 - Use a frequent, task-sized commit after each verified task.
 - The first deliverable is a playable, visually coherent world with real resource consequences—not a static mockup or a claim that the later civilization systems already exist.
+
+
+## Interface details and implementation rulings
+
+These details make the contracts above unambiguous for the implementer:
+
+- `WorldState` contains `seed: number`, `randomState: number`, `width: number`, `height: number`, `tiles: Tile[][]`, `resources: ResourceNode[]`, `agents: Agent[]`, `tick: number`, and `events: WorldEvent[]`.
+- `Tile` contains `terrain: "water" | "beach" | "grassland" | "forest" | "hill" | "mountain" | "river"`, `elevation: number`, `moisture: number`, and `walkable: boolean`. Terrain rendering reads these values; walkability is authoritative for movement.
+- `ResourceNode` contains `id: string`, `kind: "wild_food" | "wood" | "stone"`, `x: number`, `y: number`, `quantity: number`, `maxQuantity: number`, and `regrowEveryTicks: number | null`.
+- `Agent` contains `id`, `name`, `ageYears`, `x`, `y`, `traits`, `needs: { hunger: number; thirst: number; energy: number; health: number }`, `inventory: { food: number; wood: number; stone: number }`, `role: "forager"`, `currentGoal: "seek_food" | "gather" | "eat" | "rest" | "explore"`, `perceptionRadius: number`, and `alive: boolean`. Need values are bounded 0–100; hunger and thirst rise with time, while energy falls with exertion and recovers through rest.
+- `WorldEvent` contains `id: string`, `tick: number`, `agentId: string | null`, `kind: string`, and `message: string`. Event messages are added only when the corresponding state change actually occurs.
+- `RandomSource` exposes `next(): number` and `int(min: number, max: number): number`. `WorldState.randomState` is updated after generation and each simulation tick so that the evolving world is serializable and reproducible.
+- `WorldOptions` permits optional width and height for tests; defaults are exactly 128 × 96. Reject dimensions below 16 or above 512 to prevent accidental oversized allocations in this first version.
+- A* paths exclude the start tile and include the goal tile. Agents inspect only resources within their `perceptionRadius` (initially 12 tiles); they cannot select a resource they have not perceived. If no food is perceived, they explore rather than receiving omniscient map knowledge.
+- The first renderer draws simple, readable miniature character silhouettes (head/body/legs and restrained role colors), not plain colored dots. At distant zoom levels, use compact population clusters/counts. The selected agent has a restrained outline.
+- `Camera` stores world-space camera position and zoom; coordinate conversion is tested in both directions. `getVisibleWorldBounds` returns `{ left, top, right, bottom }` in tile coordinates, clamped to the world.
+- `FixedStepClock.advance(elapsedMs: number, canAdvance: boolean, onTick: () => void): number` runs bounded fixed steps and returns the number executed. When `canAdvance` is false it clears accumulated time. The app resets its previous-frame timestamp on visibility loss, so the first frame after returning does not advance time.
+- The first milestone contains only real map layers that exist: terrain, resources and agents. Do not add inert toggles for future roads, settlements or territories.
+- The GitHub Pages path is `/Gloomd/`. The deployment workflow uses GitHub Actions Pages deployment; the repository Pages source may need the one-time setting changed to **GitHub Actions** in Settings → Pages. The deployment workflow must wait for successful checks and publish only the Vite `dist/` output.
+- CI and deployment use standard GitHub-hosted runners only. The workflows use `npm install --no-audit --no-fund` for the initial dependency install; package versions in `package.json` are pinned to exact versions. Commit a generated npm lockfile once it can be generated and verified by the remote build workflow.
+
