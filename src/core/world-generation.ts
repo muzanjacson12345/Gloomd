@@ -18,7 +18,10 @@ const MAX_WORLD_TILES = 65_536;
 const DEFAULT_WATER_COVERAGE = 0.38;
 const MIN_WATER_COVERAGE = 0.25;
 const MAX_WATER_COVERAGE = 0.55;
-const RESOURCE_FOOD_REGROW_TICKS = 40;
+// One wild-food unit returns every four simulated hours. Timber recovers
+// much more slowly as a rough forest-regeneration model; stone remains finite.
+export const RESOURCE_FOOD_REGROW_TICKS = 240;
+export const RESOURCE_WOOD_REGROW_TICKS = 7_200;
 
 function clamp(value: number, min = 0, max = 1): number {
   return Math.max(min, Math.min(max, value));
@@ -453,7 +456,7 @@ function createResources(
       if (!tile || !tile.walkable) continue;
 
       if (tile.terrain === "forest" && random.next() < 0.055) {
-        addResource("wood", x, y, random.int(3, 7), null);
+        addResource("wood", x, y, random.int(3, 7), RESOURCE_WOOD_REGROW_TICKS);
       }
 
       if (
@@ -484,7 +487,11 @@ function createResources(
         if (!tile || !resourceEligible(kind, tile)) continue;
 
         const quantity = kind === "wild_food" ? 3 : 4;
-        const regrow = kind === "wild_food" ? RESOURCE_FOOD_REGROW_TICKS : null;
+        const regrow = kind === "wild_food"
+          ? RESOURCE_FOOD_REGROW_TICKS
+          : kind === "wood"
+            ? RESOURCE_WOOD_REGROW_TICKS
+            : null;
         addResource(kind, x, y, quantity, regrow);
         return;
       }
