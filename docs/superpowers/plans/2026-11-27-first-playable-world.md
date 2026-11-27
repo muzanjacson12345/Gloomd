@@ -94,21 +94,21 @@
 - Produces: `getTile(world: WorldState, x: number, y: number): Tile | undefined` and `isWalkable(world: WorldState, x: number, y: number): boolean`.
 - Produces: `takeResource(world: WorldState, resourceId: string, amount: number): number`.
 
-- [ ] **Step 1: Write failing tests for seeded randomness and world generation**
+- [x] **Step 1: Write failing tests for seeded randomness and world generation**
 
   Test that two random sources with seed `12345` produce the same first 10 values. Test that two calls to `createWorld(12345)` produce identical terrain/resource data, that out-of-bounds tile lookup returns `undefined`, and that water/mountain tiles are not walkable.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
   Run: `npm run test -- tests/unit/random.test.ts tests/unit/world-generation.test.ts`
 
   Expected: FAIL because the random and world-generation modules do not exist yet.
 
-- [ ] **Step 3: Implement deterministic random and world generation**
+- [x] **Step 3: Implement deterministic random and world generation**
 
   Implement a seedable pseudo-random generator and a default map of 128 × 96 tiles. Generate readable coastlines, at least one river or lake, grassland, forest, hills and mountains. Generate a controlled distribution of edible resource patches. Store the seed and all generated data in plain serializable values.
 
-- [ ] **Step 4: Write and run resource-accounting tests**
+- [x] **Step 4: Write and run resource-accounting tests**
 
   Test that taking an available amount reduces the resource quantity by exactly that amount, taking more than remains never returns more than remains, and quantities never become negative.
 
@@ -116,7 +116,7 @@
 
   Expected: all tests PASS.
 
-- [ ] **Step 5: Commit the deterministic world model**
+- [x] **Step 5: Commit the deterministic world model**
 
   Commit the core types, seeded generator, map generation, resource accounting and tests.
 
@@ -136,41 +136,41 @@
 - Produces: `stepWorld(world: WorldState, ticks?: number): WorldEvent[]`.
 - An `Agent` has a stable ID/name, age, location, basic personality/traits, health, hunger, energy, a small inventory and a current action/goal. Initial agents use a population of 30.
 
-- [ ] **Step 1: Write failing pathfinding tests**
+- [x] **Step 1: Write failing pathfinding tests**
 
   Test a reachable path, an unreachable target, an out-of-bounds target, and a route around a wall of impassable tiles. Assert no returned step is impassable and the path ends at the requested target.
 
-- [ ] **Step 2: Run the pathfinding tests and confirm they fail**
+- [x] **Step 2: Run the pathfinding tests and confirm they fail**
 
   Run: `npm run test -- tests/unit/pathfinding.test.ts`
 
   Expected: FAIL because `findPath` is not implemented.
 
-- [ ] **Step 3: Implement deterministic grid pathfinding**
+- [x] **Step 3: Implement deterministic grid pathfinding**
 
   Implement A* on the four-way tile grid with a consistent tie-break order. Return `null` when no route exists; do not move agents through blocked tiles.
 
-- [ ] **Step 4: Write failing tests for agent spawning and real food actions**
+- [x] **Step 4: Write failing tests for agent spawning and real food actions**
 
   Test that starter agents spawn only on walkable, unoccupied tiles; a hungry agent can travel to reachable food; gathering reduces the node and increases carried food by the same amount; eating consumes carried food and reduces hunger; and two agents cannot consume more than a node contains.
 
-- [ ] **Step 5: Run the simulation tests and confirm they fail**
+- [x] **Step 5: Run the simulation tests and confirm they fail**
 
   Run: `npm run test -- tests/unit/simulation.test.ts`
 
   Expected: FAIL because agent creation and tick progression are not implemented.
 
-- [ ] **Step 6: Implement the first real agent decision loop**
+- [x] **Step 6: Implement the first real agent decision loop**
 
   Create 30 agents from the world seed. Each fixed simulation tick updates needs and chooses a sensible action (seek reachable food, gather, eat, rest or explore). Every completed action updates world state and emits a truthful event. All randomness comes from the world's seeded random source. No LLM/API calls.
 
-- [ ] **Step 7: Run all core tests**
+- [x] **Step 7: Run all core tests**
 
   Run: `npm run typecheck && npm run test`
 
   Expected: typecheck and all random, world, resource, pathfinding and simulation tests PASS.
 
-- [ ] **Step 8: Commit the first autonomous population**
+- [x] **Step 8: Commit the first autonomous population**
 
   Commit agents, pathfinding, simulation rules and tests.
 
