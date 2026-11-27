@@ -21,6 +21,9 @@ import { selectAgentsInWorldRect } from "../ui/selection";
 import type { WorldSelectionRect } from "../ui/selection";
 import { createRandomWorldSeed, createWorldSetup } from "../ui/world-setup";
 import type { GridPoint, WorldState } from "../core/types";
+import { createWorldSave, parseWorldSave, serializeWorldSave } from "../persistence/world-save";
+import type { WorldSave } from "../persistence/world-save";
+import { loadAutosave, saveAutosave } from "../persistence/indexeddb";
 
 const WORLD_SEED = createRandomWorldSeed(0);
 const SIMULATION_STEP_MS = 250;
@@ -30,7 +33,8 @@ function startWorld(
   root: HTMLElement,
   world: WorldState,
   startingPoint: GridPoint,
-  onNewWorld: () => void
+  onNewWorld: () => void,
+  onLoadSavedWorld: (save: WorldSave) => void
 ): () => void {
   const shell = createAppShell(root);
   const worldApp = shell.canvas.closest<HTMLElement>(".world-app");
@@ -71,6 +75,51 @@ function startWorld(
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
   const layers = { terrain: true, resources: true, agents: true, buildings: true, stockpile: true };
   const overlays = { routes: false, trails: false, vision: false, targets: false };
+  let saveQueue: Promise<void> = Promise.resolve();
+  let lastAutosaveAt = 0;
+
+  const showSaveStatus = (message: string): void => {
+    shell.saveStatus.textContent = message;
+  };
+
+  const saveCurrentWorld = (announce = false): Promise<void> => {
+    let snapshot: WorldSave;
+    try {
+      // createWorldSave clones the complete state synchronously, so later ticks
+      // cannot alter the snapshot while IndexedDB is writing it.
+      snapshot = createWorldSave(world, startingPoint);
+    } catch (error) {
+      showSaveStatus("SAVE FAILED");
+      return Promise.reject(error);
+    }
+
+    saveQueue = saveQueue
+      .catch(() => undefined)
+      .then(() => saveAutosave(snapshot))
+      .then(() => {
+        showSaveStatus(announce ? "WORLD SAVED" : "AUTOSAVED");
+      })
+      .catch((error: unknown) => {
+        showSaveStatus("SAVE FAILED");
+        throw error instanceof Error ? error : new Error("The world could not be saved.");
+      });
+    return saveQueue;
+  };
+
+  const loadLastSavedWorld = async (): Promise<void> => {
+    try {
+      await saveQueue.catch(() => undefined);
+      const saved = await loadAutosave();
+      if (!saved) {
+        showSaveStatus("NO SAVED WORLD YET");
+        return;
+      }
+      showSaveStatus("LOADING WORLD");
+      onLoadSavedWorld(saved);
+    } catch (error) {
+      showSaveStatus(error instanceof Error ? error.message : "LOAD FAILED");
+    }
+  };
 
   const selectedAgent = () =>
     world.agents.find((agent) => agent.id === selectedAgentId && agent.alive) ?? null;
@@ -175,6 +224,8 @@ function startWorld(
       setSelectionMode(false);
       shell.overlayPanel.hidden = true;
       shell.overlayToggleButton.setAttribute("aria-expanded", "false");
+      shell.storagePanel.hidden = true;
+      shell.storageToggleButton.setAttribute("aria-expanded", "false");
     }
   };
 
@@ -259,6 +310,11 @@ function startWorld(
       setSelectionMode(false);
       return;
     }
+    if (!shell.storagePanel.hidden) {
+      shell.storagePanel.hidden = true;
+      shell.storageToggleButton.setAttribute("aria-expanded", "false");
+      return;
+    }
     if (!shell.overlayPanel.hidden) {
       shell.overlayPanel.hidden = true;
       shell.overlayToggleButton.setAttribute("aria-expanded", "false");
@@ -266,7 +322,11 @@ function startWorld(
   };
 
   onResize();
-  shell.newWorldButton.addEventListener("click", onNewWorld);
+  const handleNewWorld = (): void => {
+    void saveCurrentWorld(true).catch(() => undefined);
+    onNewWorld();
+  };
+  shell.newWorldButton.addEventListener("click", handleNewWorld);
   shell.activityList.addEventListener("click", onActivitySelect);
   shell.minimapCanvas.addEventListener("pointerdown", onMinimapPointerDown);
   document.addEventListener("keydown", onEscape);
@@ -276,6 +336,7 @@ function startWorld(
     clock.reset();
     previousFrameTime = null;
     updateReadouts();
+    if (!playing) void saveCurrentWorld(true).catch(() => undefined);
   });
 
   for (const button of shell.speedButtons) {
@@ -331,6 +392,52 @@ function startWorld(
 
   shell.hideUiButton.addEventListener("click", () => setUiHidden(true));
   shell.restoreUiButton.addEventListener("click", () => setUiHidden(false));
+  shell.storageToggleButton.addEventListener("click", () => {
+    shell.storagePanel.hidden = !shell.storagePanel.hidden;
+    shell.storageToggleButton.setAttribute("aria-expanded", String(!shell.storagePanel.hidden));
+  });
+  shell.saveNowButton.addEventListener("click", () => {
+    void saveCurrentWorld(true).catch(() => undefined);
+  });
+  shell.loadWorldButton.addEventListener("click", () => {
+    void loadLastSavedWorld();
+  });
+  shell.exportWorldButton.addEventListener("click", () => {
+    try {
+      const save = createWorldSave(world, startingPoint);
+      const blob = new Blob([serializeWorldSave(save)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `gloomd-world-${world.seed}-day-${Math.floor(world.tick / 1440) + 1}.json`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showSaveStatus("EXPORT READY");
+    } catch (error) {
+      showSaveStatus(error instanceof Error ? error.message : "EXPORT FAILED");
+    }
+  });
+  shell.importWorldButton.addEventListener("click", () => shell.importFileInput.click());
+  const onImportFile = async (): Promise<void> => {
+    const file = shell.importFileInput.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error("This save file is too large to import (50 MB limit).");
+      }
+      const saved = parseWorldSave(await file.text());
+      await saveQueue.catch(() => undefined);
+      await saveAutosave(saved);
+      showSaveStatus("WORLD IMPORTED");
+      onLoadSavedWorld(saved);
+    } catch (error) {
+      showSaveStatus(error instanceof Error ? error.message : "IMPORT FAILED");
+    } finally {
+      shell.importFileInput.value = "";
+    }
+  };
+  const importFileChange = (): void => { void onImportFile(); };
+  shell.importFileInput.addEventListener("change", importFileChange);
   shell.closeInspectorButton.addEventListener("click", () => selectAgent(null));
   shell.followAgentButton.addEventListener("click", () => {
     const agent = selectedAgent();
@@ -356,11 +463,16 @@ function startWorld(
   }
 
   const onVisibilityChange = (): void => {
+    if (document.hidden) void saveCurrentWorld(false).catch(() => undefined);
     clock.reset();
     previousFrameTime = null;
   };
+  const onPageHide = (): void => {
+    void saveCurrentWorld(false).catch(() => undefined);
+  };
 
   document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("pagehide", onPageHide);
   window.addEventListener("resize", onResize);
 
   const advanceOneTick = (): void => {
@@ -399,6 +511,10 @@ function startWorld(
     previousFrameTime = timestamp;
 
     const active = playing && !document.hidden;
+    if (active && timestamp - lastAutosaveAt >= 15_000 && world.tick > 0) {
+      lastAutosaveAt = timestamp;
+      void saveCurrentWorld(false).catch(() => undefined);
+    }
     // Advance existing visual steps before recording new simulation steps so a newly
     // enqueued move cannot consume time that elapsed before the decision was made.
     motion.advance(elapsed * speed, active);
@@ -450,6 +566,8 @@ function startWorld(
   lastActivityTick = world.tick;
   updateReadouts();
   updateMinimapInitial();
+  // Create an initial checkpoint; later checkpoints refresh it while the tab is active.
+  void saveCurrentWorld(false).catch(() => undefined);
   frameHandle = window.requestAnimationFrame(animate);
 
   function updateMinimapInitial(): void {
@@ -468,15 +586,17 @@ function startWorld(
     window.cancelAnimationFrame(frameHandle);
     detachMapInput();
     shell.activityList.removeEventListener("click", onActivitySelect);
-    shell.newWorldButton.removeEventListener("click", onNewWorld);
+    shell.newWorldButton.removeEventListener("click", handleNewWorld);
     shell.minimapCanvas.removeEventListener("pointerdown", onMinimapPointerDown);
+    shell.importFileInput.removeEventListener("change", importFileChange);
     document.removeEventListener("keydown", onEscape);
     document.removeEventListener("visibilitychange", onVisibilityChange);
+    window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("resize", onResize);
   };
 }
 
-/** Start on the world-creation screen, then mount or restore an in-memory world. */
+/** Start by resuming the last local save, or show world creation on first use. */
 export function startApp(root: HTMLElement): () => void {
   let setupCleanup: (() => void) | null = null;
   let sessionCleanup: (() => void) | null = null;
@@ -490,7 +610,24 @@ export function startApp(root: HTMLElement): () => void {
     sessionCleanup = null;
   };
 
-  const openWorldSetup = (
+  let openWorldSetup: (
+    seed: number,
+    returnTo?: { world: WorldState; startingPoint: GridPoint }
+  ) => void;
+
+  const startSession = (world: WorldState, startingPoint: GridPoint): void => {
+    stopSession();
+    stopSetup();
+    sessionCleanup = startWorld(
+      root,
+      world,
+      startingPoint,
+      () => openWorldSetup(createRandomWorldSeed(world.seed), { world, startingPoint }),
+      (saved) => startSession(saved.world, saved.startingPoint)
+    );
+  };
+
+  openWorldSetup = (
     seed: number,
     returnTo?: { world: WorldState; startingPoint: GridPoint }
   ): void => {
@@ -507,31 +644,24 @@ export function startApp(root: HTMLElement): () => void {
           result.population,
           { center: result.startingPoint }
         );
-        const savedWorld = {
-          world: result.world,
-          startingPoint: result.startingPoint
-        };
-        sessionCleanup = startWorld(
-          root,
-          result.world,
-          result.startingPoint,
-          () => openWorldSetup(createRandomWorldSeed(result.world.seed), savedWorld)
-        );
+        startSession(result.world, result.startingPoint);
       },
       onCancel() {
         if (!returnTo) return;
         stopSetup();
-        sessionCleanup = startWorld(
-          root,
-          returnTo.world,
-          returnTo.startingPoint,
-          () => openWorldSetup(createRandomWorldSeed(returnTo.world.seed), returnTo)
-        );
+        startSession(returnTo.world, returnTo.startingPoint);
       }
     });
   };
 
-  openWorldSetup(WORLD_SEED);
+  void loadAutosave().then((saved) => {
+    if (saved) startSession(saved.world, saved.startingPoint);
+    else openWorldSetup(WORLD_SEED);
+  }).catch(() => {
+    // If local storage is unavailable or corrupt, do not prevent a fresh world from starting.
+    openWorldSetup(WORLD_SEED);
+  });
+
   return () => {
     stopSetup();
     stopSession();
