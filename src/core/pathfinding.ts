@@ -79,6 +79,16 @@ function isInside(world: WorldState, point: GridPoint): boolean {
   );
 }
 
+export function isWalkableTile(world: WorldState, point: GridPoint): boolean {
+  if (!isInside(world, point) || !world.tiles[point.y]?.[point.x]?.walkable) {
+    return false;
+  }
+
+  return !world.buildings.some(
+    (building) => building.x === point.x && building.y === point.y
+  );
+}
+
 function heuristic(a: GridPoint, b: GridPoint): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
@@ -88,11 +98,7 @@ export function findPath(
   start: GridPoint,
   goal: GridPoint
 ): GridPoint[] | null {
-  if (!isInside(world, start) || !isInside(world, goal)) return null;
-
-  const startTile = world.tiles[start.y]?.[start.x];
-  const goalTile = world.tiles[goal.y]?.[goal.x];
-  if (!startTile?.walkable || !goalTile?.walkable) return null;
+  if (!isWalkableTile(world, start) || !isWalkableTile(world, goal)) return null;
   if (start.x === goal.x && start.y === goal.y) return [];
 
   const total = world.width * world.height;
@@ -156,12 +162,14 @@ export function findPath(
     };
 
     for (const direction of directions) {
-      const x = currentPoint.x + direction.x;
-      const y = currentPoint.y + direction.y;
-      if (x < 0 || y < 0 || x >= world.width || y >= world.height) continue;
+      const point = {
+        x: currentPoint.x + direction.x,
+        y: currentPoint.y + direction.y
+      };
+      if (!isWalkableTile(world, point)) continue;
 
-      const neighborIndex = y * world.width + x;
-      if (closed[neighborIndex] === 1 || !world.tiles[y]?.[x]?.walkable) continue;
+      const neighborIndex = point.y * world.width + point.x;
+      if (closed[neighborIndex] === 1) continue;
 
       const nextCost = current.cost + 1;
       if (nextCost >= costs[neighborIndex]!) continue;
@@ -169,7 +177,7 @@ export function findPath(
       costs[neighborIndex] = nextCost;
       parents[neighborIndex] = current.index;
 
-      const estimate = heuristic({ x, y }, goal);
+      const estimate = heuristic(point, goal);
       open.push({
         index: neighborIndex,
         cost: nextCost,

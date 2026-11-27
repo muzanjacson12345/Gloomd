@@ -52,10 +52,12 @@ export function createStarterAgents(world: WorldState, count: number): Agent[] {
       },
       needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
       inventory: { food: 0, wood: 0, stone: 0 },
-      role: "forager",
+      role: number % 5 === 0 ? "builder" : "forager",
       currentGoal: "explore",
       perceptionRadius: 12,
-      alive: true
+      alive: true,
+      homeId: null,
+      buildingId: null
     });
   }
 

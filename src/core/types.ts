@@ -11,6 +11,21 @@ export type WaterKind = "none" | "ocean" | "freshwater";
 
 export type ResourceKind = "wild_food" | "wood" | "stone";
 
+export type AgentRole = "forager" | "builder";
+
+export type BuildingStatus = "under_construction" | "complete";
+
+export interface Building {
+  id: string;
+  kind: "shelter";
+  x: number;
+  y: number;
+  status: BuildingStatus;
+  workDone: number;
+  workRequired: number;
+  builderId: string;
+}
+
 export type AgentGoal =
   | "seek_food"
   | "gather"
@@ -18,7 +33,10 @@ export type AgentGoal =
   | "seek_water"
   | "drink"
   | "rest"
-  | "explore";
+  | "explore"
+  | "gather_wood"
+  | "gather_stone"
+  | "build_shelter";
 
 export interface GridPoint {
   x: number;
@@ -65,10 +83,12 @@ export interface Agent {
     wood: number;
     stone: number;
   };
-  role: "forager";
+  role: AgentRole;
   currentGoal: AgentGoal;
   perceptionRadius: number;
   alive: boolean;
+  homeId: string | null;
+  buildingId: string | null;
 }
 
 export interface WorldEvent {
@@ -86,6 +106,7 @@ export interface WorldState {
   height: number;
   tiles: Tile[][];
   resources: ResourceNode[];
+  buildings: Building[];
   agents: Agent[];
   tick: number;
   events: WorldEvent[];

@@ -1,12 +1,23 @@
 import { createRandom } from "./random";
 import { takeResource } from "./resources";
-import { findPath } from "./pathfinding";
-import type { Agent, GridPoint, ResourceNode, WorldEvent, WorldState } from "./types";
+import { findPath, isWalkableTile } from "./pathfinding";
+import type {
+  Agent,
+  Building,
+  GridPoint,
+  ResourceKind,
+  ResourceNode,
+  WorldEvent,
+  WorldState
+} from "./types";
 
 const NEED_THRESHOLD = 65;
 const FOOD_RESTORE = 35;
 const WATER_RESTORE = 45;
 const RESTORE_ENERGY = 20;
+const SHELTER_WOOD_COST = 5;
+const SHELTER_STONE_COST = 2;
+const SHELTER_WORK_TICKS = 12;
 const MAX_STORED_EVENTS = 120;
 
 interface Target {
@@ -41,33 +52,43 @@ function emit(
   }
 }
 
-function nearestFood(world: WorldState, agent: Agent): Target | null {
+function nearestResource(
+  world: WorldState,
+  agent: Agent,
+  kind: ResourceKind
+): Target | null {
   let best: Target | null = null;
 
   for (const resource of world.resources) {
-    if (resource.kind !== "wild_food" || resource.quantity <= 0) continue;
-    const target = { x: resource.x, y: resource.y };
-    if (distance(agent, target) > agent.perceptionRadius) continue;
+    if (resource.kind !== kind || resource.quantity <= 0) continue;
 
-    const path = findPath(world, agent, target);
+    const point = { x: resource.x, y: resource.y };
+    if (distance(agent, point) > agent.perceptionRadius) continue;
+
+    const path = findPath(world, agent, point);
     if (path === null) continue;
 
     if (
       !best ||
       path.length < best.path.length ||
-      (path.length === best.path.length && resource.id.localeCompare(best.resource?.id ?? "") < 0)
+      (path.length === best.path.length &&
+        resource.id.localeCompare(best.resource?.id ?? "") < 0)
     ) {
-      best = { point: target, path, resource };
+      best = { point, path, resource };
     }
   }
 
   return best;
 }
 
+function nearestFood(world: WorldState, agent: Agent): Target | null {
+  return nearestResource(world, agent, "wild_food");
+}
+
 /**
  * Finds the shortest walkable route to a tile beside freshwater.
  * The search is local to the agent's perception radius and visits each
- * reachable tile at most once.
+ * reachable tile at most once. Buildings block movement just like terrain.
  */
 export function findNearestFreshwaterBank(
   world: WorldState,
@@ -75,15 +96,9 @@ export function findNearestFreshwaterBank(
   perceptionRadius: number
 ): GridPoint[] | null {
   if (
-    !Number.isInteger(start.x) ||
-    !Number.isInteger(start.y) ||
-    start.x < 0 ||
-    start.y < 0 ||
-    start.x >= world.width ||
-    start.y >= world.height ||
     !Number.isFinite(perceptionRadius) ||
     perceptionRadius < 0 ||
-    !world.tiles[start.y]?.[start.x]?.walkable
+    !isWalkableTile(world, start)
   ) {
     return null;
   }
@@ -135,16 +150,15 @@ export function findNearestFreshwaterBank(
     }
 
     for (const direction of directions) {
-      const nextX = x + direction.x;
-      const nextY = y + direction.y;
+      const point = { x: x + direction.x, y: y + direction.y };
       if (
-        Math.abs(nextX - start.x) + Math.abs(nextY - start.y) > perceptionRadius ||
-        !world.tiles[nextY]?.[nextX]?.walkable
+        distance(point, start) > perceptionRadius ||
+        !isWalkableTile(world, point)
       ) {
         continue;
       }
 
-      const nextIndex = nextY * world.width + nextX;
+      const nextIndex = point.y * world.width + point.x;
       if (parents.has(nextIndex)) continue;
 
       parents.set(nextIndex, currentIndex);
@@ -169,7 +183,7 @@ function moveToward(world: WorldState, agent: Agent, target: Target): boolean {
   const next = target.path[0];
   if (!next) return true;
 
-  if (!world.tiles[next.y]?.[next.x]?.walkable) return false;
+  if (!isWalkableTile(world, next)) return false;
   agent.x = next.x;
   agent.y = next.y;
   agent.needs.energy = Math.max(0, agent.needs.energy - 0.5);
@@ -186,7 +200,7 @@ function explore(world: WorldState, agent: Agent, random: ReturnType<typeof crea
 
   const candidates = directions
     .map((direction) => ({ x: agent.x + direction.x, y: agent.y + direction.y }))
-    .filter((point) => world.tiles[point.y]?.[point.x]?.walkable);
+    .filter((point) => isWalkableTile(world, point));
 
   if (candidates.length === 0) return;
   const selected = candidates[random.int(0, candidates.length - 1)];
@@ -195,6 +209,178 @@ function explore(world: WorldState, agent: Agent, random: ReturnType<typeof crea
   agent.x = selected.x;
   agent.y = selected.y;
   agent.needs.energy = Math.max(0, agent.needs.energy - 0.5);
+}
+
+function gatherBuilderMaterial(
+  world: WorldState,
+  agent: Agent,
+  kind: "wood" | "stone",
+  random: ReturnType<typeof createRandom>,
+  emitted: WorldEvent[]
+): void {
+  const target = nearestResource(world, agent, kind);
+  if (!target?.resource) {
+    agent.currentGoal = "explore";
+    explore(world, agent, random);
+    return;
+  }
+
+  agent.currentGoal = kind === "wood" ? "gather_wood" : "gather_stone";
+  if (!moveToward(world, agent, target)) return;
+
+  const gathered = takeResource(world, target.resource.id, 1);
+  if (gathered <= 0) {
+    agent.currentGoal = "explore";
+    return;
+  }
+
+  agent.inventory[kind] += gathered;
+  const eventKind = kind === "wood" ? "gather_wood" : "gather_stone";
+  emit(
+    world,
+    emitted,
+    agent,
+    eventKind,
+    `${agent.name} gathered ${gathered} ${kind}.`
+  );
+}
+
+function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
+  // Stable ordering makes the same world state produce the same building site.
+  const candidates: readonly GridPoint[] = [
+    { x: agent.x + 1, y: agent.y },
+    { x: agent.x, y: agent.y + 1 },
+    { x: agent.x - 1, y: agent.y },
+    { x: agent.x, y: agent.y - 1 }
+  ];
+
+  for (const point of candidates) {
+    if (!isWalkableTile(world, point)) continue;
+
+    const hasLiveResource = world.resources.some(
+      (resource) =>
+        resource.quantity > 0 && resource.x === point.x && resource.y === point.y
+    );
+    if (hasLiveResource) continue;
+
+    const hasLivingAgent = world.agents.some(
+      (other) =>
+        other.alive && other.x === point.x && other.y === point.y
+    );
+    if (hasLivingAgent) continue;
+
+    return point;
+  }
+
+  return null;
+}
+
+function startShelter(
+  world: WorldState,
+  agent: Agent,
+  emitted: WorldEvent[]
+): boolean {
+  if (
+    agent.homeId !== null ||
+    agent.buildingId !== null ||
+    agent.inventory.wood < SHELTER_WOOD_COST ||
+    agent.inventory.stone < SHELTER_STONE_COST
+  ) {
+    return false;
+  }
+
+  const point = findShelterSite(world, agent);
+  if (!point) return false;
+
+  const building: Building = {
+    id: `shelter-${agent.id}`,
+    kind: "shelter",
+    x: point.x,
+    y: point.y,
+    status: "under_construction",
+    workDone: 0,
+    workRequired: SHELTER_WORK_TICKS,
+    builderId: agent.id
+  };
+
+  // Materials are deducted only after a safe site has been found.
+  agent.inventory.wood -= SHELTER_WOOD_COST;
+  agent.inventory.stone -= SHELTER_STONE_COST;
+  agent.buildingId = building.id;
+  agent.currentGoal = "build_shelter";
+  world.buildings.push(building);
+
+  emit(
+    world,
+    emitted,
+    agent,
+    "shelter_started",
+    `${agent.name} started building a shelter.`
+  );
+  return true;
+}
+
+function nearestShelterWorkTarget(
+  world: WorldState,
+  agent: Agent,
+  building: Building
+): Target | null {
+  if (distance(agent, building) === 1 && isWalkableTile(world, agent)) {
+    return { point: { x: agent.x, y: agent.y }, path: [] };
+  }
+
+  const positions: readonly GridPoint[] = [
+    { x: building.x + 1, y: building.y },
+    { x: building.x, y: building.y + 1 },
+    { x: building.x - 1, y: building.y },
+    { x: building.x, y: building.y - 1 }
+  ];
+  let best: Target | null = null;
+
+  for (const point of positions) {
+    if (!isWalkableTile(world, point)) continue;
+    const path = findPath(world, agent, point);
+    if (path === null) continue;
+    if (!best || path.length < best.path.length) {
+      best = { point, path };
+    }
+  }
+
+  return best;
+}
+
+function workOnShelter(
+  world: WorldState,
+  agent: Agent,
+  building: Building,
+  random: ReturnType<typeof createRandom>,
+  emitted: WorldEvent[]
+): void {
+  const target = nearestShelterWorkTarget(world, agent, building);
+  if (!target) {
+    agent.currentGoal = "explore";
+    explore(world, agent, random);
+    return;
+  }
+
+  agent.currentGoal = "build_shelter";
+  if (!moveToward(world, agent, target)) return;
+
+  building.workDone = Math.min(building.workRequired, building.workDone + 1);
+  agent.needs.energy = Math.max(0, agent.needs.energy - 1);
+
+  if (building.workDone >= building.workRequired) {
+    building.status = "complete";
+    agent.homeId = building.id;
+    agent.buildingId = null;
+    emit(
+      world,
+      emitted,
+      agent,
+      "shelter_complete",
+      `${agent.name} finished a shelter and made it home.`
+    );
+  }
 }
 
 function stepAgent(
@@ -208,6 +394,7 @@ function stepAgent(
   agent.needs.hunger = Math.min(100, agent.needs.hunger + 1);
   agent.needs.thirst = Math.min(100, agent.needs.thirst + 1);
 
+  // Survival always outranks resource work and construction.
   if (agent.needs.thirst >= NEED_THRESHOLD) {
     agent.currentGoal = "seek_water";
     const target = nearestFreshwaterBank(world, agent);
@@ -238,7 +425,7 @@ function stepAgent(
     agent.currentGoal = "seek_food";
     const target = nearestFood(world, agent);
 
-    if (!target || !target.resource) {
+    if (!target?.resource) {
       agent.currentGoal = "explore";
       explore(world, agent, random);
       return;
@@ -271,6 +458,42 @@ function stepAgent(
       emit(world, emitted, agent, "rest", `${agent.name} rested and recovered energy.`);
     }
     return;
+  }
+
+  if (agent.role === "builder") {
+    const currentProject = world.buildings.find(
+      (building) => building.id === agent.buildingId
+    );
+
+    if (currentProject?.status === "under_construction") {
+      workOnShelter(world, agent, currentProject, random, emitted);
+      return;
+    }
+
+    if (currentProject?.status === "complete") {
+      agent.homeId = currentProject.id;
+      agent.buildingId = null;
+    } else if (agent.buildingId !== null) {
+      agent.buildingId = null;
+    }
+
+    if (agent.homeId === null) {
+      if (agent.inventory.wood < SHELTER_WOOD_COST) {
+        gatherBuilderMaterial(world, agent, "wood", random, emitted);
+        return;
+      }
+
+      if (agent.inventory.stone < SHELTER_STONE_COST) {
+        gatherBuilderMaterial(world, agent, "stone", random, emitted);
+        return;
+      }
+
+      if (!startShelter(world, agent, emitted)) {
+        agent.currentGoal = "explore";
+        explore(world, agent, random);
+      }
+      return;
+    }
   }
 
   agent.currentGoal = "explore";

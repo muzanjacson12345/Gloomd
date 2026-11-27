@@ -231,6 +231,7 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
     height,
     tiles,
     resources,
+    buildings: [],
     agents: [],
     tick: 0,
     events: []
