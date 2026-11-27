@@ -10,8 +10,12 @@ describe("Canvas world renderer", () => {
     const calls = { fillRect: 0 };
 
     const context = {
+      canvas: { width: 48, height: 48 },
       save() {},
       restore() {},
+      setTransform() {},
+      translate() {},
+      scale() {},
       clearRect() {},
       fillRect() {
         calls.fillRect += 1;
