@@ -589,4 +589,72 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.events.some(event => event.kind === "shelter_complete")).toBe(true);
   });
 
+
+  it("causes starvation only after a grace period and records death", () => {
+    const world = makeWorld();
+    const water = world.tiles[1]?.[2];
+    if (!water) throw new Error("Test freshwater tile was not created");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+
+    const agent = makeAgent({
+      needs: { hunger: 100, thirst: 0, energy: 100, health: 100 },
+      inventory: { food: 0, wood: 2, stone: 1 }
+    });
+    world.agents.push(agent);
+
+    stepWorld(world, 130);
+
+    expect(agent.alive).toBe(false);
+    expect(agent.needs.health).toBe(0);
+    expect(world.events.some((event) =>
+      event.agentId === agent.id && event.kind === "death_starvation"
+    )).toBe(true);
+    expect(world.resources).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "wood", x: agent.x, y: agent.y, quantity: 2 }),
+      expect.objectContaining({ kind: "stone", x: agent.x, y: agent.y, quantity: 1 })
+    ]));
+  });
+
+  it("causes dehydration to become fatal when no freshwater can be reached", () => {
+    const world = makeWorld();
+    const agent = makeAgent({
+      needs: { hunger: 0, thirst: 100, energy: 100, health: 100 }
+    });
+    world.agents.push(agent);
+
+    stepWorld(world, 90);
+
+    expect(agent.alive).toBe(false);
+    expect(agent.needs.health).toBe(0);
+    expect(world.events.some((event) =>
+      event.agentId === agent.id && event.kind === "death_dehydration"
+    )).toBe(true);
+  });
+
+  it("lets an agent with carried food avoid starvation damage by eating", () => {
+    const world = makeWorld();
+    const water = world.tiles[1]?.[2];
+    if (!water) throw new Error("Test freshwater tile was not created");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+
+    const agent = makeAgent({
+      needs: { hunger: 100, thirst: 0, energy: 100, health: 100 },
+      inventory: { food: 1, wood: 0, stone: 0 },
+      starvationTicks: 40
+    });
+    world.agents.push(agent);
+
+    stepWorld(world);
+
+    expect(agent.alive).toBe(true);
+    expect(agent.needs.hunger).toBe(66);
+    expect(agent.needs.health).toBe(100);
+    expect(agent.starvationTicks).toBe(0);
+    expect(world.events.some((event) => event.kind === "eat")).toBe(true);
+  });
+
 });
