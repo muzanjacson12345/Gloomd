@@ -119,4 +119,54 @@ describe("procedural world generation", () => {
     expect(worldModule.isWalkable(world, location.x, location.y)).toBe(false);
   });
 
+
+  it("prefers the exact requested walkable starting tile", async () => {
+    const modulePath = "../../src/core/world-generation.ts";
+    const worldModule = await import(/* @vite-ignore */ modulePath).catch(() => null);
+
+    expect(typeof worldModule?.findNearestWalkablePoint).toBe("function");
+    if (typeof worldModule?.findNearestWalkablePoint !== "function") return;
+
+    const world = worldModule.createWorld(17, { width: 16, height: 16 });
+    const target = { x: 4, y: 4 };
+    world.tiles[target.y]![target.x]!.walkable = true;
+    expect(worldModule.findNearestWalkablePoint(world, target)).toEqual(target);
+  });
+
+  it("snaps a blocked start point to the nearest walkable tile with stable row-major ties", async () => {
+    const modulePath = "../../src/core/world-generation.ts";
+    const worldModule = await import(/* @vite-ignore */ modulePath).catch(() => null);
+
+    expect(typeof worldModule?.findNearestWalkablePoint).toBe("function");
+    if (typeof worldModule?.findNearestWalkablePoint !== "function") return;
+
+    const world = worldModule.createWorld(18, { width: 16, height: 16 });
+    for (const row of world.tiles) {
+      for (const tile of row) tile.walkable = false;
+    }
+    world.stockpile.x = 15;
+    world.stockpile.y = 15;
+    world.tiles[5]![4]!.walkable = true;
+    world.tiles[4]![5]!.walkable = true;
+
+    expect(worldModule.findNearestWalkablePoint(world, { x: 5, y: 5 })).toEqual({ x: 5, y: 4 });
+  });
+
+  it("returns null when a generated world has no walkable starting tile", async () => {
+    const modulePath = "../../src/core/world-generation.ts";
+    const worldModule = await import(/* @vite-ignore */ modulePath).catch(() => null);
+
+    expect(typeof worldModule?.findNearestWalkablePoint).toBe("function");
+    if (typeof worldModule?.findNearestWalkablePoint !== "function") return;
+
+    const world = worldModule.createWorld(19, { width: 16, height: 16 });
+    for (const row of world.tiles) {
+      for (const tile of row) tile.walkable = false;
+    }
+    world.stockpile.x = 15;
+    world.stockpile.y = 15;
+
+    expect(worldModule.findNearestWalkablePoint(world, { x: 5, y: 5 })).toBeNull();
+  });
+
 });
