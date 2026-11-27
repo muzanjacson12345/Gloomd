@@ -1,5 +1,33 @@
+import type { Agent, GridPoint } from "../core/types";
 import type { Camera, ScreenPoint, ViewportSize } from "../render/camera";
 import { panCamera, zoomAt } from "../render/camera";
+
+/** Returns the closest living agent whose centre falls within the pick radius. */
+export function findAgentAtWorldPoint(
+  agents: readonly Agent[],
+  point: GridPoint,
+  radius: number
+): Agent | null {
+  if (!Number.isFinite(radius) || radius < 0) return null;
+
+  const radiusSquared = radius * radius;
+  let nearest: Agent | null = null;
+  let nearestDistance = radiusSquared;
+
+  for (const agent of agents) {
+    if (!agent.alive) continue;
+    const dx = agent.x + 0.5 - point.x;
+    const dy = agent.y + 0.5 - point.y;
+    const distanceSquared = dx * dx + dy * dy;
+
+    if (distanceSquared <= radiusSquared && (nearest === null || distanceSquared < nearestDistance)) {
+      nearest = agent;
+      nearestDistance = distanceSquared;
+    }
+  }
+
+  return nearest;
+}
 
 export interface MapInputHandlers {
   onSelect(point: ScreenPoint): void;
