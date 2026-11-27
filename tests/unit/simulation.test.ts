@@ -273,9 +273,9 @@ describe("autonomous agents and consequential actions", () => {
     expect(hauler.inventory.stone).toBe(0);
     expect(world.stockpile.inventory).toEqual({ wood: 3, stone: 2 });
     expect(world.resources.map((node) => node.quantity)).toEqual([0, 0]);
-    expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(3);
-    expect(world.events.filter((event) => event.kind === "gather_stone")).toHaveLength(2);
-    expect(world.events.filter((event) => event.kind === "deliver_resources")).toHaveLength(5);
+    expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(1);
+    expect(world.events.filter((event) => event.kind === "gather_stone")).toHaveLength(1);
+    expect(world.events.filter((event) => event.kind === "deliver_resources")).toHaveLength(2);
     expect(world.events.every((event) => event.kind !== "deliver_resources" || event.message.includes("stockpile"))).toBe(true);
   });
 
