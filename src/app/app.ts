@@ -45,6 +45,7 @@ export function startApp(root: HTMLElement): void {
   let speed = 1;
   let selectedAgentId: string | null = null;
   let followingAgent = false;
+  const layers = { terrain: true, resources: true, agents: true };
   let previousFrameTime: number | null = null;
   let lastEventCount = -1;
 
@@ -53,9 +54,7 @@ export function startApp(root: HTMLElement): void {
 
   const drawMap = (): void => {
     renderer.render(world, camera, context, viewport, {
-      terrain: true,
-      resources: true,
-      agents: true,
+      ...layers,
       selectedAgentId
     });
   };
@@ -133,6 +132,16 @@ export function startApp(root: HTMLElement): void {
     camera.zoom = initialZoom;
     refreshView();
   });
+  for (const button of shell.layerButtons) {
+    button.addEventListener("click", () => {
+      const layer = button.dataset.layer;
+      if (layer !== "terrain" && layer !== "resources" && layer !== "agents") return;
+      layers[layer] = !layers[layer];
+      button.classList.toggle("is-active", layers[layer]);
+      button.setAttribute("aria-pressed", String(layers[layer]));
+      drawMap();
+    });
+  }
   shell.closeInspectorButton.addEventListener("click", () => {
     selectedAgentId = null;
     followingAgent = false;
