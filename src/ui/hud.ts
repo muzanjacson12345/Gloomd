@@ -21,13 +21,13 @@ export function updateHud(shell: AppShell, world: WorldState, playing: boolean, 
       if (resource.quantity > 0) sum[resource.kind] += resource.quantity;
       return sum;
     },
-    { wild_food: 0, wood: 0, stone: 0 }
+    { wild_food: 0, fish: 0, wood: 0, stone: 0 }
   );
   shell.worldTime.textContent = formatWorldTime(world.tick);
   shell.population.textContent = population.toString().padStart(2, "0");
   shell.deathCount.textContent = deaths.toString().padStart(2, "0");
   shell.homeCount.textContent = completedHomes.toString().padStart(2, "0");
-  shell.resourceSummary.textContent = `FOOD ${totals.wild_food} · WOOD ${totals.wood} · STONE ${totals.stone}`;
+  shell.resourceSummary.textContent = `FOOD ${totals.wild_food} · FISH ${totals.fish} · WOOD ${totals.wood} · STONE ${totals.stone}`;
   shell.stockpileSummary.textContent = `WOOD ${world.stockpile.inventory.wood} · STONE ${world.stockpile.inventory.stone}`;
   shell.zoomLevel.textContent = `${zoom.toFixed(1)}×`;
   shell.playButton.textContent = playing ? "Ⅱ  PAUSE" : "▶  RESUME";
