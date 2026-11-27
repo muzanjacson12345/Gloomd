@@ -1,0 +1,197 @@
+# GLOOMD — project roadmap and durable decisions
+
+**Last reviewed:** 2026-11-27  
+**Status:** Living project plan; update as milestones are delivered.  
+**Main repository:** https://github.com/muzanjacson12345/Gloomd  
+**Live site:** https://muzanjacson12345.github.io/Gloomd/
+
+This file exists so future sessions do not forget the user's approved direction. Read it before proposing changes. The current code and tests determine what is actually implemented; this roadmap describes the intended future.
+
+## Product vision
+
+Build a believable artificial civilization that can be watched at world, settlement and individual scale. The user is an observer of an autonomous world. The world should change because agents act within it: they find resources, travel, gather, carry, eat, build, cooperate, exhaust local supplies, adapt, migrate and establish new settlements.
+
+The visual style should take strong inspiration from the compact, map-first presentation of @AgentArenaAI: restrained top-down 2D geography, small readable agents and structures, a large uninterrupted map, meaningful movement, and only enough interface to understand what is happening. Keep the simulation much deeper than the graphics suggest.
+
+## User-approved experience
+
+### Map and observation
+
+- Full-window top-down 2D map is the main experience.
+- Smooth pan and zoom; no dashboard-first layout or small map in a giant panel.
+- World zoom: geography, resource regions, camps and population clusters.
+- Settlement zoom: buildings, paths, groups, local resources and work activity.
+- Close zoom: individual NPCs, smooth movement, carrying, gathering, working and resting.
+- Camera controls should include fit-world, focus-settlement, focus-agent and follow-agent.
+- Offer a hide-interface/cinematic observation mode. It should hide panels while leaving an easy way to restore them.
+- Provide a small minimap with the current camera rectangle and click-to-jump navigation.
+- Keep a compact event ticker for important actual world events.
+- Map layers should be optional and should remember their preferences.
+
+### Movement and selection
+
+- NPCs must visibly travel between tile centres; do not teleport from tile to tile.
+- Keep grid pathfinding/collision as the authoritative movement system. Interpolate the visual position between grid steps.
+- Walking, carrying a load, working and resting should have recognisable but lightweight animation. Carrying weight, fatigue and difficult terrain may slow movement.
+- Smooth visuals must not allow an NPC to cross blocked tiles, collect resources before arrival or bypass world rules.
+- Default map interaction is OBSERVE: clicking selects/inspects one NPC; dragging pans the camera.
+- Group selection is a separate, explicit SELECT PEOPLE mode, activated by a visible button. In that mode, dragging a rectangle selects all living NPCs in the area. Escape or toggling the button exits selection mode. Normal clicks and camera panning must not be accidentally hijacked.
+- Support individual, multiple-agent and selected-area observation. An area selection can be used to inspect the people and activities contained in that area.
+- Optional overlays, filterable by selected NPCs, group, area, settlement or all NPCs:
+  - planned route to current destination;
+  - recent travel trail;
+  - vision / line of sight;
+  - current destination/target;
+  - work/activity area;
+  - later settlement boundaries and territories.
+- Distinguish actual line-of-sight from the larger radius used to search for resources. Obstacles should block vision when that system is implemented.
+- Overlay layers should be disabled by default unless the user enables them. Avoid drawing every agent's path at once.
+
+### Survival and ecology
+
+- Hunger, thirst, energy, health, exposure and shelter should have real consequences.
+- Starvation/dehydration should damage health over time and can eventually cause death; death must have a recorded cause.
+- Age should advance. Birth and population growth should only occur when social conditions and resources support it.
+- Resources exist at locations and have actual quantities.
+- Forests should be reduced by harvesting and recover through slow regrowth. Wood must not simply reappear immediately.
+- Wild food/plants are seasonal or habitat-dependent.
+- Fish populations and wildlife herds should reproduce, migrate and decline under overharvesting.
+- Stone, clay and ores are finite deposits.
+- Seasons, weather, soil, moisture and climate should influence production and travel.
+- Local depletion should force longer journeys, changing jobs, trade, migration or settlement splits.
+
+### Economy and work
+
+Every resource should follow a real lifecycle:
+
+**Natural source → harvesting → carrying → storage → processing → production → consumption or construction.**
+
+Planned systems include:
+- farming, planting, crop growth, harvesting and storage;
+- hunting and fishing with real populations;
+- cooking and food preservation/spoilage;
+- wood processing, planks, tools, clay processing and crafting;
+- carrying capacities, transport time and multiple stockpiles;
+- storage capacity, food spoilage and stock management;
+- trading between people and settlements;
+- tools that wear out and improve productivity.
+
+Jobs should not be arbitrary permanent labels. Agents should develop skills through experience and adapt work when the settlement needs something different.
+
+### Social life and civilization
+
+Build progressively toward:
+- individual memory grounded in observed events;
+- relationships, families and households;
+- cooperation, food sharing, teaching and communication;
+- migration, camp founding and settlement splits;
+- trade, leadership, shared rules and conflict;
+- technology, traditions and culture.
+
+These should emerge from needs, knowledge, geography, resource pressure and relationships. Do not simulate social complexity with fake labels or scripted events disconnected from world state.
+
+## Technical constraints and architecture
+
+- TypeScript + Vite, with native Canvas 2D as the current renderer.
+- Browser executes the simulation locally. GitHub Pages only serves static files.
+- No continuously running external server, paid AI/API, paid database or cloud simulation worker.
+- Simulation advances only while app is open/active. No offline catch-up.
+- Separate fixed simulation time from visual frame rendering.
+- Save/load/autosave should use versioned browser-local storage (IndexedDB recommended) and validated portable export/import.
+- Offline-first PWA should cache the app after first successful online visit.
+- Render only visible map regions; use zoom-based detail, simple sprites and bounded overlays.
+- Start with 30–50 meaningful agents. Increase toward 100–200 only after measurements on the user's actual PC. Never promise millions without benchmark evidence.
+- No external remote assets required for normal play.
+
+## Current implementation baseline (verified by source audit on 2026-11-27)
+
+Already implemented:
+- deterministic seeded terrain generation and configurable map sizes;
+- coast, ocean, freshwater, lakes, rivers, grassland, forests, hills and mountains;
+- four-direction grid pathfinding and blocked terrain/buildings;
+- agents with hunger, thirst, energy, health, traits, inventories and simple roles;
+- wild food gathering/eating, freshwater drinking and resting;
+- finite wood/stone resource nodes and regenerating wild-food nodes;
+- haulers that physically gather wood/stone and deliver them to one communal stockpile;
+- one shelter recipe (5 wood + 2 stone) and construction work over 12 ticks;
+- full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
+- terrain/resource/people/buildings/stockpile layers;
+- individual NPC click/inspector, follow mode and live activity roster;
+- pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;
+- GitHub Pages static hosting.
+
+Not yet implemented:
+- movement interpolation or walk/carry/work animations (agents currently jump between integer tile coordinates);
+- multi-agent rectangle selection and explicit selection mode;
+- route, movement-history, target, work-area or line-of-sight overlays;
+- true line-of-sight (existing perceptionRadius is used for local target search);
+- minimap, cinematic/hide-UI mode, world-fit and settlement-focus shortcuts;
+- food/water-caused health deterioration, ageing, birth and death;
+- forests as tree populations, fish and wildlife populations;
+- fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
+- adaptive jobs/skills, memories, relationships, families, communication or social learning;
+- multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture;
+- full local save/load/autosave/export/import;
+- PWA offline caching.
+
+## Development order
+
+### Stage 1 — observer experience and movement
+1. Smooth interpolated movement while keeping pathfinding and collision authoritative.
+2. Button-activated rectangle selection, multi-agent inspection and Escape to leave selection mode.
+3. Selective overlays: routes, trails, destination markers and vision.
+4. Minimap, fit-world/focus controls and cinematic hide-UI mode.
+5. Test at 1x/2x/4x and ensure animation does not skip or desynchronise when multiple simulation ticks run in one display frame.
+
+**Acceptance:** the user can watch a villager walk continuously between tiles; select one or a group without interfering with normal panning; switch overlays on/off; inspect routes and vision; navigate between whole-world and local views; hide the UI.
+
+### Stage 2 — reliable world persistence
+1. Versioned save model and round-trip tests.
+2. IndexedDB local saves, autosave and named save slots.
+3. Export/import portable world file with validation and size limits.
+4. Restore all state exactly; never advance simulation while closed.
+5. PWA shell caching and safe update behaviour.
+
+**Acceptance:** close/reopen the app and restore the same world, time, map, agents, inventories, buildings, resource quantities, events, camera preferences and settings. Export/import reproduces the same world.
+
+### Stage 3 — survival pressure and resource ecology
+1. Daily/time-based food and water consumption.
+2. Health deterioration and death from prolonged deprivation, with cause-of-death history.
+3. Resource accounting across nature, carried loads, stockpiles, consumption and waste.
+4. Trees/forests, wild plants, fish and wildlife populations with finite harvest and ecological regeneration.
+5. Seasonal/weather influence and local resource depletion.
+
+**Acceptance:** controlled tests prove that empty settlements deteriorate, agents can die for understandable reasons, overharvesting affects local resources, and natural regeneration is slow and habitat-dependent rather than a fixed instant reset.
+
+### Stage 4 — jobs, logistics and production chains
+1. Goal selection and adaptive job allocation.
+2. Farming, fishing and hunting.
+3. Food storage, cooking, spoilage and preservation.
+4. Crafting and tool durability.
+5. Multiple stockpiles, transport routes and storage capacity.
+
+**Acceptance:** every input/output can be accounted for; production only occurs with materials and labour; the settlement's work priorities respond to shortages.
+
+### Stage 5 — society and emergent settlements
+1. Experience-based skills and personal memory.
+2. Relationships, households, families and cooperation.
+3. Information sharing, teaching and trade.
+4. New camps, migration and settlement splits.
+5. Leadership, collective rules, conflict, technology and culture.
+
+**Acceptance:** scenarios with resource pressure can produce believable adaptation, cooperation or migration without hard-coded outcomes.
+
+### Stage 6 — performance, balancing and release quality
+1. Measure frame rate, simulation ticks per second, memory and input latency.
+2. Optimise using spatial indexing, update scheduling, culling and level-of-detail.
+3. Benchmark on the user's modest PC.
+4. Tune resource rates, need rates, population and production cycles.
+5. Test saves, offline operation, browser resize, pause and high simulation speed.
+
+## Development protocol
+
+- Keep this roadmap current and record major decisions in Git.
+- Before each new feature, inspect the code and relevant design spec.
+- Write tests before implementation for simulation logic, movement, selection, overlays and persistence.
+- Only describe features as implemented when code and tests demonstrate them.
+- When research is incomplete, label assumptions and recommendations instead of pretending they were verified.
