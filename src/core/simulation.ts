@@ -64,37 +64,105 @@ function nearestFood(world: WorldState, agent: Agent): Target | null {
   return best;
 }
 
-function nearestFreshwaterBank(world: WorldState, agent: Agent): Target | null {
-  let best: Target | null = null;
-  const offsets: readonly GridPoint[] = [
+/**
+ * Finds the shortest walkable route to a tile beside freshwater.
+ * The search is local to the agent's perception radius and visits each
+ * reachable tile at most once.
+ */
+export function findNearestFreshwaterBank(
+  world: WorldState,
+  start: GridPoint,
+  perceptionRadius: number
+): GridPoint[] | null {
+  if (
+    !Number.isInteger(start.x) ||
+    !Number.isInteger(start.y) ||
+    start.x < 0 ||
+    start.y < 0 ||
+    start.x >= world.width ||
+    start.y >= world.height ||
+    !Number.isFinite(perceptionRadius) ||
+    perceptionRadius < 0 ||
+    !world.tiles[start.y]?.[start.x]?.walkable
+  ) {
+    return null;
+  }
+
+  const startIndex = start.y * world.width + start.x;
+  const queue: number[] = [startIndex];
+  const parents = new Map<number, number | null>([[startIndex, null]]);
+  const directions: readonly GridPoint[] = [
     { x: 1, y: 0 },
     { x: 0, y: 1 },
     { x: -1, y: 0 },
     { x: 0, y: -1 }
   ];
 
-  for (let y = 0; y < world.height; y += 1) {
-    for (let x = 0; x < world.width; x += 1) {
-      if (world.tiles[y]?.[x]?.waterKind !== "freshwater") continue;
+  for (let head = 0; head < queue.length; head += 1) {
+    const currentIndex = queue[head];
+    if (currentIndex === undefined) continue;
 
-      const water = { x, y };
-      if (distance(agent, water) > agent.perceptionRadius) continue;
+    const x = currentIndex % world.width;
+    const y = Math.floor(currentIndex / world.width);
 
-      for (const offset of offsets) {
-        const bank = { x: x + offset.x, y: y + offset.y };
-        if (!world.tiles[bank.y]?.[bank.x]?.walkable) continue;
+    // A water tile is a target, never a node that the agent can enter.
+    for (const direction of directions) {
+      const waterX = x + direction.x;
+      const waterY = y + direction.y;
+      const waterDistance =
+        Math.abs(waterX - start.x) + Math.abs(waterY - start.y);
 
-        const path = findPath(world, agent, bank);
-        if (path === null) continue;
+      if (
+        waterDistance <= perceptionRadius &&
+        world.tiles[waterY]?.[waterX]?.waterKind === "freshwater"
+      ) {
+        const path: GridPoint[] = [];
+        let cursor = currentIndex;
 
-        if (!best || path.length < best.path.length) {
-          best = { point: bank, path };
+        while (cursor !== startIndex) {
+          path.push({
+            x: cursor % world.width,
+            y: Math.floor(cursor / world.width)
+          });
+          const parent = parents.get(cursor);
+          if (parent === undefined || parent === null) return null;
+          cursor = parent;
         }
+
+        path.reverse();
+        return path;
       }
+    }
+
+    for (const direction of directions) {
+      const nextX = x + direction.x;
+      const nextY = y + direction.y;
+      if (
+        Math.abs(nextX - start.x) + Math.abs(nextY - start.y) > perceptionRadius ||
+        !world.tiles[nextY]?.[nextX]?.walkable
+      ) {
+        continue;
+      }
+
+      const nextIndex = nextY * world.width + nextX;
+      if (parents.has(nextIndex)) continue;
+
+      parents.set(nextIndex, currentIndex);
+      queue.push(nextIndex);
     }
   }
 
-  return best;
+  return null;
+}
+
+function nearestFreshwaterBank(world: WorldState, agent: Agent): Target | null {
+  const path = findNearestFreshwaterBank(world, agent, agent.perceptionRadius);
+  if (path === null) return null;
+
+  return {
+    point: path.at(-1) ?? { x: agent.x, y: agent.y },
+    path
+  };
 }
 
 function moveToward(world: WorldState, agent: Agent, target: Target): boolean {
