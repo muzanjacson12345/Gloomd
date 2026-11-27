@@ -723,12 +723,25 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
 
     for (const resource of world.resources) {
       if (
-        resource.regrowEveryTicks !== null &&
-        resource.regrowEveryTicks > 0 &&
-        world.tick % resource.regrowEveryTicks === 0 &&
-        resource.quantity < resource.maxQuantity
+        resource.regrowEveryTicks === null ||
+        resource.regrowEveryTicks <= 0 ||
+        resource.quantity >= resource.maxQuantity
       ) {
-        resource.quantity += 1;
+        continue;
+      }
+
+      // Older saves and depleted test fixtures without a scheduled recovery
+      // start a fresh interval; a patch never regrows immediately on load.
+      if (resource.nextRegrowTick === undefined || resource.nextRegrowTick === null) {
+        resource.nextRegrowTick = world.tick + resource.regrowEveryTicks;
+        continue;
+      }
+
+      if (world.tick >= resource.nextRegrowTick) {
+        resource.quantity = Math.min(resource.maxQuantity, resource.quantity + 1);
+        resource.nextRegrowTick = resource.quantity < resource.maxQuantity
+          ? world.tick + resource.regrowEveryTicks
+          : null;
       }
     }
 
