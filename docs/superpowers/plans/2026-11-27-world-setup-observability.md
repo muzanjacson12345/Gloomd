@@ -128,27 +128,27 @@
 - The roster refreshes every four simulation ticks (one simulated second).
 - Clicking a roster row selects the person, centres the camera on them and shows the detailed inspector; closing the inspector restores the roster.
 
-- [ ] **Step 1: Add failing activity-label tests**
+- [x] **Step 1: Add failing activity-label tests**
   - Cover all goal values, including food search/gather/eat, water search/drink, rest, explore, wood/stone hauling and construction.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
   - Expected: the shared formatter is missing.
 
-- [ ] **Step 3: Implement shared activity labels and roster**
+- [x] **Step 3: Implement shared activity labels and roster**
   - Reuse the formatter in the inspector.
   - Add live activity rows and alive/role counts to the app shell.
   - Keep all inhabitants visible in a scrollable panel; do not replace the roster with a last-events feed.
 
-- [ ] **Step 4: Add startup diagnostics**
+- [x] **Step 4: Add startup diagnostics**
   - Use a relative module entry path.
   - Catch synchronous entry/startup errors and show readable text safely.
   - Add a 12-second watchdog in the HTML shell so a module that never starts produces a visible failure message.
 
-- [ ] **Step 5: Verify GREEN**
+- [x] **Step 5: Verify GREEN**
   - Run all tests, typecheck and build.
   - Verify CI and Pages deployment for the final commit.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - Commit as `feat: show live inhabitant activity and startup errors`.
 
 ### Task 4: Documentation and final review
@@ -157,7 +157,7 @@
 - Modify: `README.md`
 - Modify: this plan and its progress ledger.
 
-- [ ] Update controls and describe the population slider, preview selection, roster, zoom and unsaved-world limitation.
+- [x] Update controls and describe the population slider, preview selection, roster, zoom and unsaved-world limitation.
 - [ ] Run final CI and verify the Pages deployment points at the final `main` commit.
 - [ ] Review the full change against the spec. With no independent reviewer available, record a separate author self-review and disclose that limitation.
 - [ ] Mark completed plan steps and update the progress ledger.
