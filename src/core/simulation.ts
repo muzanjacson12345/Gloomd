@@ -1,5 +1,6 @@
 import { createRandom } from "./random";
 import { takeResource } from "./resources";
+import { depositToStockpile, withdrawMaterialBundle } from "./stockpile";
 import { findPath, isWalkableTile } from "./pathfinding";
 import type {
   Agent,
@@ -15,8 +16,7 @@ const NEED_THRESHOLD = 65;
 const FOOD_RESTORE = 35;
 const WATER_RESTORE = 45;
 const RESTORE_ENERGY = 20;
-const SHELTER_WOOD_COST = 5;
-const SHELTER_STONE_COST = 2;
+const SHELTER_MATERIALS = { wood: 5, stone: 2 } as const;
 const SHELTER_WORK_TICKS = 12;
 const MAX_STORED_EVENTS = 120;
 
@@ -211,7 +211,26 @@ function explore(world: WorldState, agent: Agent, random: ReturnType<typeof crea
   agent.needs.energy = Math.max(0, agent.needs.energy - 0.5);
 }
 
-function gatherBuilderMaterial(
+function committedMaterialCount(world: WorldState, kind: "wood" | "stone"): number {
+  return world.stockpile.inventory[kind] + world.agents.reduce(
+    (total, agent) => total + (agent.alive ? agent.inventory[kind] : 0),
+    0
+  );
+}
+
+/** Maintain the 5 wood : 2 stone shelter recipe across stored and carried materials. */
+function materialNeededBySettlement(world: WorldState): "wood" | "stone" | null {
+  const wood = committedMaterialCount(world, "wood");
+  const stone = committedMaterialCount(world, "stone");
+  const capacity = world.stockpile.capacityPerResource;
+
+  if (wood >= capacity && stone >= capacity) return null;
+  if (wood >= capacity) return "stone";
+  if (stone >= capacity) return "wood";
+  return wood * 2 <= stone * 5 ? "wood" : "stone";
+}
+
+function gatherHaulerMaterial(
   world: WorldState,
   agent: Agent,
   kind: "wood" | "stone",
@@ -235,14 +254,74 @@ function gatherBuilderMaterial(
   }
 
   agent.inventory[kind] += gathered;
-  const eventKind = kind === "wood" ? "gather_wood" : "gather_stone";
   emit(
     world,
     emitted,
     agent,
-    eventKind,
-    `${agent.name} gathered ${gathered} ${kind}.`
+    kind === "wood" ? "gather_wood" : "gather_stone",
+    `${agent.name} gathered ${gathered} ${kind} for the settlement.`
   );
+}
+
+function nearestStockpileAccess(world: WorldState, agent: Agent): Target | null {
+  const store = world.stockpile;
+  // Fixed order gives stable tie-breaking for adjacent delivery tiles.
+  const accessTiles: readonly GridPoint[] = [
+    { x: store.x + 1, y: store.y },
+    { x: store.x, y: store.y + 1 },
+    { x: store.x - 1, y: store.y },
+    { x: store.x, y: store.y - 1 }
+  ];
+  let best: Target | null = null;
+
+  for (const point of accessTiles) {
+    if (!isWalkableTile(world, point)) continue;
+    const path = findPath(world, agent, point);
+    if (path === null) continue;
+    if (!best || path.length < best.path.length) {
+      best = { point, path };
+    }
+  }
+
+  return best;
+}
+
+function deliverCarriedMaterials(
+  world: WorldState,
+  agent: Agent,
+  random: ReturnType<typeof createRandom>,
+  emitted: WorldEvent[]
+): void {
+  if (agent.inventory.wood <= 0 && agent.inventory.stone <= 0) return;
+
+  const target = nearestStockpileAccess(world, agent);
+  if (!target) {
+    agent.currentGoal = "explore";
+    explore(world, agent, random);
+    return;
+  }
+
+  agent.currentGoal = "deliver_resources";
+  if (!moveToward(world, agent, target)) return;
+
+  const wood = depositToStockpile(world, "wood", agent.inventory.wood);
+  const stone = depositToStockpile(world, "stone", agent.inventory.stone);
+  agent.inventory.wood -= wood;
+  agent.inventory.stone -= stone;
+
+  if (wood > 0 || stone > 0) {
+    const details = [
+      ...(wood > 0 ? [`${wood} wood`] : []),
+      ...(stone > 0 ? [`${stone} stone`] : [])
+    ].join(" and ");
+    emit(
+      world,
+      emitted,
+      agent,
+      "deliver_resources",
+      `${agent.name} delivered ${details} to the communal stockpile.`
+    );
+  }
 }
 
 function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
@@ -280,17 +359,12 @@ function startShelter(
   agent: Agent,
   emitted: WorldEvent[]
 ): boolean {
-  if (
-    agent.homeId !== null ||
-    agent.buildingId !== null ||
-    agent.inventory.wood < SHELTER_WOOD_COST ||
-    agent.inventory.stone < SHELTER_STONE_COST
-  ) {
+  if (agent.homeId !== null || agent.buildingId !== null) {
     return false;
   }
 
   const point = findShelterSite(world, agent);
-  if (!point) return false;
+  if (!point || !withdrawMaterialBundle(world, SHELTER_MATERIALS)) return false;
 
   const building: Building = {
     id: `shelter-${agent.id}`,
@@ -303,9 +377,7 @@ function startShelter(
     builderId: agent.id
   };
 
-  // Materials are deducted only after a safe site has been found.
-  agent.inventory.wood -= SHELTER_WOOD_COST;
-  agent.inventory.stone -= SHELTER_STONE_COST;
+  // The shared material bundle is withdrawn atomically after a safe site is found.
   agent.buildingId = building.id;
   agent.currentGoal = "build_shelter";
   world.buildings.push(building);
@@ -460,6 +532,12 @@ function stepAgent(
     return;
   }
 
+  // Any carried building material must be delivered before another resource job.
+  if (agent.inventory.wood > 0 || agent.inventory.stone > 0) {
+    deliverCarriedMaterials(world, agent, random, emitted);
+    return;
+  }
+
   if (agent.role === "builder") {
     const currentProject = world.buildings.find(
       (building) => building.id === agent.buildingId
@@ -478,22 +556,24 @@ function stepAgent(
     }
 
     if (agent.homeId === null) {
-      if (agent.inventory.wood < SHELTER_WOOD_COST) {
-        gatherBuilderMaterial(world, agent, "wood", random, emitted);
-        return;
-      }
-
-      if (agent.inventory.stone < SHELTER_STONE_COST) {
-        gatherBuilderMaterial(world, agent, "stone", random, emitted);
-        return;
-      }
-
       if (!startShelter(world, agent, emitted)) {
         agent.currentGoal = "explore";
         explore(world, agent, random);
       }
       return;
     }
+  }
+
+  if (agent.role === "hauler") {
+    const material = materialNeededBySettlement(world);
+    if (!material) {
+      agent.currentGoal = "explore";
+      explore(world, agent, random);
+      return;
+    }
+
+    gatherHaulerMaterial(world, agent, material, random, emitted);
+    return;
   }
 
   agent.currentGoal = "explore";
