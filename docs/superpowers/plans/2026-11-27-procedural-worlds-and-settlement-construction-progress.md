@@ -15,3 +15,13 @@ No independent reviewer or live browser test is available; final review must be 
 
 Verification: final functional CI run 46073661231 passed — 104 tests across 18 files, strict TypeScript check and production build. Pages deploy run 46073661271 is being verified against final main after documentation update.
 Author self-review: source reviewed for seeded deterministic generation, lakes/ocean component classification, river walkability, 65,536-tile bounds, stockpile relocation, spawn exclusion, bundle capacity accounting, recipe balance, survival priority and builder status labels. Generator uses multiple deterministic value-noise octaves and BFS/flood fill; max world size is 49,152 tiles. No independent reviewer/subagent tool or live browser UI test was available.
+
+## Final verification
+
+- Random terrain, separate inland water components, water-coverage control, map presets, seed reproducibility and tile budget are covered by unit tests.
+- Construction tests prove a builder/hauler pair completes a shelter from an initially empty stockpile. Hauler bundles are capped at three and exact recipe remainder; survival interruption tests remain green.
+- CI: 105 tests / 18 files, strict TypeScript check, production build: all passed (run 46073880504).
+- Pages: deployment succeeded for commit 82c128cdcba4d748bbaa3956faad640e0505aa36 (run 46073880419).
+- Downloaded Pages artifact 15234760397 and inspected its internal tar: a single index.html with an inline module script and stylesheet, no external JavaScript/CSS references; map-size and water controls are present.
+- Author self-review only; no independent reviewer/subagent or live visual browser test was available. Manual code review covered seeded generation, random lakes/ocean classification, river paths, map-size budget, stockpile relocation, spawn placement, hauling accounting, builder statuses, UI settings and the existing inline-assets deployment step.
+- Limitations remain: shelters are the only construction type; food is still personal; no saving/loading/autosave; population remains capped at 30 pending performance tests.
