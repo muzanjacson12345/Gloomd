@@ -47,4 +47,16 @@
 - Task 1: complete.
 - Task 2: complete.
 - Task 3: complete.
-- Task 4: next — camera math, visible bounds and read-only Canvas 2D renderer.
+## Task 4: complete
+- RED evidence: CI runs #24–#26 (46061103420, 46061107338, 46061184241) failed while camera/geometry modules were being introduced; run #29 (46061303650) exposed an incomplete Canvas test double, and run #30 (46061344577) caught the geometry import being introduced after the renderer test.
+- Implementation: camera state supports pan and pointer-anchored zoom; geometry converts between world/screen coordinates and culls visible tile bounds; high-DPI backing-store scale is capped at 2; Canvas 2D renderer draws visible terrain, resources and agent silhouettes/clusters without mutating world state.
+- Debugging: the renderer test double was corrected to include canvas backing dimensions and transforms. No production behavior was weakened.
+- GREEN evidence: camera/geometry CI run #27 (46061187760) completed successfully. Latest full CI run #31 (46061356462) completed successfully at commit 948507f03c03c1ed604ce3cfd835ae69a5746869; all 9 test files passed, strict TypeScript passed, and the Vite production build succeeded.
+- Task 4 result: read-only visible-area Canvas rendering and tested camera math are ready to connect to the browser app.
+
+## Current position
+- Task 1: complete.
+- Task 2: complete.
+- Task 3: complete.
+- Task 4: complete.
+- Task 5: next — full-window observer UI and fixed-step visibility-aware clock.
