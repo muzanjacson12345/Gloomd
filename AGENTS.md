@@ -26,7 +26,9 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 - Simulation state is authoritative. Rendering may interpolate visuals, but must not invent movement, resources or actions.
 - Grid pathfinding and collision remain authoritative even when visual movement is smooth.
 - All actions that gather, consume, carry, craft or build must update actual world quantities.
-- Save/load must preserve the complete simulation state. The first version is now in source; do not claim it is verified until fresh tests and browser checks pass.
+- Save/load must preserve the complete simulation state. Save format v1 and IndexedDB autosave are now in source; do not claim they are verified until fresh tests and browser checks pass.
+- The web-app manifest and offline service worker are now in source; do not claim offline behaviour is verified until tested after a successful first online visit.
+- Survival timers, starvation/dehydration damage, death records, inventory drops and local resource recovery timers are now in source; keep tuning evidence-based and test all state changes.
 
 ## Development rules
 
@@ -41,4 +43,4 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 
 ## Current development priority
 
-See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer and local-persistence features now have an initial implementation; verify them before extending them. The next simulation priority is survival and resource ecology, followed by production chains and emergent settlement behaviour.
+See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer, local persistence, PWA app shell and first survival/resource-pressure mechanics now have initial implementations; verify them before extending them. Next priorities are full ecology (trees, fish, wildlife), farming/fishing/hunting, production chains and emergent settlement behaviour.
