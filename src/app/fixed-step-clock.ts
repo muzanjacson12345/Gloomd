@@ -45,14 +45,10 @@ export class FixedStepClock {
       this.accumulatedMs + elapsedMs
     );
     let remaining = nextAccumulation - this.accumulatedMs;
-    this.accumulatedMs = nextAccumulation;
-
+    let offset = this.accumulatedMs;
     let steps = 0;
 
     // Walk through accepted frame time in chronological order.
-    // that accepted interval using the time already accumulated before this
-    // frame as the starting offset, invoking the visual callback between ticks.
-    let offset = this.accumulatedMs - remaining;
     while (remaining > 0) {
       const toNextTick = this.stepDurationMs - offset;
       const consumed = Math.min(remaining, toNextTick);
