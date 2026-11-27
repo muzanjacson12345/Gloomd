@@ -433,7 +433,8 @@ function drawAgentOverlays(
   const motion = layers.motion;
   if (layers.showVision) {
     for (const agent of selectedAgents) {
-      const key = `${world.tick}:${agent.x}:${agent.y}:${agent.sightRadius ?? 7}:${world.buildings.length}`;
+      const buildingSignature = world.buildings.map((building) => `${building.x},${building.y}`).join(";");
+      const key = `${agent.x}:${agent.y}:${agent.sightRadius ?? 7}:${buildingSignature}`;
       const cached = visibilityCache.get(agent.id);
       let visible = cached?.key === key ? cached.tiles : null;
       if (!visible) {
@@ -490,6 +491,9 @@ function drawAgentOverlays(
       context.setLineDash([0.22, 0.16]);
       context.beginPath();
       context.moveTo(startX, startY);
+      // The authoritative agent has already reserved the next grid tile.
+      // Draw through that tile centre so the visual route never cuts a corner.
+      context.lineTo(agent.x + 0.5, agent.y + 0.5);
       for (const point of agent.plannedPath) {
         context.lineTo(point.x + 0.5, point.y + 0.5);
       }
@@ -585,7 +589,7 @@ export class CanvasWorldRenderer {
     if (layers.selectedAgentId) selectedIds.add(layers.selectedAgentId);
     const selectedAgents = world.agents.filter((agent) => agent.alive && selectedIds.has(agent.id));
 
-    if (camera.zoom >= 2 && selectedAgents.length > 0) {
+    if (camera.zoom >= 2 && (selectedAgents.length > 0 || layers.selectionRect)) {
       drawAgentOverlays(context, world, selectedAgents, bounds, layers, this.visibilityCache);
     }
 
