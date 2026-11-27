@@ -520,10 +520,14 @@ function startWorld(
       lastAutosaveAt = timestamp;
       void saveCurrentWorld(false).catch(() => undefined);
     }
-    // Advance existing visual steps before recording new simulation steps so a newly
-    // enqueued move cannot consume time that elapsed before the decision was made.
-    motion.advance(elapsed * speed, active);
-    clock.advance(elapsed * speed, active, advanceOneTick);
+    // Advance existing visual steps using only simulation time accepted by the
+    // fixed-step clock, before this frame can enqueue newly decided tile moves.
+    clock.advance(
+      elapsed * speed,
+      active,
+      advanceOneTick,
+      (acceptedElapsed) => motion.advance(acceptedElapsed, active)
+    );
 
     const followed = followingAgentId
       ? world.agents.find((agent) => agent.id === followingAgentId && agent.alive)
