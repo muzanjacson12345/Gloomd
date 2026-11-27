@@ -11,6 +11,7 @@ interface MotionTrack {
   position: GridPoint;
   segments: MotionSegment[];
   trail: GridPoint[];
+  animationTimeMs: number;
 }
 
 /**
@@ -48,7 +49,8 @@ export class AgentMotionAnimator {
       track = {
         position: { ...from },
         segments: [],
-        trail: [{ ...from }]
+        trail: [{ ...from }],
+        animationTimeMs: 0
       };
       this.tracks.set(agentId, track);
     }
@@ -83,6 +85,7 @@ export class AgentMotionAnimator {
         const available = segment.durationMs - segment.elapsedMs;
         const consumed = Math.min(remaining, available);
         segment.elapsedMs += consumed;
+        track.animationTimeMs += consumed;
         remaining -= consumed;
 
         const progress = Math.min(1, segment.elapsedMs / segment.durationMs);
@@ -111,6 +114,16 @@ export class AgentMotionAnimator {
 
   getTrail(agentId: string): GridPoint[] {
     return (this.tracks.get(agentId)?.trail ?? []).map((point) => ({ ...point }));
+  }
+
+  isMoving(agentId: string): boolean {
+    return (this.tracks.get(agentId)?.segments.length ?? 0) > 0;
+  }
+
+  getWalkCycle(agentId: string): number {
+    const track = this.tracks.get(agentId);
+    if (!track || track.segments.length === 0) return 0;
+    return Math.sin(track.animationTimeMs / 65);
   }
 
   forget(agentId: string): void {
