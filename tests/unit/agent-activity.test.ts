@@ -1,0 +1,23 @@
+import { describe, expect, it } from "vitest";
+import { formatAgentGoal } from "../../src/ui/agent-activity";
+import type { AgentGoal } from "../../src/core/types";
+
+describe("readable inhabitant activity", () => {
+  const cases: readonly [AgentGoal, string][] = [
+    ["seek_food", "Searching for food"],
+    ["gather", "Gathering food"],
+    ["eat", "Eating"],
+    ["seek_water", "Finding water"],
+    ["drink", "Drinking"],
+    ["rest", "Resting"],
+    ["explore", "Exploring"],
+    ["gather_wood", "Gathering wood"],
+    ["gather_stone", "Gathering stone"],
+    ["deliver_resources", "Hauling to stockpile"],
+    ["build_shelter", "Building a shelter"]
+  ];
+
+  it.each(cases)("translates %s into a clear current activity", (goal, label) => {
+    expect(formatAgentGoal(goal)).toBe(label);
+  });
+});

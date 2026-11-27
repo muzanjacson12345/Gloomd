@@ -82,32 +82,32 @@
 - The same preview world and seed are used when Start is pressed.
 - The active world pauses while setup is open; an optional Back action returns to that same world.
 
-- [ ] **Step 1: Add failing tests**
+- [x] **Step 1: Add failing tests**
   - Test population clamping at 5 and 30, including non-integer inputs.
   - Test a visible start marker in the preview renderer when enabled and no marker when omitted.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
   - Expected: the population helper and starting-marker behavior are missing.
 
-- [ ] **Step 3: Implement the setup module**
+- [x] **Step 3: Implement the setup module**
   - Render a large terrain preview and click-to-select location.
   - Snap clicks to the nearest walkable location and show resulting map coordinates.
   - Add the 5–30 population slider (default 12), New Terrain and Start World controls.
   - Show a Back to Current World action only when there is an active in-memory world.
   - State clearly that starting a replacement world discards the current unsaved world.
 
-- [ ] **Step 4: Wire app lifecycle and camera**
+- [x] **Step 4: Wire app lifecycle and camera**
   - Initial load opens setup.
   - Start creates the selected population around the chosen point and focuses the camera at zoom 22.
   - Add a New World action in the live world UI.
   - Reset View returns to the original start area and initial zoom.
   - Back from setup resumes the existing in-memory world.
 
-- [ ] **Step 5: Verify GREEN**
+- [x] **Step 5: Verify GREEN**
   - Run all tests, typecheck and build.
   - Expected: all pass and no new runtime dependencies are added.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - Commit as `feat: add configurable world creation screen`.
 
 ### Task 3: Live population activity roster and startup failure diagnostics
