@@ -82,6 +82,9 @@ export function createStarterAgents(
       role,
       currentGoal: "explore",
       perceptionRadius: role === "hauler" ? 24 : 12,
+      sightRadius: 7,
+      destination: null,
+      plannedPath: [],
       alive: true,
       homeId: null,
       buildingId: null
