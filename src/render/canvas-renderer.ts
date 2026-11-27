@@ -1,4 +1,4 @@
-import type { Agent, Building, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
+import type { Agent, Building, GridPoint, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -9,6 +9,7 @@ export interface RenderLayers {
   agents?: boolean;
   buildings?: boolean;
   stockpile?: boolean;
+  startingPoint?: GridPoint;
   selectedAgentId?: string | null;
 }
 
@@ -348,6 +349,28 @@ function drawAgentClusters(
   }
 }
 
+
+function drawStartingPoint(
+  context: CanvasRenderingContext2D,
+  point: GridPoint,
+  bounds: WorldBounds
+): void {
+  if (!isInsideBounds(point.x, point.y, bounds)) return;
+
+  context.strokeStyle = "#f0d38e";
+  context.lineWidth = 0.1;
+  context.beginPath();
+  context.arc(point.x + 0.5, point.y + 0.5, 0.62, 0, Math.PI * 2);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(point.x + 0.5, point.y + 0.15);
+  context.lineTo(point.x + 0.5, point.y + 0.85);
+  context.moveTo(point.x + 0.15, point.y + 0.5);
+  context.lineTo(point.x + 0.85, point.y + 0.5);
+  context.stroke();
+}
+
 function drawAgents(
   context: CanvasRenderingContext2D,
   agents: readonly Agent[],
@@ -412,6 +435,10 @@ export class CanvasWorldRenderer {
 
     if (layers.stockpile !== false) {
       drawStockpile(context, world.stockpile, bounds, camera.zoom);
+    }
+
+    if (layers.startingPoint) {
+      drawStartingPoint(context, layers.startingPoint, bounds);
     }
 
     if (layers.agents !== false) {
