@@ -1,6 +1,11 @@
 import type { GridPoint } from "../core/types";
 import type { Camera, ScreenPoint, ViewportSize } from "./camera";
 
+/** Return the centre point of a grid tile for precise camera focus. */
+export function getTileCenter(point: GridPoint): GridPoint {
+  return { x: point.x + 0.5, y: point.y + 0.5 };
+}
+
 export interface WorldBounds {
   /** Inclusive left tile coordinate. */
   left: number;

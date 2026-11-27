@@ -7,7 +7,7 @@ import {
   setCameraCenter,
   zoomCamera
 } from "../render/camera";
-import { screenToWorld } from "../render/geometry";
+import { getTileCenter, screenToWorld } from "../render/geometry";
 import { attachMapInput, findAgentAtWorldPoint } from "../ui/map-input";
 import { createAppShell } from "../ui/app-shell";
 import { updateHud } from "../ui/hud";
@@ -35,10 +35,7 @@ function startWorld(
   });
   const initialZoom = 22;
   const camera = createCamera(world.width, world.height, initialZoom);
-  setCameraCenter(camera, {
-    x: startingPoint.x + 0.5,
-    y: startingPoint.y + 0.5
-  });
+  setCameraCenter(camera, getTileCenter(startingPoint));
   const renderer = new CanvasWorldRenderer();
   const context = shell.canvas.getContext("2d", { alpha: false });
 
@@ -154,7 +151,7 @@ function startWorld(
     updateReadouts();
   });
   shell.resetViewButton.addEventListener("click", () => {
-    setCameraCenter(camera, { x: world.width / 2, y: world.height / 2 });
+    setCameraCenter(camera, getTileCenter(startingPoint));
     camera.zoom = initialZoom;
     followingAgentId = null;
     draw();

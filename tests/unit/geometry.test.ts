@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createCamera } from "../../src/render/camera";
 import {
   getCappedPixelRatio,
+  getTileCenter,
   getVisibleWorldBounds,
   screenToWorld,
   worldToScreen

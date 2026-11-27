@@ -515,3 +515,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .activity-task { font-size: 8px; }
   .event-feed { left: 9px; right: auto; bottom: 76px; width: min(220px, calc(100vw - 18px)); padding: 9px 10px; }
 }
+
+
+@media (max-width: 760px) {
+  .top-hud { gap: 6px; }
+  .readout { min-width: 58px; padding: 0 5px; }
+  .world-readouts .readout:nth-child(n + 3) { display: none; }
+  .new-world-button { padding: 6px 5px; font-size: 6px; letter-spacing: .045em; }
+}
+@media (max-width: 420px) {
+  .brand-glyph { display: none; }
+  .brand-name { letter-spacing: .12em; }
+  .world-readouts .readout:nth-child(2) { min-width: 58px; }
+}
