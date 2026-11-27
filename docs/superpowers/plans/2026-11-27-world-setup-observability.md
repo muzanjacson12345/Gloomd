@@ -43,25 +43,25 @@
 - Produce `createStarterAgents(world: WorldState, count: number, options?: { center?: GridPoint }): Agent[]`.
 - When `center` is provided, shuffle a nearby candidate pool (up to four times the requested population, capped by all available tiles), ordered by distance then row-major coordinate. Without a centre, preserve the existing world-wide spawn behavior.
 
-- [ ] **Step 1: Add failing tests**
+- [x] **Step 1: Add failing tests**
   - Test exact walkable target preference.
   - Test snapping from an impassable target to the nearest walkable tile with stable row-major tie-breaking.
   - Test null when no walkable tile exists.
   - Test that a centred population gets the requested count, distinct IDs and distinct positions, and spawns near the requested centre.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
   - Run the focused world-generation and simulation tests in CI.
   - Expected: the new helper/API assertions fail because the helper and spawn options are not implemented.
 
-- [ ] **Step 3: Implement the helpers**
+- [x] **Step 3: Implement the helpers**
   - Add deterministic nearest-walkable selection.
   - Add the optional centre to starter-agent creation without changing role assignment or no-centre behavior.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
   - Run the full test suite, typecheck and production build.
   - Expected: all unit tests, strict typecheck and Vite build pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - Commit as `feat: support chosen settlement starting locations`.
 
 ### Task 2: Main world-creation screen and settlement-focused camera

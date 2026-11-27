@@ -187,4 +187,53 @@ describe("Canvas world renderer", () => {
     expect(world).toEqual(before);
   });
 
+  it("draws the selected starting-area marker only when one is provided", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    const calls = { arc: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {},
+      restore() {},
+      setTransform() {},
+      translate() {},
+      scale() {},
+      clearRect() {},
+      fillRect() {},
+      beginPath() {},
+      closePath() {},
+      moveTo() {},
+      lineTo() {},
+      arc() { calls.arc += 1; },
+      ellipse() {},
+      fill() {},
+      stroke() {},
+      strokeRect() {},
+      fillText() {},
+      setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 6);
+    const viewport = { width: 96, height: 96 };
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      buildings: false,
+      agents: false,
+      stockpile: false,
+      startingPoint: { x: 8, y: 8 }
+    });
+    expect(calls.arc).toBeGreaterThan(0);
+
+    calls.arc = 0;
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      buildings: false,
+      agents: false,
+      stockpile: false
+    });
+    expect(calls.arc).toBe(0);
+  });
+
 });
