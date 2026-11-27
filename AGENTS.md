@@ -26,7 +26,7 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 - Simulation state is authoritative. Rendering may interpolate visuals, but must not invent movement, resources or actions.
 - Grid pathfinding and collision remain authoritative even when visual movement is smooth.
 - All actions that gather, consume, carry, craft or build must update actual world quantities.
-- Save/load must eventually preserve the complete simulation state. Never claim it exists until implemented and tested.
+- Save/load must preserve the complete simulation state. The first version is now in source; do not claim it is verified until fresh tests and browser checks pass.
 
 ## Development rules
 
@@ -41,4 +41,4 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 
 ## Current development priority
 
-See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The immediate observer work is smooth visual NPC movement, safe button-activated rectangle selection, optional route/trail/vision overlays, clearer zoom levels, cinematic map viewing and a minimap. Then strengthen survival and resource ecology, production chains, and emergent settlement behaviour.
+See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer and local-persistence features now have an initial implementation; verify them before extending them. The next simulation priority is survival and resource ecology, followed by production chains and emergent settlement behaviour.
