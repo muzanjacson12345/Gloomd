@@ -10,6 +10,7 @@ export interface AppShell {
   activityCount: HTMLElement;
   worldTime: HTMLElement;
   population: HTMLElement;
+  deathCount: HTMLElement;
   resourceSummary: HTMLElement;
   stockpileSummary: HTMLElement;
   homeCount: HTMLElement;
@@ -58,6 +59,7 @@ export function createAppShell(root: HTMLElement): AppShell {
         <div class="world-readouts">
           <div class="readout"><span class="readout-label">WORLD TIME</span><strong id="world-time">DAY 01 · 06:00</strong></div>
           <div class="readout"><span class="readout-label">INHABITANTS</span><strong id="population">30</strong></div>
+          <div class="readout"><span class="readout-label">DEATHS</span><strong id="death-count">00</strong></div>
           <div class="readout homes-readout"><span class="readout-label">HOMES</span><strong id="home-count">00</strong></div>
           <div class="readout stockpile-readout"><span class="readout-label">STOCKPILE</span><strong id="stockpile-summary">WOOD 00 · STONE 00</strong></div>
           <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
@@ -158,6 +160,7 @@ export function createAppShell(root: HTMLElement): AppShell {
     activityCount: required("#activity-count"),
     worldTime: required("#world-time"),
     population: required("#population"),
+    deathCount: required("#death-count"),
     resourceSummary: required("#resource-summary"),
     stockpileSummary: required("#stockpile-summary"),
     homeCount: required("#home-count"),
