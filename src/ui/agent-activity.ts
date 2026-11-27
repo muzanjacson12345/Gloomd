@@ -3,6 +3,8 @@ import type { AppShell } from "./app-shell";
 
 const GOAL_LABELS: Record<AgentGoal, string> = {
   seek_food: "Searching for food",
+  seek_fish: "Looking for a fishing spot",
+  fish: "Fishing",
   gather: "Gathering food",
   eat: "Eating",
   seek_water: "Finding water",
