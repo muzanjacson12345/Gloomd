@@ -46,7 +46,7 @@ describe("fixed-step simulation clock", () => {
     clock.advance(60, true, () => ticks += 1, (elapsed) => accepted.push(elapsed));
     clock.advance(10_000, true, () => ticks += 1, (elapsed) => accepted.push(elapsed));
 
-    expect(accepted).toEqual([60, 240]);
+    expect(accepted).toEqual([60, 40, 100, 100]);
     expect(ticks).toBe(3);
   });
 
@@ -55,6 +55,20 @@ describe("fixed-step simulation clock", () => {
     const accepted: number[] = [];
     clock.advance(60, false, () => undefined, (elapsed) => accepted.push(elapsed));
     expect(accepted).toEqual([]);
+  });
+
+  it("advances animation time between multiple ticks in chronological order", () => {
+    const clock = new FixedStepClock(100, 3);
+    const order: string[] = [];
+
+    clock.advance(
+      250,
+      true,
+      () => order.push("tick"),
+      (elapsed) => order.push(`time:${elapsed}`)
+    );
+
+    expect(order).toEqual(["time:100", "tick", "time:100", "tick", "time:50"]);
   });
 
 });
