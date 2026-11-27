@@ -12,6 +12,8 @@ function agent(id: string, x: number, y: number): Agent {
     traits: { curiosity: 0.5, diligence: 0.5, sociability: 0.5 },
     needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
     inventory: { food: 0, wood: 0, stone: 0 },
+    homeId: null,
+    buildingId: null,
     role: "forager",
     currentGoal: "explore",
     perceptionRadius: 12,
