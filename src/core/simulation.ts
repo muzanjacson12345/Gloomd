@@ -63,7 +63,8 @@ function updateCriticalNeedTimers(agent: Agent): void {
   // A carried meal is a genuine reserve; it prevents starvation damage until
   // the agent can consume it. Thirst still requires reaching freshwater.
   agent.starvationTicks =
-    agent.needs.hunger >= CRITICAL_HUNGER_THRESHOLD && agent.inventory.food <= 0
+    agent.needs.hunger >= CRITICAL_HUNGER_THRESHOLD &&
+      agent.inventory.food <= 0 && agent.inventory.fish <= 0
       ? (agent.starvationTicks ?? 0) + 1
       : 0;
   agent.dehydrationTicks =
@@ -75,6 +76,7 @@ function updateCriticalNeedTimers(agent: Agent): void {
 function dropInventoryAtDeath(world: WorldState, agent: Agent): void {
   const drops: readonly { kind: ResourceKind; quantity: number }[] = [
     { kind: "wild_food", quantity: agent.inventory.food },
+    { kind: "fish", quantity: agent.inventory.fish },
     { kind: "wood", quantity: agent.inventory.wood },
     { kind: "stone", quantity: agent.inventory.stone }
   ];
@@ -93,6 +95,7 @@ function dropInventoryAtDeath(world: WorldState, agent: Agent): void {
   }
 
   agent.inventory.food = 0;
+  agent.inventory.fish = 0;
   agent.inventory.wood = 0;
   agent.inventory.stone = 0;
 }
@@ -169,6 +172,10 @@ function nearestResource(
 
 function nearestFood(world: WorldState, agent: Agent): Target | null {
   return nearestResource(world, agent, "wild_food");
+}
+
+function nearestFish(world: WorldState, agent: Agent): Target | null {
+  return nearestResource(world, agent, "fish");
 }
 
 /**
@@ -613,20 +620,27 @@ function stepAgent(
     return;
   }
 
-  if (agent.needs.hunger >= NEED_THRESHOLD && agent.inventory.food > 0) {
+  if (agent.needs.hunger >= NEED_THRESHOLD &&
+      (agent.inventory.food > 0 || agent.inventory.fish > 0)) {
     agent.currentGoal = "eat";
     agent.destination = null;
     agent.plannedPath = [];
-    agent.inventory.food -= 1;
+    if (agent.inventory.food > 0) {
+      agent.inventory.food -= 1;
+      emit(world, emitted, agent, "eat", `${agent.name} ate gathered food.`);
+    } else {
+      agent.inventory.fish -= 1;
+      emit(world, emitted, agent, "eat_fish", `${agent.name} ate a fish.`);
+    }
     agent.needs.hunger = Math.max(0, agent.needs.hunger - FOOD_RESTORE);
     agent.starvationTicks = 0;
-    emit(world, emitted, agent, "eat", `${agent.name} ate gathered food.`);
     return;
   }
 
   if (agent.needs.hunger >= NEED_THRESHOLD) {
-    agent.currentGoal = "seek_food";
-    const target = nearestFood(world, agent);
+    const fishTarget = agent.role === "fisher" ? nearestFish(world, agent) : null;
+    const target = fishTarget ?? nearestFood(world, agent);
+    agent.currentGoal = target?.resource?.kind === "fish" ? "seek_fish" : "seek_food";
 
     if (!target?.resource) {
       if (applySurvivalDamage(world, agent, emitted)) return;
@@ -638,24 +652,38 @@ function stepAgent(
     if (moveToward(world, agent, target)) {
       const gathered = takeResource(world, target.resource.id, 1);
       if (gathered > 0) {
-        agent.inventory.food += gathered;
-        agent.currentGoal = "gather";
+        const caughtFish = target.resource.kind === "fish";
+        if (caughtFish) {
+          agent.inventory.fish += gathered;
+          agent.currentGoal = "fish";
+          emit(
+            world,
+            emitted,
+            agent,
+            "fish",
+            `${agent.name} caught ${gathered} fish at the freshwater bank.`
+          );
+        } else {
+          agent.inventory.food += gathered;
+          agent.currentGoal = "gather";
+          emit(
+            world,
+            emitted,
+            agent,
+            "gather_food",
+            `${agent.name} gathered ${gathered} wild food.`
+          );
+        }
         agent.destination = { x: agent.x, y: agent.y };
         agent.plannedPath = [];
-        emit(
-          world,
-          emitted,
-          agent,
-          "gather_food",
-          `${agent.name} gathered ${gathered} wild food.`
-        );
         if (target.resource.quantity === 0) {
+          const label = caughtFish ? "local fish" : "wild-food";
           emit(
             world,
             emitted,
             null,
             "resource_depleted",
-            "A wild-food patch has been exhausted and must recover before it can be harvested again."
+            `A ${label} patch has been exhausted and must recover before it can be harvested again.`
           );
         }
       } else {
