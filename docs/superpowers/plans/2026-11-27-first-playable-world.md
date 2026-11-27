@@ -54,25 +54,25 @@
 - Produces: Vite development/build scripts; `npm run typecheck`, `npm run test`, and `npm run build`; browser entry point `src/main.ts`.
 - CI must run install, typecheck, tests and production build for pushes to `main` and pull requests.
 
-- [ ] **Step 1: Add the project manifest and strict TypeScript configuration**
+- [x] **Step 1: Add the project manifest and strict TypeScript configuration**
 
   Add Vite, TypeScript and Vitest as development dependencies, pin compatible stable versions in `package.json`, and define scripts `dev`, `typecheck`, `test`, and `build`. Configure strict TypeScript checking with browser DOM types and ES module output.
 
-- [ ] **Step 2: Add the smallest app entry point and a version test**
+- [x] **Step 2: Add the smallest app entry point and a version test**
 
   Add `APP_VERSION = "0.1.0"` in `src/app/version.ts`, import it from `src/main.ts`, and test its exported value in `tests/unit/version.test.ts`.
 
-- [ ] **Step 3: Configure Vite for the repository's GitHub Pages address**
+- [x] **Step 3: Configure Vite for the repository's GitHub Pages address**
 
   Set the Vite public base path to `/Gloomd/`. The app must work both in Vite preview and under the repository subpath on GitHub Pages.
 
-- [ ] **Step 4: Run the initial checks in GitHub Actions**
+- [x] **Step 4: Run the initial checks in GitHub Actions**
 
   Add `.github/workflows/ci.yml` using a standard GitHub-hosted runner and Node LTS. Run dependency installation, `npm run typecheck`, `npm run test`, and `npm run build`.
 
   Expected: all four commands complete successfully on a clean runner.
 
-- [ ] **Step 5: Commit the project foundation**
+- [x] **Step 5: Commit the project foundation**
 
   Commit the manifest, configuration, starter page, version test and CI workflow to `main`.
 
