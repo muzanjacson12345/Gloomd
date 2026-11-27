@@ -81,3 +81,14 @@
 - Task 4: complete.
 - Task 5: complete.
 - Task 6: complete.
+
+## Final code review: self-review (no subagent tool)
+- Reviewed the core world model, resource accounting, pathfinding, autonomous action loop, camera math, Canvas renderer, fixed-step clock, app integration, UI input and deployment workflow against the approved design and plan.
+- Strengths: seeded and reproducible simulation; pathfinding honours impassable terrain; food and water actions have real state/resource consequences; events follow successful changes; Canvas renderer is separate and read-only; hidden-tab time is discarded; build/deploy use standard GitHub-hosted runners and official Pages actions.
+- Review findings fixed with test-first checks: replaced repeated whole-map freshwater scans and repeated A* calls with a single bounded BFS within the inhabitant's perception radius; reduced the camera minimum zoom so a 320 × 568 viewport can fit the full map. CI watched both new tests fail before their fixes, then pass.
+- Critical findings remaining: none identified in this self-review.
+- Important findings remaining: none identified in this self-review.
+- Minor deferred: no independent reviewer subagent is available, so this review is by the implementer and is weaker than a fresh independent review; the app was not visually smoke-tested in a real browser session from this tool environment; local persistence, save/export/import, offline PWA, deeper social/civilization systems, and a real-PC performance benchmark are still future work; a committed npm lockfile is also still outstanding.
+- Final verification on head `abd937aca9cb3d37731bbbd75ca39cb7a398521b`: CI run #67 (`46062648012`) passed all 12 test files, 41 tests, strict TypeScript checking and Vite production build. The CI log records the generated production bundle.
+- Final Pages verification: deployment run #9 (`46062647978`) completed successfully. The build/test/type-check/upload job and the Publish GLOOMD job both succeeded; the deployment output reports `https://muzanjacson12345.github.io/Gloomd/`.
+- Final review assessment: the first playable slice is deployed and its automated checks are green. This does not mean the later approved civilization, persistence or PWA requirements are already implemented.
