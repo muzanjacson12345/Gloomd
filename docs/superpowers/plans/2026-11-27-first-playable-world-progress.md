@@ -28,4 +28,14 @@
 
 ## Current position
 - Task 1: complete.
-- Task 2: next.
+## Task 2: complete
+- Commits: deterministic world-generation/resource implementation is present on `main` (the exact task-start baseline is the commit immediately after Task 1).
+- RED evidence: GitHub Actions runs #6, #7 and #8 failed on the expected missing-module/missing-resource behaviors while the tests were added first.
+- GREEN evidence: GitHub Actions CI run #9 (`46060243565`) completed with conclusion `success`. Its job completed dependency installation, the test step, type-check and production build successfully.
+- Follow-up verification: latest CI run #10 (`46060373604`) also completed successfully on the direct-import cleanup commit.
+- Task 2 result: deterministic 128 × 96 world, seedable random source, terrain/water typing and resource accounting are implemented and CI-verified.
+
+## Current position
+- Task 1: complete.
+- Task 2: complete.
+- Task 3: in progress — write pathfinding and agent-action tests first.
