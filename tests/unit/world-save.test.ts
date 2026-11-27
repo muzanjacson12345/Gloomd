@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createWorld } from "../../src/core/world-generation";
+import { createStarterAgents } from "../../src/core/agents";
 import {
   createWorldSave,
   parseWorldSave,
@@ -66,4 +67,33 @@ describe("versioned world saves", () => {
     expect(() => parseWorldSave(JSON.stringify(corrupted))).toThrow(/starting point/i);
     expect(() => parseWorldSave("{not json")).toThrow();
   });
+  it("round-trips fisher roles and fish in resource nodes and agent inventories", () => {
+    const { world, start } = makeSavedWorld();
+    world.agents = createStarterAgents(world, 1);
+    const fisher = world.agents[0];
+    if (!fisher) throw new Error("Test fisher was not created");
+    fisher.role = "fisher";
+    fisher.inventory.fish = 2;
+    world.resources.push({
+      id: "save-fish",
+      kind: "fish",
+      x: start.x,
+      y: start.y,
+      quantity: 4,
+      maxQuantity: 6,
+      regrowEveryTicks: 720,
+      nextRegrowTick: 900
+    });
+
+    const restored = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1000)));
+
+    expect(restored.world.agents[0]?.role).toBe("fisher");
+    expect(restored.world.agents[0]?.inventory.fish).toBe(2);
+    expect(restored.world.resources.at(-1)).toMatchObject({
+      kind: "fish",
+      quantity: 4,
+      nextRegrowTick: 900
+    });
+  });
+
 });
