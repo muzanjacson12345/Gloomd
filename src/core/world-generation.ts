@@ -245,5 +245,7 @@ export function getTile(world: WorldState, x: number, y: number): Tile | undefin
 }
 
 export function isWalkable(world: WorldState, x: number, y: number): boolean {
-  return getTile(world, x, y)?.walkable ?? false;
+  const tile = getTile(world, x, y);
+  if (!tile?.walkable) return false;
+  return !world.buildings.some((building) => building.x === x && building.y === y);
 }
