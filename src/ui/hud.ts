@@ -12,6 +12,7 @@ function formatWorldTime(tick: number): string {
 
 export function updateHud(shell: AppShell, world: WorldState, playing: boolean, speed: number, zoom: number): void {
   const population = world.agents.filter((agent) => agent.alive).length;
+  const deaths = world.agents.filter((agent) => !agent.alive).length;
   const completedHomes = world.buildings.filter(
     (building) => building.kind === "shelter" && building.status === "complete"
   ).length;
@@ -24,6 +25,7 @@ export function updateHud(shell: AppShell, world: WorldState, playing: boolean, 
   );
   shell.worldTime.textContent = formatWorldTime(world.tick);
   shell.population.textContent = population.toString().padStart(2, "0");
+  shell.deathCount.textContent = deaths.toString().padStart(2, "0");
   shell.homeCount.textContent = completedHomes.toString().padStart(2, "0");
   shell.resourceSummary.textContent = `FOOD ${totals.wild_food} · WOOD ${totals.wood} · STONE ${totals.stone}`;
   shell.stockpileSummary.textContent = `WOOD ${world.stockpile.inventory.wood} · STONE ${world.stockpile.inventory.stone}`;
