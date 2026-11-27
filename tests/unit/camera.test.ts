@@ -36,6 +36,13 @@ describe("map camera", () => {
     expect(after.y).toBeCloseTo(before.y, 10);
   });
 
+  it("allows the map to fit a narrow 320 by 568 viewport", () => {
+    const fitZoom = Math.min(320 / 128, 568 / 96) * 0.88;
+    const camera = createCamera(128, 96, fitZoom);
+
+    expect(camera.zoom).toBeCloseTo(fitZoom, 8);
+  });
+
   it("clamps zoom between the camera limits", () => {
     const camera = createCamera(128, 96, 14);
     const viewport = { width: 800, height: 600 };
