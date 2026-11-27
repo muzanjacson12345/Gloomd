@@ -47,4 +47,76 @@ describe("Canvas world renderer", () => {
     expect(calls.fillRect).toBeLessThan(world.width * world.height);
     expect(world).toEqual(before);
   });
+
+  it("draws construction sites and completed shelters only when the Homes layer is enabled", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    world.buildings.push(
+      {
+        id: "site-1",
+        kind: "shelter",
+        x: 7,
+        y: 8,
+        status: "under_construction",
+        workDone: 4,
+        workRequired: 12,
+        builderId: "builder-1"
+      },
+      {
+        id: "home-1",
+        kind: "shelter",
+        x: 8,
+        y: 8,
+        status: "complete",
+        workDone: 12,
+        workRequired: 12,
+        builderId: "builder-2"
+      }
+    );
+    const before = structuredClone(world);
+    const calls = { fillRect: 0, fill: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {},
+      restore() {},
+      setTransform() {},
+      translate() {},
+      scale() {},
+      clearRect() {},
+      fillRect() { calls.fillRect += 1; },
+      beginPath() {},
+      closePath() {},
+      moveTo() {},
+      lineTo() {},
+      arc() {},
+      ellipse() {},
+      fill() { calls.fill += 1; },
+      stroke() {},
+      strokeRect() {},
+      fillText() {},
+      setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 12);
+    const viewport = { width: 96, height: 96 };
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      agents: false,
+      buildings: true
+    });
+    expect(calls.fillRect + calls.fill).toBeGreaterThan(0);
+
+    calls.fillRect = 0;
+    calls.fill = 0;
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      agents: false,
+      buildings: false
+    });
+    expect(calls.fillRect + calls.fill).toBe(0);
+    expect(world).toEqual(before);
+  });
+
 });

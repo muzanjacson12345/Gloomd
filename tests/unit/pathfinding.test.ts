@@ -20,6 +20,7 @@ function makeWorld(rows: string[]): WorldState {
     height: rows.length,
     tiles,
     resources: [],
+    buildings: [],
     agents: [],
     tick: 0,
     events: []
@@ -49,6 +50,31 @@ describe("grid pathfinding", () => {
     expect(findPath(world, { x: 0, y: 0 }, { x: 2, y: 2 })).toBeNull();
     expect(findPath(world, { x: 0, y: 0 }, { x: 1, y: 1 })).toBeNull();
     expect(findPath(world, { x: 0, y: 0 }, { x: 3, y: 0 })).toBeNull();
+  });
+
+  it("routes around construction sites and rejects both unfinished and completed building tiles", () => {
+    const world = makeWorld([".....", ".....", "....."]);
+    world.buildings.push({
+      id: "shelter-site-1",
+      kind: "shelter",
+      x: 2,
+      y: 1,
+      status: "under_construction",
+      workDone: 3,
+      workRequired: 12,
+      builderId: "builder-1"
+    });
+
+    const route = findPath(world, { x: 1, y: 1 }, { x: 3, y: 1 });
+    expect(route).not.toBeNull();
+    expect(route).toHaveLength(4);
+    expect(route).not.toContainEqual({ x: 2, y: 1 });
+    expect(findPath(world, { x: 1, y: 1 }, { x: 2, y: 1 })).toBeNull();
+
+    const site = world.buildings[0];
+    if (!site) throw new Error("Test building was not created");
+    site.status = "complete";
+    expect(findPath(world, { x: 1, y: 1 }, { x: 2, y: 1 })).toBeNull();
   });
 
   it("returns an empty path when already at the destination", () => {

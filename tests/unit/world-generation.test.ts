@@ -32,6 +32,7 @@ describe("procedural world generation", () => {
     expect(tiles.some((tile: { waterKind: string }) => tile.waterKind === "ocean")).toBe(true);
     expect(tiles.some((tile: { waterKind: string }) => tile.waterKind === "freshwater")).toBe(true);
     expect(world.resources.length).toBeGreaterThan(0);
+    expect(world.buildings).toEqual([]);
   });
 
   it("rejects dimensions that are too small or too large", async () => {
