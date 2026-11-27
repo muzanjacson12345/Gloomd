@@ -133,7 +133,7 @@ describe("autonomous agents and consequential actions", () => {
     water.waterKind = "freshwater";
     water.walkable = false;
 
-    for (const [x, y] of [[4, 5], [6, 5], [5, 4], [5, 6]]) {
+    for (const [x, y] of [[4, 5], [6, 5], [5, 4], [5, 6]] as const) {
       const tile = world.tiles[y]?.[x];
       if (tile) {
         tile.terrain = "mountain";
