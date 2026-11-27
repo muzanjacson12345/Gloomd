@@ -1,5 +1,6 @@
 import { createRandom } from "./random";
 import type {
+  GridPoint,
   ResourceKind,
   ResourceNode,
   Stockpile,
@@ -286,6 +287,35 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
     tick: 0,
     events: []
   };
+}
+
+
+/** Return the closest walkable tile to a requested start point.
+ * Ties are resolved in stable row-major order (top to bottom, left to right).
+ */
+export function findNearestWalkablePoint(
+  world: WorldState,
+  target: GridPoint
+): GridPoint | null {
+  if (!Number.isFinite(target.x) || !Number.isFinite(target.y)) return null;
+
+  let nearest: GridPoint | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (let y = 0; y < world.height; y += 1) {
+    for (let x = 0; x < world.width; x += 1) {
+      if (!isWalkable(world, x, y)) continue;
+      const distanceX = x - target.x;
+      const distanceY = y - target.y;
+      const distance = distanceX * distanceX + distanceY * distanceY;
+      if (distance < nearestDistance) {
+        nearest = { x, y };
+        nearestDistance = distance;
+      }
+    }
+  }
+
+  return nearest;
 }
 
 export function getTile(world: WorldState, x: number, y: number): Tile | undefined {

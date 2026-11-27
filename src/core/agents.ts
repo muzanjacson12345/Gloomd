@@ -2,6 +2,10 @@ import { createRandom } from "./random";
 import { isWalkableTile } from "./pathfinding";
 import type { Agent, GridPoint, WorldState } from "./types";
 
+export interface AgentSpawnOptions {
+  center?: GridPoint;
+}
+
 const STARTER_NAMES = [
   "Ari", "Bo", "Cato", "Dara", "Eli", "Fara", "Galen", "Hana",
   "Ivo", "Jori", "Kemi", "Lio", "Mira", "Niko", "Ona", "Pax",
@@ -9,7 +13,11 @@ const STARTER_NAMES = [
   "Yori", "Zuri"
 ] as const;
 
-export function createStarterAgents(world: WorldState, count: number): Agent[] {
+export function createStarterAgents(
+  world: WorldState,
+  count: number,
+  options: AgentSpawnOptions = {}
+): Agent[] {
   if (!Number.isInteger(count) || count < 0) {
     throw new RangeError("Agent count must be a non-negative whole number.");
   }
@@ -25,18 +33,35 @@ export function createStarterAgents(world: WorldState, count: number): Agent[] {
     throw new RangeError("There are not enough walkable tiles for unique agent spawns.");
   }
 
+  // When a centre is supplied, choose from a deterministic local pool first.
+  // Expanding that pool to four times the population prevents tiny spawn rings
+  // from over-concentrating the settlement while keeping everyone nearby.
+  let spawnCandidates = available;
+  if (options.center) {
+    const { center } = options;
+    spawnCandidates = [...available]
+      .sort((left, right) => {
+        const leftDistance =
+          (left.x - center.x) ** 2 + (left.y - center.y) ** 2;
+        const rightDistance =
+          (right.x - center.x) ** 2 + (right.y - center.y) ** 2;
+        return leftDistance - rightDistance || left.y - right.y || left.x - right.x;
+      })
+      .slice(0, Math.min(available.length, count * 4));
+  }
+
   const random = createRandom(world.randomState);
   const agents: Agent[] = [];
 
   // Partial Fisher–Yates shuffle gives every agent a distinct walkable tile.
   for (let index = 0; index < count; index += 1) {
-    const swapIndex = random.int(index, available.length - 1);
-    const selected = available[swapIndex];
-    const current = available[index];
+    const swapIndex = random.int(index, spawnCandidates.length - 1);
+    const selected = spawnCandidates[swapIndex];
+    const current = spawnCandidates[index];
     if (!selected || !current) continue;
 
-    available[index] = selected;
-    available[swapIndex] = current;
+    spawnCandidates[index] = selected;
+    spawnCandidates[swapIndex] = current;
 
     const number = index + 1;
     const name = STARTER_NAMES[index % STARTER_NAMES.length] ?? "Ari";
