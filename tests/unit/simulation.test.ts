@@ -721,4 +721,67 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.resources[1]?.quantity).toBe(0);
   });
 
+  it("lets a fisher travel to a freshwater bank, catch fish and eat the catch", () => {
+    const world = makeWorld();
+    const water = world.tiles[1]?.[3];
+    if (!water) throw new Error("Freshwater test tile missing");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+
+    world.resources.push({
+      id: "bank-fish",
+      kind: "fish",
+      x: 2,
+      y: 1,
+      quantity: 2,
+      maxQuantity: 2,
+      regrowEveryTicks: 720
+    });
+    const fisher = makeAgent({
+      role: "fisher",
+      currentGoal: "seek_fish",
+      x: 1,
+      y: 1,
+      needs: { hunger: 64, thirst: 0, energy: 100, health: 100 }
+    });
+    world.agents.push(fisher);
+
+    stepWorld(world, 2);
+
+    expect(fisher.x).toBe(2);
+    expect(fisher.inventory.fish).toBe(1);
+    expect(world.resources[0]?.quantity).toBe(1);
+    expect(world.events.some((event) => event.kind === "fish")).toBe(true);
+
+    stepWorld(world);
+
+    expect(fisher.inventory.fish).toBe(0);
+    expect(fisher.needs.hunger).toBeLessThan(70);
+    expect(world.events.some((event) => event.kind === "eat_fish")).toBe(true);
+  });
+
+  it("does not allow two fishers to catch more fish than a bank contains", () => {
+    const world = makeWorld();
+    const fish = {
+      id: "small-school",
+      kind: "fish" as const,
+      x: 2,
+      y: 1,
+      quantity: 1,
+      maxQuantity: 1,
+      regrowEveryTicks: 720
+    };
+    world.resources.push(fish);
+    const first = makeAgent({ id: "fisher-a", role: "fisher", x: 1, y: 1 });
+    const second = makeAgent({ id: "fisher-b", role: "fisher", x: 1, y: 2 });
+    world.agents.push(first, second);
+
+    stepWorld(world, 3);
+
+    expect(first.inventory.fish + second.inventory.fish).toBe(1);
+    expect(fish.quantity).toBe(0);
+    expect(world.events.filter((event) => event.kind === "fish")).toHaveLength(1);
+  });
+
 });
