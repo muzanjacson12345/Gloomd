@@ -318,13 +318,15 @@ function startWorld(
     if (!shell.overlayPanel.hidden) {
       shell.overlayPanel.hidden = true;
       shell.overlayToggleButton.setAttribute("aria-expanded", "false");
+      shell.storagePanel.hidden = true;
+      shell.storageToggleButton.setAttribute("aria-expanded", "false");
     }
   };
 
   onResize();
   const handleNewWorld = (): void => {
-    void saveCurrentWorld(true).catch(() => undefined);
-    onNewWorld();
+    // Finish the old world's checkpoint before a new session begins writing autosaves.
+    void saveCurrentWorld(true).then(onNewWorld).catch(onNewWorld);
   };
   shell.newWorldButton.addEventListener("click", handleNewWorld);
   shell.activityList.addEventListener("click", onActivitySelect);
