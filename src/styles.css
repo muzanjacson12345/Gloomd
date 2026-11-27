@@ -99,13 +99,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .speed-button { min-width: 32px; padding: 7px 6px; border: 0; border-radius: 4px; color: #9da99a; background: transparent; font-size: 9px; cursor: pointer; }
 .speed-button.is-active { color: #e3d5b3; background: rgba(212,188,131,.15); }
 
-.event-feed, .agent-inspector {
+.event-feed, .agent-inspector, .activity-panel {
   position: absolute; z-index: 4; right: 20px; width: 276px;
   border: 1px solid var(--line); border-radius: 7px; background: var(--panel);
   box-shadow: 0 14px 38px rgba(0,0,0,.2);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
 }
-.event-feed { bottom: 22px; padding: 13px 14px 11px; }
+.event-feed { left: 80px; right: auto; bottom: 22px; padding: 13px 14px 11px; }
 .feed-heading, .inspector-topline {
   display: flex; align-items: center; justify-content: space-between;
   color: #a5ae9e; font-size: 8px; font-weight: 720; letter-spacing: .17em;
@@ -447,4 +447,71 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .setup-preview-frame { min-height: 320px; }
   .setup-intro { margin-bottom: 18px; }
   .population-control, .selected-location { padding: 13px 0; }
+}
+
+
+.activity-panel {
+  top: 102px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 294px;
+  max-height: calc(100vh - 260px);
+  padding: 13px 14px 10px;
+  overflow: hidden;
+}
+.activity-panel[hidden] { display: none; }
+.activity-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 11px; border-bottom: 1px solid var(--line); }
+.activity-heading > div > span { display: block; color: #a5ae9e; font-size: 8px; font-weight: 740; letter-spacing: .17em; }
+.activity-heading strong { display: block; margin-top: 5px; color: #e1e2d2; font-family: Georgia,serif; font-size: 14px; font-weight: 400; }
+.activity-count { color: #b4bd9f; font-size: 8px; font-weight: 700; letter-spacing: .09em; white-space: nowrap; }
+.activity-list { display: grid; gap: 2px; min-height: 0; margin: 8px -5px 0 0; padding: 0 5px 0 0; overflow-y: auto; list-style: none; scrollbar-color: rgba(212,188,131,.35) transparent; scrollbar-width: thin; }
+.activity-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 8px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.activity-row:hover, .activity-row:focus-visible { background: rgba(212,188,131,.1); }
+.activity-identity { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.activity-name { color: #e0e3d5; font-size: 10px; font-weight: 680; }
+.activity-role { color: #8e9a88; font-size: 7px; font-weight: 720; letter-spacing: .13em; }
+.activity-task { color: #c1cbb8; font-size: 9px; line-height: 1.35; }
+.activity-item + .activity-item { border-top: 1px solid rgba(220,225,201,.06); }
+.startup-failure {
+  max-width: 620px;
+  margin: 12vh auto;
+  padding: 32px;
+  border: 1px solid rgba(220,225,201,.18);
+  border-radius: 8px;
+  background: #17241c;
+  color: #e7e7d9;
+  box-shadow: 0 20px 70px rgba(0,0,0,.3);
+}
+.startup-failure h1 { margin: 0 0 12px; font-family: Georgia,serif; font-size: 30px; font-weight: 400; }
+.startup-failure p { color: #a4b09e; font-size: 14px; line-height: 1.6; }
+.startup-failure pre { overflow-wrap: anywhere; white-space: pre-wrap; padding: 12px; border-radius: 4px; background: #0e1712; color: #d5c69c; font-size: 12px; }
+.startup-reload { padding: 11px 16px; border: 1px solid #a99569; border-radius: 4px; background: #3a392a; color: #f0dfb7; font-size: 9px; font-weight: 700; letter-spacing: .1em; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .activity-panel {
+    top: 77px;
+    right: 9px;
+    width: min(280px, calc(100vw - 18px));
+    max-height: min(48vh, calc(100vh - 220px));
+    padding: 9px 10px 7px;
+  }
+  .activity-heading { padding-bottom: 7px; }
+  .activity-heading strong { font-size: 12px; }
+  .activity-list { margin-top: 5px; }
+  .activity-row { gap: 2px; padding: 6px; }
+  .activity-task { font-size: 8px; }
+  .event-feed { left: 9px; right: auto; bottom: 76px; width: min(220px, calc(100vw - 18px)); padding: 9px 10px; }
 }

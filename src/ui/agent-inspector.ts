@@ -1,5 +1,6 @@
 import type { Agent } from "../core/types";
 import type { AppShell, AgentNeed } from "./app-shell";
+import { formatAgentGoal } from "./agent-activity";
 
 function formatGoal(goal: string): string {
   return goal.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -11,7 +12,7 @@ export function renderAgentInspector(shell: AppShell, agent: Agent | null): void
   if (!agent) return;
   shell.inspectorName.textContent = agent.name;
   shell.inspectorMeta.textContent = `AGE ${agent.ageYears} · ${agent.role.toUpperCase()}`;
-  shell.inspectorGoal.textContent = formatGoal(agent.currentGoal);
+  shell.inspectorGoal.textContent = formatAgentGoal(agent.currentGoal);
   shell.inspectorLocation.textContent = `${agent.x + 1}, ${agent.y + 1}`;
   shell.inspectorHome.textContent = agent.homeId !== null
     ? "SHELTER"

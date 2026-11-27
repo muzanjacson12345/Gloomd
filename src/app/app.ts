@@ -13,6 +13,7 @@ import { createAppShell } from "../ui/app-shell";
 import { updateHud } from "../ui/hud";
 import { renderAgentInspector } from "../ui/agent-inspector";
 import { renderEventLog } from "../ui/event-log";
+import { renderAgentActivity } from "../ui/agent-activity";
 import { createWorldSetup } from "../ui/world-setup";
 import type { GridPoint, WorldState } from "../core/types";
 
@@ -53,6 +54,7 @@ function startWorld(
   let previousFrameTime: number | null = null;
   let lastHudTick = -1;
   let lastInspectorTick = -1;
+  let lastActivityTick = -1;
   let lastEventId = "";
   let frameHandle = 0;
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
@@ -74,9 +76,13 @@ function startWorld(
   };
 
   const selectAgent = (agentId: string | null): void => {
-    selectedAgentId = agentId;
+    const target = agentId
+      ? world.agents.find((agent) => agent.id === agentId && agent.alive) ?? null
+      : null;
+    selectedAgentId = target?.id ?? null;
     followingAgentId = null;
-    renderAgentInspector(shell, selectedAgent());
+    shell.activityPanel.hidden = selectedAgentId !== null;
+    renderAgentInspector(shell, target);
     updateReadouts();
     draw();
   };
@@ -105,8 +111,20 @@ function startWorld(
     resizeCanvas(shell.canvas, getViewport(), window.devicePixelRatio || 1);
     draw();
   };
+
+  const onActivitySelect = (event: Event): void => {
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest<HTMLButtonElement>("[data-agent-id]");
+    const agentId = button?.dataset.agentId;
+    if (!agentId) return;
+    const agent = world.agents.find((candidate) => candidate.id === agentId && candidate.alive);
+    if (!agent) return;
+    setCameraCenter(camera, { x: agent.x + 0.5, y: agent.y + 0.5 });
+    selectAgent(agent.id);
+  };
   onResize();
   shell.newWorldButton.addEventListener("click", onNewWorld);
+  shell.activityList.addEventListener("click", onActivitySelect);
 
   shell.playButton.addEventListener("click", () => {
     playing = !playing;
@@ -207,7 +225,17 @@ function startWorld(
     }
     if (selectedAgentId && world.tick !== lastInspectorTick) {
       lastInspectorTick = world.tick;
-      renderAgentInspector(shell, selectedAgent());
+      const current = selectedAgent();
+      if (current) {
+        renderAgentInspector(shell, current);
+      } else {
+        selectAgent(null);
+      }
+    }
+
+    if (world.tick - lastActivityTick >= 4) {
+      lastActivityTick = world.tick;
+      renderAgentActivity(shell, world.agents);
     }
 
     const latestEvent = world.events.at(-1);
@@ -219,6 +247,9 @@ function startWorld(
 
   renderEventLog(shell, world.events);
   renderAgentInspector(shell, null);
+  renderAgentActivity(shell, world.agents);
+  shell.activityPanel.hidden = false;
+  lastActivityTick = world.tick;
   updateReadouts();
   frameHandle = window.requestAnimationFrame(animate);
 
@@ -226,6 +257,8 @@ function startWorld(
     running = false;
     window.cancelAnimationFrame(frameHandle);
     detachMapInput();
+    shell.activityList.removeEventListener("click", onActivitySelect);
+    shell.newWorldButton.removeEventListener("click", onNewWorld);
     document.removeEventListener("visibilitychange", onVisibilityChange);
     window.removeEventListener("resize", onResize);
   };

@@ -6,9 +6,55 @@
     <meta name="theme-color" content="#111914" />
     <meta name="description" content="GLOOMD — a living world simulation." />
     <title>GLOOMD — A living world</title>
+    <style>
+      .boot-failure,.startup-failure{max-width:620px;margin:12vh auto;padding:32px;border:1px solid rgba(220,225,201,.18);border-radius:8px;background:#17241c;color:#e7e7d9;font-family:system-ui,sans-serif;box-shadow:0 20px 70px #0005}
+      .boot-failure h1,.startup-failure h1{margin:0 0 12px;font-family:Georgia,serif;font-weight:400;font-size:30px}
+      .boot-failure p,.startup-failure p{color:#a4b09e;font-size:14px;line-height:1.6}
+      .boot-failure pre,.startup-failure pre{overflow-wrap:anywhere;white-space:pre-wrap;padding:12px;background:#0e1712;border-radius:4px;color:#d5c69c;font-size:12px}
+      .boot-failure button,.startup-reload{padding:11px 16px;border:1px solid #a99569;border-radius:4px;background:#3a392a;color:#f0dfb7;font-weight:700;letter-spacing:.1em;cursor:pointer}
+    </style>
   </head>
   <body>
     <main id="app" aria-live="polite">GLOOMD world engine is initializing.</main>
-    <script type="module" src="/src/main.ts"></script>
+    <script>
+      (() => {
+        const root = document.getElementById("app");
+        if (!root) return;
+        const showFailure = (reason) => {
+          if (root.dataset.appState === "ready" || root.dataset.appState === "error") return;
+          root.dataset.appState = "error";
+          const panel = document.createElement("section");
+          const title = document.createElement("h1");
+          const message = document.createElement("p");
+          const detail = document.createElement("pre");
+          const reload = document.createElement("button");
+          panel.className = "boot-failure";
+          panel.setAttribute("role", "alert");
+          title.textContent = "GLOOMD could not start";
+          message.textContent = "The application did not finish loading. You do not need to wait; refresh the page to try again.";
+          detail.textContent = typeof reason === "string" && reason.trim()
+            ? reason
+            : (reason && typeof reason.message === "string" && reason.message.trim())
+              ? reason.message
+              : "The browser could not load the GLOOMD application module.";
+          reload.type = "button";
+          reload.textContent = "REFRESH GLOOMD";
+          reload.addEventListener("click", () => window.location.reload());
+          panel.append(title, message, detail, reload);
+          root.replaceChildren(panel);
+        };
+        window.addEventListener("error", (event) => {
+          if (event instanceof ErrorEvent) showFailure(event.message || "The GLOOMD entry script failed to load.");
+          else if (event.target instanceof HTMLScriptElement) showFailure("The GLOOMD entry script could not be loaded.");
+        }, true);
+        window.addEventListener("unhandledrejection", (event) => showFailure(event.reason), true);
+        window.setTimeout(() => {
+          if (root.dataset.appState !== "ready" && root.dataset.appState !== "error") {
+            showFailure("GLOOMD did not finish starting within 12 seconds. Check the connection and refresh the page.");
+          }
+        }, 12000);
+      })();
+    </script>
+    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

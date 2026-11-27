@@ -4,6 +4,9 @@ export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
 export interface AppShell {
   canvas: HTMLCanvasElement;
   newWorldButton: HTMLButtonElement;
+  activityPanel: HTMLElement;
+  activityList: HTMLElement;
+  activityCount: HTMLElement;
   worldTime: HTMLElement;
   population: HTMLElement;
   resourceSummary: HTMLElement;
@@ -65,6 +68,13 @@ export function createAppShell(root: HTMLElement): AppShell {
         <button class="speed-button" data-speed="2" type="button" aria-pressed="false">2×</button>
         <button class="speed-button" data-speed="4" type="button" aria-pressed="false">4×</button>
       </nav>
+      <aside class="activity-panel" id="activity-panel" aria-label="Live inhabitant activities">
+        <div class="activity-heading">
+          <div><span>PEOPLE</span><strong>What everyone is doing</strong></div>
+          <span id="activity-count" class="activity-count">00 ALIVE</span>
+        </div>
+        <ul id="activity-list" class="activity-list"><li class="empty-event">Gathering the settlement…</li></ul>
+      </aside>
       <section class="event-feed" aria-label="Recent world events">
         <div class="feed-heading"><span>FIELD NOTES</span><span class="live-indicator">● LIVE</span></div>
         <ul id="event-list" class="event-list"><li class="empty-event">The world is waking up.</li></ul>
@@ -96,6 +106,9 @@ export function createAppShell(root: HTMLElement): AppShell {
   return {
     canvas: required<HTMLCanvasElement>("#world-map"),
     newWorldButton: required<HTMLButtonElement>("#new-world"),
+    activityPanel: required("#activity-panel"),
+    activityList: required("#activity-list"),
+    activityCount: required("#activity-count"),
     worldTime: required("#world-time"),
     population: required("#population"),
     resourceSummary: required("#resource-summary"),
