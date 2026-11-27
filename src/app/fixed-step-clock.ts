@@ -18,9 +18,11 @@ export class FixedStepClock {
   }
 
   /**
-   * onAcceptedTime runs before any simulation ticks and receives only the
-   * newly accepted time after the frame-delay cap. Visual animation can use
-   * this to stay synchronized without consuming time discarded by the clock.
+   * Applies accepted frame time in chronological slices. Visual animation
+   * advances up to the next fixed tick, then the simulation makes its
+   * decision, then the remaining frame time advances that newly queued move.
+   * This keeps rendered movement aligned even if one frame contains multiple
+   * simulation ticks.
    */
   advance(
     elapsedMs: number,
@@ -38,24 +40,45 @@ export class FixedStepClock {
     }
 
     const maximumAccumulation = this.stepDurationMs * this.maxStepsPerAdvance;
-    const previousAccumulation = this.accumulatedMs;
-    this.accumulatedMs = Math.min(
+    const nextAccumulation = Math.min(
       maximumAccumulation,
       this.accumulatedMs + elapsedMs
     );
-    const acceptedElapsed = this.accumulatedMs - previousAccumulation;
-    if (acceptedElapsed > 0) onAcceptedTime?.(acceptedElapsed);
+    let remaining = nextAccumulation - this.accumulatedMs;
+    this.accumulatedMs = nextAccumulation;
 
     let steps = 0;
-    while (
-      this.accumulatedMs >= this.stepDurationMs &&
-      steps < this.maxStepsPerAdvance
-    ) {
-      onTick();
-      this.accumulatedMs -= this.stepDurationMs;
-      steps += 1;
+    while (remaining > 0) {
+      const untilTick = this.stepDurationMs - this.accumulatedMs + remaining;
+      const slice = Math.min(remaining, this.stepDurationMs - (this.accumulatedMs - remaining));
+      void untilTick;
+      void slice;
+      break;
     }
 
+    // The current accumulator contains all accepted frame time. Walk through
+    // that accepted interval using the time already accumulated before this
+    // frame as the starting offset, invoking the visual callback between ticks.
+    let offset = this.accumulatedMs - remaining;
+    while (remaining > 0) {
+      const toNextTick = this.stepDurationMs - offset;
+      const consumed = Math.min(remaining, toNextTick);
+      if (consumed > 0) {
+        onAcceptedTime?.(consumed);
+        offset += consumed;
+        remaining -= consumed;
+      }
+
+      if (offset >= this.stepDurationMs && steps < this.maxStepsPerAdvance) {
+        onTick();
+        offset -= this.stepDurationMs;
+        steps += 1;
+      } else {
+        break;
+      }
+    }
+
+    this.accumulatedMs = offset;
     return steps;
   }
 
