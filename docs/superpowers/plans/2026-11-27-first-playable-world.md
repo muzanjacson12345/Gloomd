@@ -329,3 +329,13 @@ These details make the contracts above unambiguous for the implementer:
 - The GitHub Pages path is `/Gloomd/`. The deployment workflow uses GitHub Actions Pages deployment; the repository Pages source may need the one-time setting changed to **GitHub Actions** in Settings → Pages. The deployment workflow must wait for successful checks and publish only the Vite `dist/` output.
 - CI and deployment use standard GitHub-hosted runners only. The workflows use `npm install --no-audit --no-fund` for the initial dependency install; package versions in `package.json` are pinned to exact versions. Commit a generated npm lockfile once it can be generated and verified by the remote build workflow.
 
+
+
+## Review-focus test mapping (checked during plan self-review)
+
+- **Unreachable food / impassable terrain:** Task 3's simulation tests must include a food node isolated by water and assert the agent does not move through it, gather from it, or emit a successful gathering event.
+- **Resource exhaustion / competing agents:** Task 2's resource tests and Task 3's two-agent simulation test assert that the total amount consumed never exceeds the node quantity and no inventory/resource value becomes negative.
+- **Same seed / reproducibility:** Task 2 tests compare terrain, resources and the initial random state for two worlds created from the same seed.
+- **Hidden tab / pause:** Task 5 tests advance the fixed-step clock, mark it paused/hidden for a long elapsed interval, resume, and assert there is no accumulated-time burst.
+- **Small viewport / high DPI / zoom limits:** Task 4 tests camera coordinate conversion and visible bounds at a 320 × 568 viewport and a 3840 × 2160 viewport, and assert zoom remains within configured limits. Canvas backing resolution must cap device-pixel ratio at 2.
+
