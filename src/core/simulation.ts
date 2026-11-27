@@ -13,6 +13,12 @@ import type {
 } from "./types";
 
 const NEED_THRESHOLD = 65;
+const CRITICAL_HUNGER_THRESHOLD = 90;
+const CRITICAL_THIRST_THRESHOLD = 90;
+const STARVATION_GRACE_TICKS = 30;
+const DEHYDRATION_GRACE_TICKS = 20;
+const STARVATION_DAMAGE_PER_TICK = 1;
+const DEHYDRATION_DAMAGE_PER_TICK = 1.5;
 const FOOD_RESTORE = 35;
 const WATER_RESTORE = 45;
 const RESTORE_ENERGY = 20;
@@ -51,6 +57,78 @@ function emit(
   if (world.events.length > MAX_STORED_EVENTS) {
     world.events.splice(0, world.events.length - MAX_STORED_EVENTS);
   }
+}
+
+function updateCriticalNeedTimers(agent: Agent): void {
+  // A carried meal is a genuine reserve; it prevents starvation damage until
+  // the agent can consume it. Thirst still requires reaching freshwater.
+  agent.starvationTicks =
+    agent.needs.hunger >= CRITICAL_HUNGER_THRESHOLD && agent.inventory.food <= 0
+      ? (agent.starvationTicks ?? 0) + 1
+      : 0;
+  agent.dehydrationTicks =
+    agent.needs.thirst >= CRITICAL_THIRST_THRESHOLD
+      ? (agent.dehydrationTicks ?? 0) + 1
+      : 0;
+}
+
+function dropInventoryAtDeath(world: WorldState, agent: Agent): void {
+  const drops: readonly { kind: ResourceKind; quantity: number }[] = [
+    { kind: "wild_food", quantity: agent.inventory.food },
+    { kind: "wood", quantity: agent.inventory.wood },
+    { kind: "stone", quantity: agent.inventory.stone }
+  ];
+
+  for (const drop of drops) {
+    if (drop.quantity <= 0) continue;
+    world.resources.push({
+      id: `dropped-${agent.id}-${drop.kind}-${world.tick}`,
+      kind: drop.kind,
+      x: agent.x,
+      y: agent.y,
+      quantity: drop.quantity,
+      maxQuantity: drop.quantity,
+      regrowEveryTicks: null
+    });
+  }
+
+  agent.inventory.food = 0;
+  agent.inventory.wood = 0;
+  agent.inventory.stone = 0;
+}
+
+function applySurvivalDamage(
+  world: WorldState,
+  agent: Agent,
+  emitted: WorldEvent[]
+): boolean {
+  let cause: "starvation" | "dehydration" | null = null;
+
+  if ((agent.starvationTicks ?? 0) > STARVATION_GRACE_TICKS) {
+    agent.needs.health = Math.max(0, agent.needs.health - STARVATION_DAMAGE_PER_TICK);
+    cause = "starvation";
+  }
+
+  if ((agent.dehydrationTicks ?? 0) > DEHYDRATION_GRACE_TICKS) {
+    agent.needs.health = Math.max(0, agent.needs.health - DEHYDRATION_DAMAGE_PER_TICK);
+    cause = "dehydration";
+  }
+
+  if (agent.needs.health > 0 || cause === null) return false;
+
+  agent.alive = false;
+  agent.needs.health = 0;
+  agent.destination = null;
+  agent.plannedPath = [];
+  dropInventoryAtDeath(world, agent);
+  emit(
+    world,
+    emitted,
+    agent,
+    `death_${cause}`,
+    `${agent.name} died from ${cause} after prolonged deprivation.`
+  );
+  return true;
 }
 
 function nearestResource(
@@ -490,13 +568,17 @@ function stepAgent(
 
   agent.needs.hunger = Math.min(100, agent.needs.hunger + 1);
   agent.needs.thirst = Math.min(100, agent.needs.thirst + 1);
+  updateCriticalNeedTimers(agent);
 
-  // Survival always outranks resource work and construction.
+  // Survival always outranks resource work and construction. Deprivation
+  // damages health only after a grace period and only when no usable reserve
+  // can resolve the immediate need.
   if (agent.needs.thirst >= NEED_THRESHOLD) {
     agent.currentGoal = "seek_water";
     const target = nearestFreshwaterBank(world, agent);
 
     if (!target) {
+      if (applySurvivalDamage(world, agent, emitted)) return;
       agent.currentGoal = "explore";
       explore(world, agent, random);
       return;
@@ -507,8 +589,10 @@ function stepAgent(
       agent.destination = { x: agent.x, y: agent.y };
       agent.plannedPath = [];
       agent.needs.thirst = Math.max(0, agent.needs.thirst - WATER_RESTORE);
+      agent.dehydrationTicks = 0;
       emit(world, emitted, agent, "drink", `${agent.name} drank from a freshwater source.`);
     }
+    if (applySurvivalDamage(world, agent, emitted)) return;
     return;
   }
 
@@ -518,6 +602,7 @@ function stepAgent(
     agent.plannedPath = [];
     agent.inventory.food -= 1;
     agent.needs.hunger = Math.max(0, agent.needs.hunger - FOOD_RESTORE);
+    agent.starvationTicks = 0;
     emit(world, emitted, agent, "eat", `${agent.name} ate gathered food.`);
     return;
   }
@@ -527,6 +612,7 @@ function stepAgent(
     const target = nearestFood(world, agent);
 
     if (!target?.resource) {
+      if (applySurvivalDamage(world, agent, emitted)) return;
       agent.currentGoal = "explore";
       explore(world, agent, random);
       return;
@@ -550,6 +636,7 @@ function stepAgent(
         agent.currentGoal = "explore";
       }
     }
+    if (applySurvivalDamage(world, agent, emitted)) return;
     return;
   }
 
