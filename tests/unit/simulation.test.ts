@@ -208,6 +208,7 @@ describe("autonomous agents and consequential actions", () => {
     const totalCarried = first.inventory.food + second.inventory.food;
     expect(totalCarried).toBe(1);
     expect(world.events.filter((event) => event.kind === "gather_food")).toHaveLength(1);
+    expect(world.events.filter((event) => event.kind === "resource_depleted")).toHaveLength(1);
     expect(world.resources[0]?.quantity).toBe(1 - totalCarried);
     expect(world.resources[0]?.quantity).toBeGreaterThanOrEqual(0);
   });
@@ -676,6 +677,7 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.resources[0]?.quantity).toBe(0);
     stepWorld(world);
     expect(world.resources[0]?.quantity).toBe(1);
+    expect(world.events.filter((event) => event.kind === "resource_regrown")).toHaveLength(1);
     stepWorld(world, 240);
     expect(world.resources[0]?.quantity).toBe(2);
     expect(world.resources[0]?.nextRegrowTick).toBeNull();
@@ -712,6 +714,7 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.resources[0]?.quantity).toBe(0);
     stepWorld(world);
     expect(world.resources[0]?.quantity).toBe(1);
+    expect(world.events.filter((event) => event.kind === "resource_regrown")).toHaveLength(1);
     stepWorld(world, 7200);
     expect(world.resources[0]?.quantity).toBe(2);
     expect(world.resources[0]?.nextRegrowTick).toBeNull();
