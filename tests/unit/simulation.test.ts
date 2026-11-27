@@ -499,9 +499,9 @@ describe("autonomous agents and consequential actions", () => {
     const site = world.buildings[0];
     expect(site).toBeDefined();
 
-    builder.needs.thirst = 64;
+    builder.needs.thirst = 64.95;
     const survivalEvents = stepWorld(world);
-    expect(builder.needs.thirst).toBe(20);
+    expect(builder.needs.thirst).toBeCloseTo(20.07, 5);
     expect(site?.workDone).toBe(0);
     expect(survivalEvents.some((event) => event.kind === "drink")).toBe(true);
 
