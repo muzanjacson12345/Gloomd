@@ -181,12 +181,19 @@ function nearestFreshwaterBank(world: WorldState, agent: Agent): Target | null {
 }
 
 function moveToward(world: WorldState, agent: Agent, target: Target): boolean {
+  agent.destination = { ...target.point };
+  agent.plannedPath = target.path.map((point) => ({ ...point }));
   const next = target.path[0];
   if (!next) return true;
 
-  if (!isWalkableTile(world, next)) return false;
+  if (!isWalkableTile(world, next)) {
+    agent.plannedPath = [];
+    agent.destination = null;
+    return false;
+  }
   agent.x = next.x;
   agent.y = next.y;
+  agent.plannedPath = target.path.slice(1).map((point) => ({ ...point }));
   agent.needs.energy = Math.max(0, agent.needs.energy - 0.5);
   return false;
 }
@@ -209,6 +216,8 @@ function explore(world: WorldState, agent: Agent, random: ReturnType<typeof crea
 
   agent.x = selected.x;
   agent.y = selected.y;
+  agent.destination = null;
+  agent.plannedPath = [];
   agent.needs.energy = Math.max(0, agent.needs.energy - 0.5);
 }
 
@@ -495,6 +504,8 @@ function stepAgent(
 
     if (moveToward(world, agent, target)) {
       agent.currentGoal = "drink";
+      agent.destination = { x: agent.x, y: agent.y };
+      agent.plannedPath = [];
       agent.needs.thirst = Math.max(0, agent.needs.thirst - WATER_RESTORE);
       emit(world, emitted, agent, "drink", `${agent.name} drank from a freshwater source.`);
     }
@@ -503,6 +514,8 @@ function stepAgent(
 
   if (agent.needs.hunger >= NEED_THRESHOLD && agent.inventory.food > 0) {
     agent.currentGoal = "eat";
+    agent.destination = null;
+    agent.plannedPath = [];
     agent.inventory.food -= 1;
     agent.needs.hunger = Math.max(0, agent.needs.hunger - FOOD_RESTORE);
     emit(world, emitted, agent, "eat", `${agent.name} ate gathered food.`);
@@ -524,6 +537,8 @@ function stepAgent(
       if (gathered > 0) {
         agent.inventory.food += gathered;
         agent.currentGoal = "gather";
+        agent.destination = { x: agent.x, y: agent.y };
+        agent.plannedPath = [];
         emit(
           world,
           emitted,
@@ -540,6 +555,8 @@ function stepAgent(
 
   if (agent.needs.energy <= 20) {
     agent.currentGoal = "rest";
+    agent.destination = null;
+    agent.plannedPath = [];
     const before = agent.needs.energy;
     agent.needs.energy = Math.min(100, agent.needs.energy + RESTORE_ENERGY);
     if (agent.needs.energy > before) {
