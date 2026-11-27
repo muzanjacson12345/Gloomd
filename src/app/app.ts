@@ -326,7 +326,10 @@ function startWorld(
   onResize();
   const handleNewWorld = (): void => {
     // Finish the old world's checkpoint before a new session begins writing autosaves.
-    void saveCurrentWorld(true).then(onNewWorld).catch(onNewWorld);
+    void saveCurrentWorld(true).then(
+      () => onNewWorld(),
+      () => onNewWorld()
+    );
   };
   shell.newWorldButton.addEventListener("click", handleNewWorld);
   shell.activityList.addEventListener("click", onActivitySelect);
