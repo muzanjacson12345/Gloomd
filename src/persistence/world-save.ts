@@ -1,0 +1,213 @@
+import type { Agent, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
+
+export const WORLD_SAVE_FORMAT = "gloomd-world-save" as const;
+export const WORLD_SAVE_VERSION = 1 as const;
+
+export interface WorldSave {
+  format: typeof WORLD_SAVE_FORMAT;
+  schemaVersion: typeof WORLD_SAVE_VERSION;
+  savedAt: number;
+  startingPoint: GridPoint;
+  world: WorldState;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value);
+}
+
+function isPoint(value: unknown): value is GridPoint {
+  return isRecord(value) && isInteger(value.x) && isInteger(value.y);
+}
+
+function isMaterialBundle(value: unknown): value is { wood: number; stone: number } {
+  return isRecord(value) &&
+    isFiniteNumber(value.wood) && value.wood >= 0 &&
+    isFiniteNumber(value.stone) && value.stone >= 0;
+}
+
+function isTile(value: unknown): value is Tile {
+  if (!isRecord(value)) return false;
+  const terrain = ["water", "beach", "grassland", "forest", "hill", "mountain", "river"];
+  return terrain.includes(String(value.terrain)) &&
+    ["none", "ocean", "freshwater"].includes(String(value.waterKind)) &&
+    isFiniteNumber(value.elevation) &&
+    isFiniteNumber(value.moisture) &&
+    typeof value.walkable === "boolean";
+}
+
+function isResource(value: unknown, width: number, height: number): value is ResourceNode {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" &&
+    ["wild_food", "wood", "stone"].includes(String(value.kind)) &&
+    isInteger(value.x) && value.x >= 0 && value.x < width &&
+    isInteger(value.y) && value.y >= 0 && value.y < height &&
+    isFiniteNumber(value.quantity) && value.quantity >= 0 &&
+    isFiniteNumber(value.maxQuantity) && value.maxQuantity >= value.quantity &&
+    (value.regrowEveryTicks === null ||
+      (isFiniteNumber(value.regrowEveryTicks) && value.regrowEveryTicks > 0));
+}
+
+function isAgent(value: unknown, width: number, height: number): value is Agent {
+  if (!isRecord(value) || !isRecord(value.needs) || !isRecord(value.inventory) ||
+      !isRecord(value.traits)) return false;
+
+  const needs = value.needs;
+  const inventory = value.inventory;
+  const traits = value.traits;
+  const needNames = ["hunger", "thirst", "energy", "health"] as const;
+  const inventoryNames = ["food", "wood", "stone"] as const;
+  const traitNames = ["curiosity", "diligence", "sociability"] as const;
+
+  return typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    isFiniteNumber(value.ageYears) && value.ageYears >= 0 &&
+    isInteger(value.x) && value.x >= 0 && value.x < width &&
+    isInteger(value.y) && value.y >= 0 && value.y < height &&
+    needNames.every((name) => isFiniteNumber(needs[name]) && needs[name] >= 0 && needs[name] <= 100) &&
+    inventoryNames.every((name) => isFiniteNumber(inventory[name]) && inventory[name] >= 0) &&
+    traitNames.every((name) => isFiniteNumber(traits[name]) && traits[name] >= 0 && traits[name] <= 1) &&
+    ["forager", "hauler", "builder"].includes(String(value.role)) &&
+    typeof value.currentGoal === "string" &&
+    isFiniteNumber(value.perceptionRadius) && value.perceptionRadius >= 0 &&
+    (value.sightRadius === undefined || (isFiniteNumber(value.sightRadius) && value.sightRadius >= 0)) &&
+    (value.destination === undefined || value.destination === null ||
+      (isPoint(value.destination) && value.destination.x >= 0 && value.destination.x < width &&
+        value.destination.y >= 0 && value.destination.y < height)) &&
+    (value.plannedPath === undefined ||
+      (Array.isArray(value.plannedPath) && value.plannedPath.every((point) =>
+        isPoint(point) && point.x >= 0 && point.x < width && point.y >= 0 && point.y < height))) &&
+    typeof value.alive === "boolean" &&
+    (value.homeId === null || typeof value.homeId === "string") &&
+    (value.buildingId === null || typeof value.buildingId === "string");
+}
+
+function isWorldState(value: unknown): value is WorldState {
+  if (!isRecord(value)) return false;
+  const width = value.width;
+  const height = value.height;
+  if (!isInteger(width) || !isInteger(height) ||
+      width < 16 || height < 16 || width > 512 || height > 512 ||
+      width * height > 65_536) return false;
+
+  if (!Array.isArray(value.tiles) || value.tiles.length !== height ||
+      !value.tiles.every((row) => Array.isArray(row) && row.length === width && row.every(isTile))) {
+    return false;
+  }
+
+  if (!Array.isArray(value.resources) ||
+      !value.resources.every((resource) => isResource(resource, width, height))) return false;
+
+  if (!Array.isArray(value.agents) ||
+      !value.agents.every((agent) => isAgent(agent, width, height))) return false;
+
+  if (!Array.isArray(value.buildings) || !value.buildings.every((building) => {
+    if (!isRecord(building)) return false;
+    return typeof building.id === "string" &&
+      building.kind === "shelter" &&
+      isInteger(building.x) && building.x >= 0 && building.x < width &&
+      isInteger(building.y) && building.y >= 0 && building.y < height &&
+      ["under_construction", "complete"].includes(String(building.status)) &&
+      isFiniteNumber(building.workDone) && building.workDone >= 0 &&
+      isFiniteNumber(building.workRequired) && building.workRequired > 0 &&
+      typeof building.builderId === "string";
+  })) return false;
+
+  if (!isRecord(value.stockpile) ||
+      typeof value.stockpile.id !== "string" ||
+      !isInteger(value.stockpile.x) || value.stockpile.x < 0 || value.stockpile.x >= width ||
+      !isInteger(value.stockpile.y) || value.stockpile.y < 0 || value.stockpile.y >= height ||
+      !isMaterialBundle(value.stockpile.inventory) ||
+      !isFiniteNumber(value.stockpile.capacityPerResource) ||
+      value.stockpile.capacityPerResource <= 0) return false;
+
+  if (!isInteger(value.seed) || !isInteger(value.randomState) ||
+      !isInteger(value.tick) || value.tick < 0) return false;
+
+  if (!Array.isArray(value.events) || !value.events.every((event) => {
+    if (!isRecord(event)) return false;
+    return typeof event.id === "string" &&
+      isInteger(event.tick) && event.tick >= 0 &&
+      (event.agentId === null || typeof event.agentId === "string") &&
+      typeof event.kind === "string" &&
+      typeof event.message === "string";
+  })) return false;
+
+  return true;
+}
+
+function cloneWorld(world: WorldState): WorldState {
+  return JSON.parse(JSON.stringify(world)) as WorldState;
+}
+
+export function createWorldSave(
+  world: WorldState,
+  startingPoint: GridPoint,
+  savedAt = Date.now()
+): WorldSave {
+  if (!isFiniteNumber(savedAt) || savedAt < 0) {
+    throw new RangeError("Save timestamp must be a non-negative finite number.");
+  }
+  if (!isPoint(startingPoint) ||
+      startingPoint.x < 0 || startingPoint.x >= world.width ||
+      startingPoint.y < 0 || startingPoint.y >= world.height ||
+      !world.tiles[startingPoint.y]?.[startingPoint.x]?.walkable) {
+    throw new RangeError("The starting point must be a walkable tile inside the world.");
+  }
+
+  const snapshot = cloneWorld(world);
+  if (!isWorldState(snapshot)) {
+    throw new TypeError("The current world contains invalid state and cannot be saved.");
+  }
+
+  return {
+    format: WORLD_SAVE_FORMAT,
+    schemaVersion: WORLD_SAVE_VERSION,
+    savedAt,
+    startingPoint: { ...startingPoint },
+    world: snapshot
+  };
+}
+
+export function serializeWorldSave(save: WorldSave): string {
+  return JSON.stringify(save);
+}
+
+export function parseWorldSave(serialized: string): WorldSave {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serialized) as unknown;
+  } catch {
+    throw new TypeError("The selected save file is not valid JSON.");
+  }
+
+  if (!isRecord(parsed) || parsed.format !== WORLD_SAVE_FORMAT) {
+    throw new TypeError("This file is not a GLOOMD world save.");
+  }
+  if (parsed.schemaVersion !== WORLD_SAVE_VERSION) {
+    throw new Error(`Unsupported GLOOMD save version: ${String(parsed.schemaVersion)}.`);
+  }
+  if (!isFiniteNumber(parsed.savedAt) || parsed.savedAt < 0 ||
+      !isPoint(parsed.startingPoint) || !isWorldState(parsed.world)) {
+    throw new TypeError("The GLOOMD save is incomplete or contains invalid world data.");
+  }
+
+  const world = parsed.world;
+  const start = parsed.startingPoint;
+  if (
+    start.x < 0 || start.x >= world.width ||
+    start.y < 0 || start.y >= world.height ||
+    !world.tiles[start.y]?.[start.x]?.walkable
+  ) {
+    throw new TypeError("The saved starting point is not a walkable tile inside the world.");
+  }
+
+  return parsed as unknown as WorldSave;
+}
