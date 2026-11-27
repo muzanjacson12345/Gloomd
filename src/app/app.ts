@@ -17,7 +17,7 @@ import { renderAgentActivity } from "../ui/agent-activity";
 import { createWorldSetup } from "../ui/world-setup";
 import type { GridPoint, WorldState } from "../core/types";
 
-const WORLD_SEED = 20261127;
+const WORLD_SEED = Math.floor(Math.random() * 0x7fff_ffff) + 1;
 const SIMULATION_STEP_MS = 250;
 const SPEEDS = [1, 2, 4] as const;
 

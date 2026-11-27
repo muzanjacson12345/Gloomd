@@ -1,8 +1,36 @@
-import { createWorld, findNearestWalkablePoint } from "../core/world-generation";
+import { createWorld, findNearestWalkablePoint, relocateStockpileNear } from "../core/world-generation";
 import { CanvasWorldRenderer, resizeCanvas } from "../render/canvas-renderer";
 import { createCamera } from "../render/camera";
 import { screenToWorld } from "../render/geometry";
 import type { GridPoint, WorldState } from "../core/types";
+
+
+export const WORLD_SIZE_PRESETS = [
+  { id: "small", label: "SMALL · 64 × 48", width: 64, height: 48 },
+  { id: "standard", label: "STANDARD · 128 × 96", width: 128, height: 96 },
+  { id: "large", label: "LARGE · 192 × 144", width: 192, height: 144 },
+  { id: "huge", label: "HUGE · 256 × 192", width: 256, height: 192 }
+] as const;
+
+export type WorldSizePreset = typeof WORLD_SIZE_PRESETS[number];
+
+export function clampWaterCoverage(value: number): number {
+  if (!Number.isFinite(value)) return 0.38;
+  return Math.round(Math.max(0.25, Math.min(0.55, value)) * 100) / 100;
+}
+
+function createRandomSeed(previousSeed: number): number {
+  const values = new Uint32Array(1);
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(values);
+  }
+  const candidate = values[0] || Math.floor(Math.random() * 0x7fff_ffff) + 1;
+  return candidate === previousSeed ? (candidate >= 0x7fff_ffff ? 1 : candidate + 1) : candidate;
+}
+
+function getWorldSizePreset(id: string): WorldSizePreset {
+  return WORLD_SIZE_PRESETS.find((preset) => preset.id === id) ?? WORLD_SIZE_PRESETS[1];
+}
 
 export const MIN_STARTING_POPULATION = 5;
 export const MAX_STARTING_POPULATION = 30;
@@ -55,6 +83,27 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
             <div class="range-labels"><span>5 · SMALL GROUP</span><span>30 · LARGE GROUP</span></div>
           </div>
 
+          <section class="generation-settings" aria-label="Advanced world generation settings">
+            <div class="generation-field">
+              <label for="world-size">MAP SIZE</label>
+              <select id="world-size">
+                ${WORLD_SIZE_PRESETS.map((preset) => `<option value="${preset.id}">${preset.label}</option>`).join("")}
+              </select>
+            </div>
+            <div class="generation-field water-setting">
+              <div class="generation-label"><label for="water-coverage">WATER COVERAGE</label><strong id="water-value">38%</strong></div>
+              <input id="water-coverage" type="range" min="25" max="55" step="1" value="38" />
+              <div class="range-labels"><span>MORE LAND</span><span>MORE WATER</span></div>
+            </div>
+            <div class="generation-field seed-setting">
+              <label for="world-seed">WORLD SEED</label>
+              <div class="seed-input-row">
+                <input id="world-seed" type="number" min="1" max="2147483647" step="1" value="${options.seed}" />
+                <button id="apply-seed" class="seed-apply-button" type="button">APPLY</button>
+              </div>
+            </div>
+          </section>
+
           <div class="selected-location">
             <span class="setup-field-label">STARTING AREA</span>
             <strong id="selected-location">Locating suitable land…</strong>
@@ -74,7 +123,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
         <section class="setup-map-section" aria-label="Choose your starting place">
           <div class="preview-heading">
             <div><span class="setup-field-label">TERRAIN PREVIEW</span><strong>Choose your starting ground</strong></div>
-            <span id="terrain-seed" class="seed-label">SEED ${options.seed}</span>
+            <span id="terrain-seed" class="seed-label">${128} × ${96}</span>
           </div>
           <div class="setup-preview-frame">
             <canvas id="setup-preview" class="setup-preview-map" aria-label="Terrain map preview. Click to choose where inhabitants begin."></canvas>
@@ -99,18 +148,48 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   const newTerrainButton = required<HTMLButtonElement>("#new-terrain");
   const returnButton = required<HTMLButtonElement>("#return-world");
   const seedLabel = required<HTMLElement>("#terrain-seed");
+  const sizeInput = required<HTMLSelectElement>("#world-size");
+  const waterInput = required<HTMLInputElement>("#water-coverage");
+  const waterValue = required<HTMLElement>("#water-value");
+  const seedInput = required<HTMLInputElement>("#world-seed");
+  const applySeedButton = required<HTMLButtonElement>("#apply-seed");
   const context = canvas.getContext("2d", { alpha: false });
   if (!context) throw new Error("GLOOMD could not create a Canvas 2D preview.");
 
   const renderer = new CanvasWorldRenderer();
   let seed = options.seed;
   let population = DEFAULT_STARTING_POPULATION;
-  let world = createWorld(seed);
-  const camera = createCamera(world.width, world.height, 6);
-  let startingPoint: GridPoint | null = findNearestWalkablePoint(world, {
+  let size = WORLD_SIZE_PRESETS[1];
+  let waterCoverage = 0.38;
+  let world = createWorld(seed, {
+    width: size.width,
+    height: size.height,
+    waterCoverage
+  });
+  let camera = createCamera(world.width, world.height, 6);
+  let startingPoint: GridPoint | null = null;
+
+  const regenerateWorld = (): void => {
+    world = createWorld(seed, {
+      width: size.width,
+      height: size.height,
+      waterCoverage
+    });
+    camera = createCamera(world.width, world.height, 6);
+    startingPoint = findNearestWalkablePoint(world, {
+      x: Math.floor(world.width / 2),
+      y: Math.floor(world.height / 2)
+    });
+    if (startingPoint) relocateStockpileNear(world, startingPoint);
+    seedLabel.textContent = `${world.width} × ${world.height}`;
+    setSelectionText();
+    drawPreview();
+  };
+  startingPoint = findNearestWalkablePoint(world, {
     x: Math.floor(world.width / 2),
     y: Math.floor(world.height / 2)
   });
+  if (startingPoint) relocateStockpileNear(world, startingPoint);
 
   const setSelectionText = (): void => {
     if (!startingPoint) {
@@ -118,7 +197,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
       startButton.disabled = true;
       return;
     }
-    selectedLocation.textContent = `MAP ${startingPoint.x + 1}, ${startingPoint.y + 1}`;
+    selectedLocation.textContent = `MAP ${startingPoint.x + 1}, ${startingPoint.y + 1} · ${world.width} × ${world.height}`;
     startButton.disabled = false;
   };
 
@@ -152,6 +231,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
       x: Math.floor(point.x),
       y: Math.floor(point.y)
     });
+    if (startingPoint) relocateStockpileNear(world, startingPoint);
     setSelectionText();
     drawPreview();
   };
@@ -163,15 +243,37 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   };
 
   const onNewTerrain = (): void => {
-    seed = seed >= Number.MAX_SAFE_INTEGER - 1 ? 1 : seed + 1;
-    world = createWorld(seed);
-    startingPoint = findNearestWalkablePoint(world, {
-      x: Math.floor(world.width / 2),
-      y: Math.floor(world.height / 2)
-    });
-    seedLabel.textContent = `SEED ${seed}`;
-    setSelectionText();
-    drawPreview();
+    seed = createRandomSeed(seed);
+    seedInput.value = String(seed);
+    regenerateWorld();
+  };
+
+  const onSizeChange = (): void => {
+    size = getWorldSizePreset(sizeInput.value);
+    regenerateWorld();
+  };
+
+  const onWaterInput = (): void => {
+    waterValue.textContent = `${Math.round(Number(waterInput.value))}%`;
+  };
+
+  const onWaterChange = (): void => {
+    waterCoverage = clampWaterCoverage(Number(waterInput.value) / 100);
+    waterInput.value = String(Math.round(waterCoverage * 100));
+    waterValue.textContent = `${Math.round(waterCoverage * 100)}%`;
+    regenerateWorld();
+  };
+
+  const onApplySeed = (): void => {
+    const requestedSeed = Number(seedInput.value);
+    if (!Number.isSafeInteger(requestedSeed) || requestedSeed < 1 || requestedSeed > 0x7fff_ffff) {
+      seedInput.setCustomValidity("Enter a whole seed between 1 and 2147483647.");
+      seedInput.reportValidity();
+      return;
+    }
+    seedInput.setCustomValidity("");
+    seed = requestedSeed;
+    regenerateWorld();
   };
 
   const onStart = (): void => {
@@ -185,12 +287,20 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   populationInput.addEventListener("input", onPopulationChange);
   canvas.addEventListener("click", onPreviewClick);
   newTerrainButton.addEventListener("click", onNewTerrain);
+  sizeInput.addEventListener("change", onSizeChange);
+  waterInput.addEventListener("input", onWaterInput);
+  waterInput.addEventListener("change", onWaterChange);
+  applySeedButton.addEventListener("click", onApplySeed);
   startButton.addEventListener("click", onStart);
   returnButton.addEventListener("click", onCancel);
   window.addEventListener("resize", onResize);
 
   populationInput.value = String(population);
   populationValue.textContent = `${population} PEOPLE`;
+  waterValue.textContent = "38%";
+  sizeInput.value = size.id;
+  seedInput.value = String(seed);
+  seedLabel.textContent = `${world.width} × ${world.height}`;
   setSelectionText();
   drawPreview();
 
@@ -198,6 +308,10 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
     populationInput.removeEventListener("input", onPopulationChange);
     canvas.removeEventListener("click", onPreviewClick);
     newTerrainButton.removeEventListener("click", onNewTerrain);
+    sizeInput.removeEventListener("change", onSizeChange);
+    waterInput.removeEventListener("input", onWaterInput);
+    waterInput.removeEventListener("change", onWaterChange);
+    applySeedButton.removeEventListener("click", onApplySeed);
     startButton.removeEventListener("click", onStart);
     returnButton.removeEventListener("click", onCancel);
     window.removeEventListener("resize", onResize);
