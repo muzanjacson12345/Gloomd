@@ -105,6 +105,12 @@ export interface Agent {
   role: AgentRole;
   currentGoal: AgentGoal;
   perceptionRadius: number;
+  /** Visual line-of-sight radius; separate from resource-search perception. */
+  sightRadius?: number;
+  /** Current best-known walk destination, used only for observation overlays. */
+  destination?: GridPoint | null;
+  /** Remaining grid route to destination, kept aligned with the latest decision. */
+  plannedPath?: GridPoint[];
   alive: boolean;
   homeId: string | null;
   buildingId: string | null;
