@@ -44,11 +44,6 @@ export function createAppShell(root: HTMLElement): AppShell {
         <span class="tool-separator"></span>
         <button class="icon-button home-button" id="reset-view" type="button" aria-label="Reset map view">⌂</button>
       </div>
-      <div class="layer-tools" role="group" aria-label="Map layers">
-        <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
-        <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
-        <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
-      </div>
       <nav class="layer-tools" aria-label="Visible map layers">
         <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
         <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
