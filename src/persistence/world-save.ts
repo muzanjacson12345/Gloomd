@@ -84,6 +84,8 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     (value.plannedPath === undefined ||
       (Array.isArray(value.plannedPath) && value.plannedPath.every((point) =>
         isPoint(point) && point.x >= 0 && point.x < width && point.y >= 0 && point.y < height))) &&
+    (value.starvationTicks === undefined || (isInteger(value.starvationTicks) && value.starvationTicks >= 0)) &&
+    (value.dehydrationTicks === undefined || (isInteger(value.dehydrationTicks) && value.dehydrationTicks >= 0)) &&
     typeof value.alive === "boolean" &&
     (value.homeId === null || typeof value.homeId === "string") &&
     (value.buildingId === null || typeof value.buildingId === "string");
