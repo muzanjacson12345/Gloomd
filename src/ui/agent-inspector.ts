@@ -13,6 +13,11 @@ export function renderAgentInspector(shell: AppShell, agent: Agent | null): void
   shell.inspectorMeta.textContent = `AGE ${agent.ageYears} · ${agent.role.toUpperCase()}`;
   shell.inspectorGoal.textContent = formatGoal(agent.currentGoal);
   shell.inspectorLocation.textContent = `${agent.x + 1}, ${agent.y + 1}`;
+  shell.inspectorHome.textContent = agent.homeId !== null
+    ? "SHELTER"
+    : agent.buildingId !== null
+      ? "UNDER CONSTRUCTION"
+      : "NONE";
   shell.inspectorInventory.textContent = `${agent.inventory.food} food · ${agent.inventory.wood} wood · ${agent.inventory.stone} stone`;
   for (const need of NEEDS) {
     const value = Math.max(0, Math.min(100, agent.needs[need]));

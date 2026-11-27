@@ -6,6 +6,7 @@ export interface AppShell {
   worldTime: HTMLElement;
   population: HTMLElement;
   resourceSummary: HTMLElement;
+  homeCount: HTMLElement;
   zoomLevel: HTMLElement;
   playButton: HTMLButtonElement;
   speedButtons: HTMLButtonElement[];
@@ -19,6 +20,7 @@ export interface AppShell {
   inspectorMeta: HTMLElement;
   inspectorGoal: HTMLElement;
   inspectorLocation: HTMLElement;
+  inspectorHome: HTMLElement;
   inspectorInventory: HTMLElement;
   closeInspectorButton: HTMLButtonElement;
   followAgentButton: HTMLButtonElement;
@@ -34,7 +36,8 @@ export function createAppShell(root: HTMLElement): AppShell {
         <div class="world-readouts">
           <div class="readout"><span class="readout-label">WORLD TIME</span><strong id="world-time">DAY 01 · 06:00</strong></div>
           <div class="readout"><span class="readout-label">INHABITANTS</span><strong id="population">30</strong></div>
-          <div class="readout resource-readout"><span class="readout-label">AVAILABLE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
+          <div class="readout homes-readout"><span class="readout-label">HOMES</span><strong id="home-count">00</strong></div>
+          <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
       </header>
       <div class="map-tools" aria-label="Map view controls">
@@ -48,6 +51,7 @@ export function createAppShell(root: HTMLElement): AppShell {
         <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
         <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
         <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
+        <button class="layer-button is-active" data-layer="buildings" type="button" aria-pressed="true">HOMES</button>
       </nav>
       <nav class="playback-controls" aria-label="Simulation playback">
         <button class="play-button" id="play-toggle" type="button">Ⅱ &nbsp; PAUSE</button>
@@ -65,6 +69,7 @@ export function createAppShell(root: HTMLElement): AppShell {
         <div class="agent-heading"><div class="agent-avatar">·</div><div><h2 id="inspector-name">Ari</h2><p id="inspector-meta">AGE 24 · FORAGER</p></div></div>
         <div class="inspector-status"><span>CURRENT INTENT</span><strong id="inspector-goal">Exploring</strong></div>
         <div class="inspector-status"><span>LOCATION</span><strong id="inspector-location">—</strong></div>
+        <div class="inspector-status"><span>HOME</span><strong id="inspector-home">NONE</strong></div>
         <div class="needs-heading">CONDITION</div>
         <div class="need-row"><div><span>HUNGER</span><strong id="need-hunger-value">—</strong></div><div class="need-track"><i id="need-hunger"></i></div></div>
         <div class="need-row"><div><span>THIRST</span><strong id="need-thirst-value">—</strong></div><div class="need-track"><i id="need-thirst"></i></div></div>
@@ -88,6 +93,7 @@ export function createAppShell(root: HTMLElement): AppShell {
     worldTime: required("#world-time"),
     population: required("#population"),
     resourceSummary: required("#resource-summary"),
+    homeCount: required("#home-count"),
     zoomLevel: required("#zoom-level"),
     playButton: required<HTMLButtonElement>("#play-toggle"),
     speedButtons: Array.from(root.querySelectorAll<HTMLButtonElement>("[data-speed]")),
@@ -101,6 +107,7 @@ export function createAppShell(root: HTMLElement): AppShell {
     inspectorMeta: required("#inspector-meta"),
     inspectorGoal: required("#inspector-goal"),
     inspectorLocation: required("#inspector-location"),
+    inspectorHome: required("#inspector-home"),
     inspectorInventory: required("#inspector-inventory"),
     closeInspectorButton: required<HTMLButtonElement>("#close-inspector"),
     followAgentButton: required<HTMLButtonElement>("#follow-agent"),

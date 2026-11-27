@@ -1,4 +1,4 @@
-import type { Agent, ResourceNode, Tile, WorldState } from "../core/types";
+import type { Agent, Building, ResourceNode, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -7,6 +7,7 @@ export interface RenderLayers {
   terrain?: boolean;
   resources?: boolean;
   agents?: boolean;
+  buildings?: boolean;
   selectedAgentId?: string | null;
 }
 
@@ -158,6 +159,66 @@ function drawResources(
   }
 }
 
+
+function drawBuildings(
+  context: CanvasRenderingContext2D,
+  buildings: readonly Building[],
+  bounds: WorldBounds,
+  zoom: number
+): void {
+  for (const building of buildings) {
+    if (!isInsideBounds(building.x, building.y, bounds)) continue;
+
+    const x = building.x;
+    const y = building.y;
+    const complete = building.status === "complete";
+
+    if (zoom < 4) {
+      context.fillStyle = complete ? "#d2c092" : "#b58c6d";
+      context.fillRect(x + 0.25, y + 0.25, 0.5, 0.5);
+      if (!complete) {
+        context.strokeStyle = "#e2c99b";
+        context.lineWidth = 0.07;
+        context.strokeRect(x + 0.18, y + 0.18, 0.64, 0.64);
+      }
+      continue;
+    }
+
+    // Low-detail walls and roof keep buildings cheap to draw at close zoom.
+    context.fillStyle = "#18231c";
+    context.fillRect(x + 0.17, y + 0.48, 0.66, 0.39);
+
+    context.fillStyle = complete ? "#b5a17a" : "#8d907a";
+    context.fillRect(x + 0.25, y + 0.46, 0.5, 0.38);
+
+    context.fillStyle = complete ? "#465649" : "#96775e";
+    context.beginPath();
+    context.moveTo(x + 0.17, y + 0.49);
+    context.lineTo(x + 0.5, y + 0.18);
+    context.lineTo(x + 0.83, y + 0.49);
+    context.closePath();
+    context.fill();
+
+    if (complete) {
+      context.fillStyle = "#594b39";
+      context.fillRect(x + 0.44, y + 0.63, 0.12, 0.21);
+      context.fillStyle = "#d8c79d";
+      context.fillRect(x + 0.29, y + 0.55, 0.09, 0.09);
+    } else {
+      context.strokeStyle = "#d9c39b";
+      context.lineWidth = 0.045;
+      context.beginPath();
+      context.moveTo(x + 0.22, y + 0.39);
+      context.lineTo(x + 0.22, y + 0.88);
+      context.moveTo(x + 0.78, y + 0.39);
+      context.lineTo(x + 0.78, y + 0.88);
+      context.moveTo(x + 0.22, y + 0.55);
+      context.lineTo(x + 0.78, y + 0.55);
+      context.stroke();
+    }
+  }
+}
+
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
   agent: Agent,
@@ -298,6 +359,10 @@ export class CanvasWorldRenderer {
 
     if (layers.resources !== false) {
       drawResources(context, world.resources, bounds, camera.zoom);
+    }
+
+    if (layers.buildings !== false) {
+      drawBuildings(context, world.buildings, bounds, camera.zoom);
     }
 
     if (layers.agents !== false) {

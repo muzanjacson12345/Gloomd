@@ -47,6 +47,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .readout-label, .readout strong { display: block; }
 .readout-label { color: #839183; font-size: 8px; font-weight: 650; letter-spacing: .17em; margin-bottom: 5px; }
 .readout strong { color: #e2e5d4; font-size: 11px; font-weight: 600; letter-spacing: .045em; white-space: nowrap; }
+.homes-readout { min-width: 78px; padding: 0 13px; }
 .resource-readout { min-width: 242px; }
 
 .map-tools {
@@ -162,6 +163,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .readout-label { font-size: 7px; }
   .readout strong { font-size: 9px; }
   .resource-readout { display: none; }
+  .homes-readout { min-width: 66px; }
   .map-tools { left: 9px; }
   .layer-tools { left: 9px; }
   .event-feed { right: 9px; bottom: 76px; width: min(245px, calc(100vw - 18px)); padding: 10px 11px; }
