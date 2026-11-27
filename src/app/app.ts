@@ -152,7 +152,7 @@ export function startApp(root: HTMLElement): () => void {
     draw();
   });
 
-  for (const button of Array.from(root.querySelectorAll<HTMLButtonElement>("[data-layer]"))) {
+  for (const button of shell.layerButtons) {
     button.addEventListener("click", () => {
       const layer = button.dataset.layer as keyof typeof layers;
       if (!(layer in layers)) return;
