@@ -158,9 +158,9 @@
 - Modify: this plan and its progress ledger.
 
 - [x] Update controls and describe the population slider, preview selection, roster, zoom and unsaved-world limitation.
-- [ ] Run final CI and verify the Pages deployment points at the final `main` commit.
-- [ ] Review the full change against the spec. With no independent reviewer available, record a separate author self-review and disclose that limitation.
-- [ ] Mark completed plan steps and update the progress ledger.
+- [x] Run final CI and verify the Pages deployment points at the final `main` commit (CI run 46070441044; Pages run 46070441040; deployed commit 293e74f514a2e32ca06a88f2cec8718c62d3afb9).
+- [x] Review the full change against the spec. Author self-review recorded in the progress ledger; no independent reviewer tool was available.
+- [x] Mark completed plan steps and update the progress ledger.
 
 ## Final acceptance
 
