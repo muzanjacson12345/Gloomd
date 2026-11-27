@@ -13,6 +13,8 @@ import type {
 } from "./types";
 
 const NEED_THRESHOLD = 65;
+const HUNGER_PER_MINUTE = 0.08;
+const THIRST_PER_MINUTE = 0.12;
 const CRITICAL_HUNGER_THRESHOLD = 90;
 const CRITICAL_THIRST_THRESHOLD = 90;
 const STARVATION_GRACE_TICKS = 30;
@@ -608,8 +610,10 @@ function stepAgent(
 ): void {
   if (!agent.alive) return;
 
-  agent.needs.hunger = Math.min(100, agent.needs.hunger + 1);
-  agent.needs.thirst = Math.min(100, agent.needs.thirst + 1);
+  // One simulation tick is one displayed world minute. Needs rise gradually
+  // across several world-hours, rather than a full percentage point each minute.
+  agent.needs.hunger = Math.min(100, agent.needs.hunger + HUNGER_PER_MINUTE);
+  agent.needs.thirst = Math.min(100, agent.needs.thirst + THIRST_PER_MINUTE);
   updateCriticalNeedTimers(agent);
   recoverHealth(agent);
 
