@@ -46,7 +46,7 @@ function isTile(value: unknown): value is Tile {
 function isResource(value: unknown, width: number, height: number): value is ResourceNode {
   if (!isRecord(value)) return false;
   return typeof value.id === "string" &&
-    ["wild_food", "wood", "stone"].includes(String(value.kind)) &&
+    ["wild_food", "fish", "wood", "stone"].includes(String(value.kind)) &&
     isInteger(value.x) && value.x >= 0 && value.x < width &&
     isInteger(value.y) && value.y >= 0 && value.y < height &&
     isFiniteNumber(value.quantity) && value.quantity >= 0 &&
@@ -65,7 +65,7 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
   const inventory = value.inventory;
   const traits = value.traits;
   const needNames = ["hunger", "thirst", "energy", "health"] as const;
-  const inventoryNames = ["food", "wood", "stone"] as const;
+  const inventoryNames = ["food", "fish", "wood", "stone"] as const;
   const traitNames = ["curiosity", "diligence", "sociability"] as const;
 
   return typeof value.id === "string" &&
@@ -76,7 +76,7 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     needNames.every((name) => isFiniteNumber(needs[name]) && needs[name] >= 0 && needs[name] <= 100) &&
     inventoryNames.every((name) => isFiniteNumber(inventory[name]) && inventory[name] >= 0) &&
     traitNames.every((name) => isFiniteNumber(traits[name]) && traits[name] >= 0 && traits[name] <= 1) &&
-    ["forager", "hauler", "builder"].includes(String(value.role)) &&
+    ["forager", "fisher", "hauler", "builder"].includes(String(value.role)) &&
     typeof value.currentGoal === "string" &&
     isFiniteNumber(value.perceptionRadius) && value.perceptionRadius >= 0 &&
     (value.sightRadius === undefined || (isFiniteNumber(value.sightRadius) && value.sightRadius >= 0)) &&
