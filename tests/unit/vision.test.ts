@@ -41,4 +41,15 @@ describe("local line of sight", () => {
     const visible = computeVisibleTiles(world, { x: 0, y: 0 }, 8);
     expect(visible.every((point) => point.x >= 0 && point.y >= 0 && point.x < 3 && point.y < 3)).toBe(true);
   });
+  it("does not see through dense forest", () => {
+    const world = makeWorld([".....", ".....", "....."]);
+    const forest = world.tiles[1]?.[2];
+    if (!forest) throw new Error("Test forest tile is missing");
+    forest.terrain = "forest";
+
+    const visible = computeVisibleTiles(world, { x: 1, y: 1 }, 4);
+    expect(visible).toContainEqual({ x: 2, y: 1 });
+    expect(visible).not.toContainEqual({ x: 3, y: 1 });
+  });
+
 });
