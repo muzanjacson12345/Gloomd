@@ -589,7 +589,7 @@ export class CanvasWorldRenderer {
     if (layers.selectedAgentId) selectedIds.add(layers.selectedAgentId);
     const selectedAgents = world.agents.filter((agent) => agent.alive && selectedIds.has(agent.id));
 
-    if (camera.zoom >= 2 && (selectedAgents.length > 0 || layers.selectionRect)) {
+    if (selectedAgents.length > 0 || layers.selectionRect) {
       drawAgentOverlays(context, world, selectedAgents, bounds, layers, this.visibilityCache);
     }
 
