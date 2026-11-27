@@ -364,6 +364,16 @@ function gatherHaulerMaterial(
     kind === "wood" ? "gather_wood" : "gather_stone",
     `${agent.name} gathered ${gathered} ${kind} for the settlement.`
   );
+  if (target.resource.quantity === 0) {
+    const resourceLabel = kind === "wood" ? "forest timber" : "stone";
+    emit(
+      world,
+      emitted,
+      null,
+      "resource_depleted",
+      `A nearby ${resourceLabel} patch has been exhausted.`
+    );
+  }
 }
 
 function nearestStockpileAccess(world: WorldState, agent: Agent): Target | null {
@@ -639,6 +649,15 @@ function stepAgent(
           "gather_food",
           `${agent.name} gathered ${gathered} wild food.`
         );
+        if (target.resource.quantity === 0) {
+          emit(
+            world,
+            emitted,
+            null,
+            "resource_depleted",
+            "A wild-food patch has been exhausted and must recover before it can be harvested again."
+          );
+        }
       } else {
         agent.currentGoal = "explore";
       }
@@ -738,10 +757,25 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
       }
 
       if (world.tick >= resource.nextRegrowTick) {
+        const wasEmpty = resource.quantity === 0;
         resource.quantity = Math.min(resource.maxQuantity, resource.quantity + 1);
         resource.nextRegrowTick = resource.quantity < resource.maxQuantity
           ? world.tick + resource.regrowEveryTicks
           : null;
+        if (wasEmpty && resource.quantity > 0) {
+          const resourceLabel = resource.kind === "wild_food"
+            ? "wild food"
+            : resource.kind === "wood"
+              ? "forest timber"
+              : "stone";
+          emit(
+            world,
+            emitted,
+            null,
+            "resource_regrown",
+            `A ${resourceLabel} patch has begun to recover.`
+          );
+        }
       }
     }
 
