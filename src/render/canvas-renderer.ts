@@ -1,6 +1,7 @@
 import type { Agent, ResourceNode, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
-import type { Camera, ViewportSize, WorldBounds } from "./camera";
+import type { WorldBounds } from "./geometry";
+import type { Camera, ViewportSize } from "./camera";
 
 export interface RenderLayers {
   terrain?: boolean;
