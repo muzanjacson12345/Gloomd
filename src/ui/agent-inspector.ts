@@ -1,0 +1,26 @@
+import type { Agent } from "../core/types";
+import type { AppShell, AgentNeed } from "./app-shell";
+
+function formatGoal(goal: string): string {
+  return goal.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+const NEEDS: readonly AgentNeed[] = ["hunger", "thirst", "energy", "health"];
+
+export function renderAgentInspector(shell: AppShell, agent: Agent | null): void {
+  shell.inspector.hidden = agent === null;
+  if (!agent) return;
+  shell.inspectorName.textContent = agent.name;
+  shell.inspectorMeta.textContent = `AGE ${agent.ageYears} · ${agent.role.toUpperCase()}`;
+  shell.inspectorGoal.textContent = formatGoal(agent.currentGoal);
+  shell.inspectorLocation.textContent = `${agent.x + 1}, ${agent.y + 1}`;
+  shell.inspectorInventory.textContent = `${agent.inventory.food} food · ${agent.inventory.wood} wood · ${agent.inventory.stone} stone`;
+  for (const need of NEEDS) {
+    const value = Math.max(0, Math.min(100, agent.needs[need]));
+    shell.needs[need].fill.style.width = `${value}%`;
+    shell.needs[need].value.textContent = `${Math.round(value)}%`;
+    shell.needs[need].fill.dataset.level =
+      need === "health" || need === "energy"
+        ? value < 25 ? "low" : "normal"
+        : value >= 75 ? "high" : "normal";
+  }
+}
