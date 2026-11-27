@@ -87,7 +87,8 @@ describe("autonomous agents and consequential actions", () => {
     expect(agents).toHaveLength(30);
     expect(agents.filter((agent) => agent.role === "builder")).toHaveLength(6);
     expect(agents.filter((agent) => agent.role === "hauler")).toHaveLength(6);
-    expect(agents.filter((agent) => agent.role === "forager")).toHaveLength(18);
+    expect(agents.filter((agent) => agent.role === "fisher")).toHaveLength(3);
+    expect(agents.filter((agent) => agent.role === "forager")).toHaveLength(15);
     expect(agents.some((agent) => agent.x === world.stockpile.x && agent.y === world.stockpile.y)).toBe(false);
     expect(new Set(agents.map((agent) => agent.id)).size).toBe(30);
     expect(new Set(agents.map((agent) => `${agent.x},${agent.y}`)).size).toBe(30);
