@@ -59,6 +59,20 @@ function emit(
   }
 }
 
+function recoverHealth(agent: Agent): void {
+  if (
+    agent.alive &&
+    agent.needs.health > 0 &&
+    agent.needs.hunger < 55 &&
+    agent.needs.thirst < 55 &&
+    agent.needs.energy > 35
+  ) {
+    // Recovery is intentionally gradual: surviving a shortage is possible,
+    // but a damaged inhabitant needs sustained food, water and rest to heal.
+    agent.needs.health = Math.min(100, agent.needs.health + 0.25);
+  }
+}
+
 function updateCriticalNeedTimers(agent: Agent): void {
   // A carried meal is a genuine reserve; it prevents starvation damage until
   // the agent can consume it. Thirst still requires reaching freshwater.
@@ -597,6 +611,7 @@ function stepAgent(
   agent.needs.hunger = Math.min(100, agent.needs.hunger + 1);
   agent.needs.thirst = Math.min(100, agent.needs.thirst + 1);
   updateCriticalNeedTimers(agent);
+  recoverHealth(agent);
 
   // Survival always outranks resource work and construction. Deprivation
   // damages health only after a grace period and only when no usable reserve
