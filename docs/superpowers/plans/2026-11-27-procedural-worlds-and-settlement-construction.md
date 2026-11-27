@@ -20,36 +20,36 @@
 
 **Files:** src/core/types.ts, src/core/world-generation.ts, tests/unit/world-generation.test.ts, src/ui/world-setup.ts, tests/unit/world-setup.test.ts.
 
-- [ ] Add failing tests for seed variation, multiple freshwater bodies, deterministic same-seed worlds, water coverage differences, safe total map area, and moving the stockpile near a chosen start.
-- [ ] Add failing tests for map-size presets and water-coverage clamping.
-- [ ] Verify RED in GitHub CI.
-- [ ] Implement deterministic multi-octave elevation/moisture noise, random coastlines, inland lake basins and downhill rivers.
-- [ ] Enforce 65,536 total tiles; optimize stockpile placement to avoid an O(tiles × resources) scan.
-- [ ] Add the map size and water coverage options to WorldOptions and the world-creator UI.
-- [ ] Make New Terrain choose a new random seed. Show the numeric seed. Reuse the same seed/options for the preview and launched world.
-- [ ] Relocate the stockpile beside the selected starting tile; keep it off resource nodes and off the population spawn tile.
-- [ ] Verify all tests, typecheck and build.
+- [x] Add failing tests for seed variation, multiple freshwater bodies, deterministic same-seed worlds, water coverage differences, safe total map area, and moving the stockpile near a chosen start.
+- [x] Add failing tests for map-size presets and water-coverage clamping.
+- [x] Verify RED in GitHub CI.
+- [x] Implement deterministic multi-octave elevation/moisture noise, random coastlines, inland lake basins and downhill rivers.
+- [x] Enforce 65,536 total tiles; optimize stockpile placement to avoid an O(tiles × resources) scan.
+- [x] Add the map size and water coverage options to WorldOptions and the world-creator UI.
+- [x] Make New Terrain choose a new random seed. Show the numeric seed. Reuse the same seed/options for the preview and launched world.
+- [x] Relocate the stockpile beside the selected starting tile; keep it off resource nodes and off the population spawn tile.
+- [x] Verify all tests, typecheck and build.
 
 ## Task 2 — Dependable shared construction loop
 
 **Files:** src/core/types.ts, src/core/agents.ts, src/core/simulation.ts, src/ui/agent-activity.ts, tests/unit/simulation.test.ts, tests/unit/agent-activity.test.ts.
 
-- [ ] Add failing tests for multi-unit hauler loads, exact remaining recipe amounts, builder waiting/site-search goals, and a full generated-style builder/hauler integration that completes a shelter without prefilled stockpile.
-- [ ] Verify RED in CI.
-- [ ] Raise hauler perception radius to 24 tiles; leave other roles at 12.
-- [ ] Haul at most three units per trip and never gather more than the outstanding amount for the current shelter recipe.
-- [ ] Add explicit search_resources, wait_for_materials, and find_build_site activity goals.
-- [ ] Builders continue exploring for a viable site but correctly report why they are not constructing. Keep atomic material withdrawal, safe site checks and survival priority.
-- [ ] Verify construction integration, interruptions, all tests, typecheck and build.
+- [x] Add failing tests for multi-unit hauler loads, exact remaining recipe amounts, builder waiting/site-search goals, and a full generated-style builder/hauler integration that completes a shelter without prefilled stockpile.
+- [x] Verify RED in CI.
+- [x] Raise hauler perception radius to 24 tiles; leave other roles at 12.
+- [x] Haul at most three units per trip and never gather more than the outstanding amount for the current shelter recipe.
+- [x] Add explicit search_resources, wait_for_materials, and find_build_site activity goals.
+- [x] Builders continue exploring for a viable site but correctly report why they are not constructing. Keep atomic material withdrawal, safe site checks and survival priority.
+- [x] Verify construction integration, interruptions, all tests, typecheck and build.
 
 ## Task 3 — Documentation, review and deployment
 
 **Files:** README.md, plan, progress ledger.
 
-- [ ] Document map presets, water coverage, seed reproducibility, and the current one-building-type limitation.
-- [ ] Review generator complexity at every supported map size, stockpile relocation, water walkability and construction accounting.
-- [ ] Self-review all changed code (no independent reviewer tool is available); record limitations honestly.
-- [ ] Verify CI and GitHub Pages point to the final main commit.
+- [x] Document map presets, water coverage, seed reproducibility, and the current one-building-type limitation.
+- [x] Review generator complexity at every supported map size, stockpile relocation, water walkability and construction accounting.
+- [x] Self-review all changed code (no independent reviewer tool is available); record limitations honestly.
+- [x] Verify CI and GitHub Pages point to the final main commit.
 
 ## Final acceptance
 

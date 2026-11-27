@@ -16,18 +16,18 @@ GitHub Pages serves the static application files. The simulation itself runs in 
 
 The first playable build includes:
 
-- A procedurally generated 128 × 96 top-down landscape with ocean, freshwater, rivers, beaches, grassland, forests, hills and mountains.
-- A world-creation screen with a 5–30 person selector (12 people by default), a generated terrain preview, a clickable starting-area marker and a New Terrain action. Starting people are placed on unique walkable tiles near the selected area. Roles are assigned deterministically: builders, haulers and foragers.
+- Seeded multi-scale procedural landscapes with irregular coastlines, ocean, multiple inland freshwater lakes, branching rivers, beaches, grassland, forests, hills and mountains. Each new experiment gets a new numeric seed; reusing a seed and settings reproduces the same terrain.
+- An advanced world-creation screen with a 5–30 person selector (12 by default), map presets (Small 64×48, Standard 128×96, Large 192×144, Huge 256×192), adjustable water coverage (25–55%, default 38%), an editable numeric seed, a clickable terrain preview and a New Terrain action. The same preview world is used when the experiment starts. Starting inhabitants and the communal stockpile are placed close to the selected walkable location. The generated map is limited to 65,536 tiles.
 - Deterministic world generation and simulation randomness from the world seed.
 - Local perception and reachable movement using grid pathfinding.
-- Real gathering, eating, drinking, resting and exploration actions. Haulers gather wood and stone from reachable resource nodes, carry materials back to the communal stockpile and deposit exact amounts; the source nodes and carrying inventories update as they go.
+- Real gathering, eating, drinking, resting and exploration actions. Haulers search within a larger local radius, collect up to three units per trip (capped at the exact outstanding shelter recipe), physically return to the nearby communal stockpile and deposit them. Source nodes and carrying inventories update as they go.
 - A full-window Canvas 2D map with visible-area drawing, zoom-dependent detail, people clusters when zoomed out and individual silhouettes when zoomed in. The map opens focused on the chosen settlement at a close, readable zoom; Reset View returns to that start area.
-- A shared supply-and-building loop: the central stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone from it to start a shelter. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement.
+- A shared supply-and-building loop: the stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone to start a shelter. Builders visibly report whether they are waiting for supplies, finding a site or constructing. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement. A tested empty-stockpile builder/hauler settlement can gather its first recipe and complete a shelter automatically.
 - Camera pan and zoom, Land / Resources / People / Homes / Stockpile layers, click-to-select, an inhabitant inspector with home status, and follow mode. A live roster shows every living inhabitant's name, role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays both resources found in nature and materials held in the communal stockpile.
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 - A New World action from the active simulation. The world is held in memory and paused while the creation screen is open; Back to Current World returns to it. Creating a replacement discards the current unsaved world.
 
-The current build is the foundation, not the final civilization simulator. Shared storage and physical hauling are now implemented, while food remains personal. Agents do not yet have long-term personal memories, families, farming, production chains, trade, villages, governance or culture.
+The current build is the foundation, not the final civilization simulator. Only shelters are buildable so far; there are no advanced building types, roads or multi-store logistics yet. Shared storage and physical hauling are implemented, while food remains personal. Agents do not yet have long-term personal memories, families, farming, production chains, trade, villages, governance or culture.
 
 ## Controls
 
@@ -36,7 +36,9 @@ The current build is the foundation, not the final civilization simulator. Share
 | Pan the map | Drag with the primary mouse button |
 | Zoom | Mouse wheel or the + / − buttons |
 | Reset view | Select the home button to centre on the chosen settlement |
-| Create a world | Set the population (5–30, default 12) and click the terrain preview to choose the starting area, then select Create World |
+| Create a world | Set the population (5–30, default 12), select Small / Standard / Large / Huge, set water coverage (25–55%), choose or enter a seed, and click the preview to pick the starting area; then select Create World |
+| Regenerate terrain | Select **New Terrain** for a new random seed; copy the numeric seed to reproduce that world |
+| Change the map | Select a map preset: 64×48, 128×96, 192×144 or 256×192 |
 | Create a different world | Select **New World**; select **Back to Current World** to return to the paused in-memory world |
 | Observe everyone | Read the live People roster; each living person has a current task label |
 | Inspect an inhabitant | Select a person in the roster or click them on the map |
