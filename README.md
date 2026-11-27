@@ -20,7 +20,8 @@ The first playable build includes:
 - An advanced world-creation screen with a 5–30 person selector (12 by default), map presets (Small 64×48, Standard 128×96, Large 192×144, Huge 256×192), adjustable water coverage (25–55%, default 38%), an editable numeric seed, a clickable terrain preview and a New Terrain action. The same preview world is used when the experiment starts. Starting inhabitants and the communal stockpile are placed close to the selected walkable location. The generated map is limited to 65,536 tiles.
 - Deterministic world generation and simulation randomness from the world seed.
 - Local perception and reachable movement using grid pathfinding.
-- Real gathering, eating, drinking, resting and exploration actions. Haulers search within a larger local radius, collect up to three units per trip (capped at the exact outstanding shelter recipe), physically return to the nearby communal stockpile and deposit them. Source nodes and carrying inventories update as they go.
+- Real gathering, eating, drinking, resting and exploration actions. Hunger and thirst now have critical thresholds, grace periods, health damage and recorded death causes. Agents can die from prolonged starvation or dehydration; carried food can prevent starvation damage, and carried materials are dropped at the place of death for others to recover.
+- Haulers search within a larger local radius, collect up to three units per trip (capped at the exact outstanding shelter recipe), physically return to the nearby communal stockpile and deposit them. Source nodes and carrying inventories update as they go.
 - A full-window Canvas 2D map with visible-area drawing, zoom-dependent detail, people clusters when zoomed out and individual silhouettes when zoomed in. The map opens focused on the chosen settlement at a close, readable zoom; Reset View returns to that start area.
 - A shared supply-and-building loop: the stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone to start a shelter. Builders visibly report whether they are waiting for supplies, finding a site or constructing. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement. A tested empty-stockpile builder/hauler settlement can gather its first recipe and complete a shelter automatically.
 - Camera pan and zoom, Land / Resources / People / Homes / Stockpile layers, click-to-select, an inhabitant inspector with home status, and follow mode. A live roster shows every living inhabitant's name, role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays both resources found in nature and materials held in the communal stockpile.
@@ -87,6 +88,7 @@ npm run build
 - After opening the hosted site, the app requires no continuously running backend.
 - The app displays a readable startup error if its entry module fails or initialization does not complete within 12 seconds. The exact browser-side issue that previously left the loading message on screen could not be reproduced in the connected browser during development.
 - The PWA offline cache and install flow are not implemented yet. After closing the tab, simulation time does not advance; reopening the hosted site resumes the latest local autosave when browser storage is available.
+- Wild-food patches regenerate one unit every four simulated hours after their latest harvest; forest timber patches recover one unit every five simulated days after their latest harvest; stone deposits do not regenerate. These are initial tuning values and will be balanced with larger-world tests.
 - The new movement, observation and save/load features have automated unit tests in the repository, but their full typecheck, test-suite, browser verification and Pages deployment still need to be confirmed by fresh GitHub Actions results.
 
 ## Planned work
@@ -97,9 +99,10 @@ The approved design includes further stages that are not yet implemented:
 2. Personal memories, relationships, communication, families and cooperation.
 3. Food sharing, multiple stockpiles, cooperative building, farming, hunting, crafting, production chains and trade.
 4. Migration, governance, conflict, technology and culture.
-5. Local autosave, save/load, portable export/import and versioned save migrations.
+5. Named save slots, save history and schema migrations beyond save format v1.
 6. Offline-first PWA caching and safe app updates.
 7. Performance testing on real hardware before increasing the population beyond the current 30-person cap.
+8. Full ecological populations for trees, fish and wildlife, plus seasonal effects.
 
 These features will only be described as complete after they are built and tested.
 
