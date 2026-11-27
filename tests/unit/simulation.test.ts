@@ -782,6 +782,27 @@ describe("autonomous agents and consequential actions", () => {
     expect(first.inventory.fish + second.inventory.fish).toBe(1);
     expect(fish.quantity).toBe(0);
     expect(world.events.filter((event) => event.kind === "fish")).toHaveLength(1);
+    expect(world.events.filter((event) => event.kind === "resource_depleted")).toHaveLength(1);
+  });
+
+  it("lets a depleted fish patch recover only after twelve simulated hours", () => {
+    const world = makeWorld();
+    world.resources.push({
+      id: "lake-school",
+      kind: "fish",
+      x: 3,
+      y: 3,
+      quantity: 1,
+      maxQuantity: 2,
+      regrowEveryTicks: 720
+    });
+    takeResource(world, "lake-school", 1);
+
+    stepWorld(world, 719);
+    expect(world.resources[0]?.quantity).toBe(0);
+    stepWorld(world);
+    expect(world.resources[0]?.quantity).toBe(1);
+    expect(world.events.filter((event) => event.kind === "resource_regrown")).toHaveLength(1);
   });
 
 });
