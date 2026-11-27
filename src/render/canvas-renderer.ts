@@ -277,7 +277,6 @@ function drawStockpile(
 
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
-  agent: Agent,
   position: GridPoint,
   selected: boolean,
   moving: boolean,
@@ -412,7 +411,6 @@ function drawAgents(
     const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
     drawAgentSprite(
       context,
-      agent,
       position,
       selectedIds.has(agent.id),
       motion?.isMoving(agent.id) ?? false,
