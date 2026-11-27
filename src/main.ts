@@ -1,3 +1,5 @@
+import { APP_VERSION } from "./app/version";
+
 const root = document.querySelector<HTMLElement>("#app");
 
 if (!root) {
@@ -5,3 +7,5 @@ if (!root) {
 }
 
 root.dataset.appState = "initializing";
+root.dataset.appVersion = APP_VERSION;
+document.title = `GLOOMD ${APP_VERSION} — A living world`;
