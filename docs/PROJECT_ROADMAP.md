@@ -109,9 +109,9 @@ Already implemented:
 - deterministic seeded terrain generation and configurable map sizes;
 - coast, ocean, freshwater, lakes, rivers, grassland, forests, hills and mountains;
 - four-direction grid pathfinding and blocked terrain/buildings;
-- agents with hunger, thirst, energy, health, traits, inventories and simple roles;
-- wild food gathering/eating, freshwater drinking and resting;
-- finite wood/stone resource nodes and regenerating wild-food nodes;
+- agents with hunger, thirst, energy, health, traits, inventories and simple forager/fisher/hauler/builder roles;
+- wild food gathering/eating, fishing and fish consumption, freshwater drinking and resting;
+- finite wood/stone resource nodes, wild-food recovery, and local fish patches on freshwater banks;
 - haulers that physically gather wood/stone and deliver them to one communal stockpile;
 - one shelter recipe (5 wood + 2 stone) and construction work over 12 ticks;
 - full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
@@ -135,8 +135,8 @@ Still not implemented:
 - work/activity-area overlays, resource density view, settlement boundaries and territory overlays;
 - named save slots, save history and schema migrations beyond version 1; the PWA offline cache is in source but still needs browser verification;
 - ageing, birth and population growth;
-- full forest ecology with visible tree/sapling populations, fish and wildlife populations;
-- fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
+- full forest ecology with visible tree/sapling populations and wildlife herds; fish are currently represented as local fish patches, not full animal populations;
+- hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
 - adaptive jobs/skills, memories, relationships, families, communication or social learning;
 - multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture.
 
@@ -183,11 +183,16 @@ Still not implemented:
 **Acceptance:** controlled tests prove that empty settlements deteriorate, agents can die for understandable reasons, overharvesting affects local resources, and natural regeneration is slow and habitat-dependent rather than a fixed global timer.
 
 ### Stage 4 — jobs, logistics and production chains
-1. Goal selection and adaptive job allocation.
-2. Farming, fishing and hunting.
-3. Food storage, cooking, spoilage and preservation.
-4. Crafting and tool durability.
-5. Multiple stockpiles, transport routes and storage capacity.
+
+**Progress:** first fishing loop implemented on 2026-11-27; fresh build/browser verification pending.
+
+1. [x] Freshwater-bank fish patches with limited quantities and local recovery.
+2. [x] Fisher role; agents can travel, catch fish, carry them and eat them.
+3. [ ] Goal selection and adaptive job allocation beyond initial role assignment.
+4. [ ] Farming and hunting.
+5. [ ] Food storage, cooking, spoilage and preservation.
+6. [ ] Crafting and tool durability.
+7. [ ] Multiple stockpiles, transport routes and storage capacity.
 
 **Acceptance:** every input/output can be accounted for; production only occurs with materials and labour; the settlement's work priorities respond to shortages.
 
