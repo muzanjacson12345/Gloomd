@@ -24,7 +24,8 @@ function createRandomSeed(previousSeed: number): number {
   if (globalThis.crypto?.getRandomValues) {
     globalThis.crypto.getRandomValues(values);
   }
-  const candidate = values[0] || Math.floor(Math.random() * 0x7fff_ffff) + 1;
+  const rawCandidate = values[0] || Math.floor(Math.random() * 0x7fff_ffff) + 1;
+  const candidate = (rawCandidate % 0x7fff_ffff) || 1;
   return candidate === previousSeed ? (candidate >= 0x7fff_ffff ? 1 : candidate + 1) : candidate;
 }
 
@@ -159,7 +160,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   const renderer = new CanvasWorldRenderer();
   let seed = options.seed;
   let population = DEFAULT_STARTING_POPULATION;
-  let size = WORLD_SIZE_PRESETS[1];
+  let size: WorldSizePreset = WORLD_SIZE_PRESETS[1];
   let waterCoverage = 0.38;
   let world = createWorld(seed, {
     width: size.width,
