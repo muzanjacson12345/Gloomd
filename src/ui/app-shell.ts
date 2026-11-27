@@ -62,7 +62,7 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="readout"><span class="readout-label">DEATHS</span><strong id="death-count">00</strong></div>
           <div class="readout homes-readout"><span class="readout-label">HOMES</span><strong id="home-count">00</strong></div>
           <div class="readout stockpile-readout"><span class="readout-label">STOCKPILE</span><strong id="stockpile-summary">WOOD 00 · STONE 00</strong></div>
-          <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
+          <div class="readout resource-readout"><span class="readout-label">ON MAP</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
         <div class="header-actions">
           <button id="storage-toggle" class="quiet-button" type="button" aria-expanded="false">WORLD SAVE</button>
