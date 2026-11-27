@@ -11,9 +11,24 @@ export type WaterKind = "none" | "ocean" | "freshwater";
 
 export type ResourceKind = "wild_food" | "wood" | "stone";
 
-export type AgentRole = "forager" | "builder";
+export type AgentRole = "forager" | "hauler" | "builder";
 
 export type BuildingStatus = "under_construction" | "complete";
+
+export type BuildingMaterial = "wood" | "stone";
+
+export interface MaterialBundle {
+  wood: number;
+  stone: number;
+}
+
+export interface Stockpile {
+  id: string;
+  x: number;
+  y: number;
+  inventory: MaterialBundle;
+  capacityPerResource: number;
+}
 
 export interface Building {
   id: string;
@@ -36,6 +51,7 @@ export type AgentGoal =
   | "explore"
   | "gather_wood"
   | "gather_stone"
+  | "deliver_resources"
   | "build_shelter";
 
 export interface GridPoint {
@@ -106,6 +122,7 @@ export interface WorldState {
   height: number;
   tiles: Tile[][];
   resources: ResourceNode[];
+  stockpile: Stockpile;
   buildings: Building[];
   agents: Agent[];
   tick: number;

@@ -2,6 +2,7 @@ import { createRandom } from "./random";
 import type {
   ResourceKind,
   ResourceNode,
+  Stockpile,
   Tile,
   WaterKind,
   WorldOptions,
@@ -208,6 +209,53 @@ function createResources(
   return resources;
 }
 
+
+const STOCKPILE_CAPACITY_PER_RESOURCE = 120;
+
+function createStockpile(
+  tiles: Tile[][],
+  resources: ResourceNode[],
+  width: number,
+  height: number
+): Stockpile {
+  const centerX = Math.floor(width / 2);
+  const centerY = Math.floor(height / 2);
+  let selected: { x: number; y: number } | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  // Row-major iteration plus strict improvement gives stable tie-breaking.
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const tile = tiles[y]?.[x];
+      if (!tile?.walkable) continue;
+
+      const containsResource = resources.some(
+        (resource) =>
+          resource.quantity > 0 && resource.x === x && resource.y === y
+      );
+      if (containsResource) continue;
+
+      const candidateDistance = Math.abs(x - centerX) + Math.abs(y - centerY);
+      if (candidateDistance < bestDistance) {
+        selected = { x, y };
+        bestDistance = candidateDistance;
+      }
+    }
+  }
+
+  if (!selected) {
+    throw new RangeError("A communal stockpile requires a free walkable tile.");
+  }
+
+  return {
+    id: "settlement-stockpile",
+    x: selected.x,
+    y: selected.y,
+    inventory: { wood: 0, stone: 0 },
+    capacityPerResource: STOCKPILE_CAPACITY_PER_RESOURCE
+  };
+}
+
 export function createWorld(seed: number, options: WorldOptions = {}): WorldState {
   if (!Number.isSafeInteger(seed)) {
     throw new RangeError("World seed must be a safe integer.");
@@ -223,6 +271,7 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
   const random = createRandom(seed);
   const tiles = createTerrain(width, height, seed);
   const resources = createResources(tiles, random);
+  const stockpile = createStockpile(tiles, resources, width, height);
 
   return {
     seed,
@@ -231,6 +280,7 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
     height,
     tiles,
     resources,
+    stockpile,
     buildings: [],
     agents: [],
     tick: 0,
@@ -247,5 +297,6 @@ export function getTile(world: WorldState, x: number, y: number): Tile | undefin
 export function isWalkable(world: WorldState, x: number, y: number): boolean {
   const tile = getTile(world, x, y);
   if (!tile?.walkable) return false;
+  if (world.stockpile.x === x && world.stockpile.y === y) return false;
   return !world.buildings.some((building) => building.x === x && building.y === y);
 }

@@ -1,4 +1,5 @@
 import { createRandom } from "./random";
+import { isWalkableTile } from "./pathfinding";
 import type { Agent, GridPoint, WorldState } from "./types";
 
 const STARTER_NAMES = [
@@ -16,7 +17,7 @@ export function createStarterAgents(world: WorldState, count: number): Agent[] {
   const available: GridPoint[] = [];
   for (let y = 0; y < world.height; y += 1) {
     for (let x = 0; x < world.width; x += 1) {
-      if (world.tiles[y]?.[x]?.walkable) available.push({ x, y });
+      if (isWalkableTile(world, { x, y })) available.push({ x, y });
     }
   }
 
@@ -52,7 +53,7 @@ export function createStarterAgents(world: WorldState, count: number): Agent[] {
       },
       needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
       inventory: { food: 0, wood: 0, stone: 0 },
-      role: number % 5 === 0 ? "builder" : "forager",
+      role: number % 5 === 0 ? "builder" : number % 5 === 2 ? "hauler" : "forager",
       currentGoal: "explore",
       perceptionRadius: 12,
       alive: true,

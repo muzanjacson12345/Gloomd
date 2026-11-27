@@ -84,6 +84,7 @@ export function isWalkableTile(world: WorldState, point: GridPoint): boolean {
     return false;
   }
 
+  if (world.stockpile.x === point.x && world.stockpile.y === point.y) return false;
   return !world.buildings.some(
     (building) => building.x === point.x && building.y === point.y
   );
