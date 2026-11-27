@@ -420,16 +420,36 @@ function drawAgents(
 }
 
 
+const AGENT_OVERLAY_COLOURS = [
+  "#e5c58a",
+  "#88b4a3",
+  "#c69dc2",
+  "#d48f75",
+  "#8ba8cf",
+  "#b5bd7c",
+  "#c6a27d",
+  "#83b9bf"
+] as const;
+
+function getAgentOverlayColour(agentId: string): string {
+  let hash = 0;
+  for (let index = 0; index < agentId.length; index += 1) {
+    hash = (Math.imul(hash, 31) + agentId.charCodeAt(index)) | 0;
+  }
+  return AGENT_OVERLAY_COLOURS[Math.abs(hash) % AGENT_OVERLAY_COLOURS.length] ?? "#e5c58a";
+}
+
 function drawAgentOverlays(
   context: CanvasRenderingContext2D,
   world: WorldState,
   selectedAgents: readonly Agent[],
   bounds: WorldBounds,
   layers: RenderLayers,
-  visibilityCache: Map<string, { key: string; tiles: GridPoint[] }>
+  visibilityCache: Map<string, { key: string; tiles: GridPoint[] }>,
+  zoom: number
 ): void {
   const motion = layers.motion;
-  if (layers.showVision) {
+  if (layers.showVision && zoom >= 5) {
     for (const agent of selectedAgents) {
       const buildingSignature = world.buildings.map((building) => `${building.x},${building.y}`).join(";");
       const key = `${agent.x}:${agent.y}:${agent.sightRadius ?? 7}:${buildingSignature}`;
@@ -444,12 +464,15 @@ function drawAgentOverlays(
         visibilityCache.set(agent.id, { key, tiles: visible });
       }
 
-      context.fillStyle = "rgba(185, 210, 165, 0.15)";
+      context.save();
+      context.fillStyle = getAgentOverlayColour(agent.id);
+      context.globalAlpha = 0.14;
       for (const point of visible) {
         if (isInsideBounds(point.x, point.y, bounds)) {
           context.fillRect(point.x + 0.08, point.y + 0.08, 0.84, 0.84);
         }
       }
+      context.restore();
     }
   }
 
@@ -458,7 +481,9 @@ function drawAgentOverlays(
     const startX = visual.x + 0.5;
     const startY = visual.y + 0.5;
 
-    if (layers.showTrails && motion) {
+    const overlayColour = getAgentOverlayColour(agent.id);
+
+    if (layers.showTrails && motion && zoom >= 3) {
       const trail = motion.getTrail(agent.id);
       if (trail.length > 1) {
         context.save();
@@ -469,7 +494,7 @@ function drawAgentOverlays(
           const after = trail[index];
           if (!before || !after) continue;
           context.globalAlpha = 0.12 + 0.55 * (index / (trail.length - 1));
-          context.strokeStyle = "#d2c08e";
+          context.strokeStyle = overlayColour;
           context.lineWidth = 0.045;
           context.beginPath();
           context.moveTo(before.x + 0.5, before.y + 0.5);
@@ -480,9 +505,9 @@ function drawAgentOverlays(
       }
     }
 
-    if (layers.showRoutes && agent.plannedPath && agent.plannedPath.length > 0) {
+    if (layers.showRoutes && zoom >= 2 && agent.plannedPath && agent.plannedPath.length > 0) {
       context.save();
-      context.strokeStyle = "rgba(241, 214, 155, 0.86)";
+      context.strokeStyle = overlayColour;
       context.lineWidth = 0.075;
       context.lineCap = "round";
       context.lineJoin = "round";
@@ -499,15 +524,17 @@ function drawAgentOverlays(
       context.restore();
     }
 
-    if (layers.showTargets && agent.destination) {
+    if (layers.showTargets && zoom >= 2 && agent.destination) {
       const target = agent.destination;
       context.save();
-      context.strokeStyle = "#f1d69b";
-      context.fillStyle = "rgba(241, 214, 155, 0.16)";
+      context.strokeStyle = overlayColour;
+      context.fillStyle = overlayColour;
       context.lineWidth = 0.075;
       context.beginPath();
       context.arc(target.x + 0.5, target.y + 0.5, 0.34, 0, Math.PI * 2);
+      context.globalAlpha = 0.16;
       context.fill();
+      context.globalAlpha = 0.9;
       context.stroke();
       context.beginPath();
       context.moveTo(target.x + 0.5, target.y + 0.05);
@@ -588,7 +615,7 @@ export class CanvasWorldRenderer {
     const selectedAgents = world.agents.filter((agent) => agent.alive && selectedIds.has(agent.id));
 
     if (selectedAgents.length > 0 || layers.selectionRect) {
-      drawAgentOverlays(context, world, selectedAgents, bounds, layers, this.visibilityCache);
+      drawAgentOverlays(context, world, selectedAgents, bounds, layers, this.visibilityCache, camera.zoom);
     }
 
     if (layers.agents !== false) {
