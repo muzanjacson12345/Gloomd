@@ -3,6 +3,7 @@ export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
 
 export interface AppShell {
   canvas: HTMLCanvasElement;
+  newWorldButton: HTMLButtonElement;
   worldTime: HTMLElement;
   population: HTMLElement;
   resourceSummary: HTMLElement;
@@ -41,6 +42,7 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="readout stockpile-readout"><span class="readout-label">STOCKPILE</span><strong id="stockpile-summary">WOOD 00 · STONE 00</strong></div>
           <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
+        <button id="new-world" class="new-world-button" type="button">＋ &nbsp; NEW WORLD</button>
       </header>
       <div class="map-tools" aria-label="Map view controls">
         <button class="icon-button" id="zoom-out" type="button" aria-label="Zoom out">−</button>
@@ -93,6 +95,7 @@ export function createAppShell(root: HTMLElement): AppShell {
 
   return {
     canvas: required<HTMLCanvasElement>("#world-map"),
+    newWorldButton: required<HTMLButtonElement>("#new-world"),
     worldTime: required("#world-time"),
     population: required("#population"),
     resourceSummary: required("#resource-summary"),

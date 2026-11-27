@@ -1,6 +1,5 @@
 import { createStarterAgents } from "../core/agents";
 import { stepWorld } from "../core/simulation";
-import { createWorld } from "../core/world-generation";
 import { FixedStepClock } from "./fixed-step-clock";
 import { CanvasWorldRenderer, resizeCanvas } from "../render/canvas-renderer";
 import {
@@ -14,27 +13,31 @@ import { createAppShell } from "../ui/app-shell";
 import { updateHud } from "../ui/hud";
 import { renderAgentInspector } from "../ui/agent-inspector";
 import { renderEventLog } from "../ui/event-log";
+import { createWorldSetup } from "../ui/world-setup";
+import type { GridPoint, WorldState } from "../core/types";
 
 const WORLD_SEED = 20261127;
-const STARTING_POPULATION = 30;
 const SIMULATION_STEP_MS = 250;
 const SPEEDS = [1, 2, 4] as const;
 
-export function startApp(root: HTMLElement): () => void {
+function startWorld(
+  root: HTMLElement,
+  world: WorldState,
+  startingPoint: GridPoint,
+  onNewWorld: () => void
+): () => void {
   const shell = createAppShell(root);
-  const world = createWorld(WORLD_SEED);
-  world.agents = createStarterAgents(world, STARTING_POPULATION);
 
   const getViewport = () => ({
     width: Math.max(1, window.innerWidth),
     height: Math.max(1, window.innerHeight)
   });
-  const initialViewport = getViewport();
-  const fitZoom = Math.min(
-    initialViewport.width / world.width,
-    initialViewport.height / world.height
-  ) * 0.88;
-  const camera = createCamera(world.width, world.height, fitZoom);
+  const initialZoom = 22;
+  const camera = createCamera(world.width, world.height, initialZoom);
+  setCameraCenter(camera, {
+    x: startingPoint.x + 0.5,
+    y: startingPoint.y + 0.5
+  });
   const renderer = new CanvasWorldRenderer();
   const context = shell.canvas.getContext("2d", { alpha: false });
 
@@ -52,7 +55,6 @@ export function startApp(root: HTMLElement): () => void {
   let lastInspectorTick = -1;
   let lastEventId = "";
   let frameHandle = 0;
-  const initialZoom = camera.zoom;
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
   const layers = { terrain: true, resources: true, agents: true, buildings: true, stockpile: true };
 
@@ -104,6 +106,7 @@ export function startApp(root: HTMLElement): () => void {
     draw();
   };
   onResize();
+  shell.newWorldButton.addEventListener("click", onNewWorld);
 
   shell.playButton.addEventListener("click", () => {
     playing = !playing;
@@ -225,5 +228,71 @@ export function startApp(root: HTMLElement): () => void {
     detachMapInput();
     document.removeEventListener("visibilitychange", onVisibilityChange);
     window.removeEventListener("resize", onResize);
+  };
+}
+
+function nextWorldSeed(seed: number): number {
+  return seed >= Number.MAX_SAFE_INTEGER - 1 ? 1 : seed + 1;
+}
+
+/** Start on the world-creation screen, then mount or restore an in-memory world. */
+export function startApp(root: HTMLElement): () => void {
+  let setupCleanup: (() => void) | null = null;
+  let sessionCleanup: (() => void) | null = null;
+
+  const stopSetup = (): void => {
+    setupCleanup?.();
+    setupCleanup = null;
+  };
+  const stopSession = (): void => {
+    sessionCleanup?.();
+    sessionCleanup = null;
+  };
+
+  const openWorldSetup = (
+    seed: number,
+    returnTo?: { world: WorldState; startingPoint: GridPoint }
+  ): void => {
+    stopSession();
+    stopSetup();
+
+    setupCleanup = createWorldSetup(root, {
+      seed,
+      canReturnToWorld: returnTo !== undefined,
+      onStart(result) {
+        stopSetup();
+        result.world.agents = createStarterAgents(
+          result.world,
+          result.population,
+          { center: result.startingPoint }
+        );
+        const savedWorld = {
+          world: result.world,
+          startingPoint: result.startingPoint
+        };
+        sessionCleanup = startWorld(
+          root,
+          result.world,
+          result.startingPoint,
+          () => openWorldSetup(nextWorldSeed(result.world.seed), savedWorld)
+        );
+      },
+      onCancel() {
+        if (!returnTo) return;
+        stopSetup();
+        sessionCleanup = startWorld(
+          root,
+          returnTo.world,
+          returnTo.startingPoint,
+          () => openWorldSetup(nextWorldSeed(returnTo.world.seed), returnTo)
+        );
+      }
+    });
+  };
+
+  openWorldSetup(WORLD_SEED);
+  return () => {
+    stopSetup();
+    stopSession();
   };
 }
