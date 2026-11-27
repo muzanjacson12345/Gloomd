@@ -120,30 +120,39 @@ Already implemented:
 - pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;
 - GitHub Pages static hosting.
 
-Not yet implemented:
-- movement interpolation or walk/carry/work animations (agents currently jump between integer tile coordinates);
-- multi-agent rectangle selection and explicit selection mode;
-- route, movement-history, target, work-area or line-of-sight overlays;
-- true line-of-sight (existing perceptionRadius is used for local target search);
-- minimap, cinematic/hide-UI mode, world-fit and settlement-focus shortcuts;
+Implemented in source in the current work session (fresh build/browser verification still pending):
+- smooth visual interpolation between authoritative grid steps and lightweight walking bob/leg motion;
+- button-activated SELECT PEOPLE mode, rectangle selection, group highlights and Escape-to-exit;
+- optional selected-agent planned-route, recent-trail, destination and obstacle-aware line-of-sight overlays;
+- separate sightRadius and resource-search perceptionRadius;
+- minimap with camera viewport, click-to-jump, fit-world and a wider opening zoom;
+- Hide UI / restore interface mode;
+- versioned world-save format v1, validated JSON export/import, IndexedDB rolling autosave, 15-second active-tab checkpoints, save on pause/hidden, and auto-resume on startup.
+
+Still not implemented:
+- directional walking, distinct carrying/work/rest animations and movement speed changes for heavy loads or difficult terrain;
+- work/activity-area overlays, resource density view, settlement boundaries and territory overlays;
+- named save slots, save history, schema migrations beyond version 1 and PWA offline caching;
 - food/water-caused health deterioration, ageing, birth and death;
 - forests as tree populations, fish and wildlife populations;
 - fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
 - adaptive jobs/skills, memories, relationships, families, communication or social learning;
-- multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture;
-- versioned local save/load/autosave/export/import is now present in the codebase; fresh build/browser verification is still required;
-- PWA offline caching.
+- multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture.
 
 ## Development order
 
 ### Stage 1 — observer experience and movement
-1. Smooth interpolated movement while keeping pathfinding and collision authoritative.
-2. Button-activated rectangle selection, multi-agent inspection and Escape to leave selection mode.
-3. Selective overlays: routes, trails, destination markers and vision.
-4. Minimap, fit-world/focus controls and cinematic hide-UI mode.
-5. Test at 1x/2x/4x and ensure animation does not skip or desynchronise when multiple simulation ticks run in one display frame.
 
-**Acceptance:** the user can watch a villager walk continuously between tiles; select one or a group without interfering with normal panning; switch overlays on/off; inspect routes and vision; navigate between whole-world and local views; hide the UI.
+**Progress:** initial implementation added to source on 2026-11-27; fresh build/browser verification pending.
+
+1. [x] Smooth visual interpolation between authoritative grid steps and lightweight walking motion.
+2. [x] Button-activated rectangle selection, group highlight and Escape-to-exit.
+3. [x] Selective routes, trails, destination markers and obstacle-aware vision overlay for selected agents.
+4. [x] Minimap, fit-world, wider opening zoom and cinematic hide-UI mode.
+5. [ ] Verify at 1x/2x/4x and ensure animation does not skip or desynchronise when multiple simulation ticks run in one display frame.
+6. [ ] Add facing direction, carrying posture and load/terrain speed effects after the base movement is verified.
+
+**Acceptance:** the user can watch a villager walk continuously between tiles; select one or a group without interfering with normal panning; switch overlays on/off; inspect routes and vision; navigate between whole-world and local views; hide the UI. Do not mark complete until browser testing confirms it.
 
 ### Stage 2 — reliable world persistence
 
