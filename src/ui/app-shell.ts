@@ -12,6 +12,7 @@ export interface AppShell {
   zoomInButton: HTMLButtonElement;
   zoomOutButton: HTMLButtonElement;
   resetViewButton: HTMLButtonElement;
+  layerButtons: HTMLButtonElement[];
   eventList: HTMLElement;
   inspector: HTMLElement;
   inspectorName: HTMLElement;
@@ -42,6 +43,11 @@ export function createAppShell(root: HTMLElement): AppShell {
         <button class="icon-button" id="zoom-in" type="button" aria-label="Zoom in">+</button>
         <span class="tool-separator"></span>
         <button class="icon-button home-button" id="reset-view" type="button" aria-label="Reset map view">⌂</button>
+      </div>
+      <div class="layer-tools" role="group" aria-label="Map layers">
+        <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
+        <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
+        <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
       </div>
       <nav class="playback-controls" aria-label="Simulation playback">
         <button class="play-button" id="play-toggle" type="button">Ⅱ &nbsp; PAUSE</button>
@@ -88,6 +94,7 @@ export function createAppShell(root: HTMLElement): AppShell {
     zoomInButton: required<HTMLButtonElement>("#zoom-in"),
     zoomOutButton: required<HTMLButtonElement>("#zoom-out"),
     resetViewButton: required<HTMLButtonElement>("#reset-view"),
+    layerButtons: Array.from(root.querySelectorAll<HTMLButtonElement>("[data-layer]")),
     eventList: required("#event-list"),
     inspector: required("#agent-inspector"),
     inspectorName: required("#inspector-name"),
