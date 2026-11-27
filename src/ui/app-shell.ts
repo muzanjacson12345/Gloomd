@@ -3,6 +3,7 @@ export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
 
 export interface AppShell {
   canvas: HTMLCanvasElement;
+  minimapCanvas: HTMLCanvasElement;
   newWorldButton: HTMLButtonElement;
   activityPanel: HTMLElement;
   activityList: HTMLElement;
@@ -18,7 +19,15 @@ export interface AppShell {
   zoomInButton: HTMLButtonElement;
   zoomOutButton: HTMLButtonElement;
   resetViewButton: HTMLButtonElement;
+  fitWorldButton: HTMLButtonElement;
   layerButtons: HTMLButtonElement[];
+  selectionModeButton: HTMLButtonElement;
+  selectionCount: HTMLElement;
+  overlayToggleButton: HTMLButtonElement;
+  overlayPanel: HTMLElement;
+  overlayButtons: HTMLInputElement[];
+  hideUiButton: HTMLButtonElement;
+  restoreUiButton: HTMLButtonElement;
   eventList: HTMLElement;
   inspector: HTMLElement;
   inspectorName: HTMLElement;
@@ -45,15 +54,30 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="readout stockpile-readout"><span class="readout-label">STOCKPILE</span><strong id="stockpile-summary">WOOD 00 · STONE 00</strong></div>
           <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
-        <button id="new-world" class="new-world-button" type="button">＋ &nbsp; NEW WORLD</button>
+        <div class="header-actions">
+          <button id="hide-ui" class="quiet-button" type="button" title="Hide interface">HIDE UI</button>
+          <button id="new-world" class="new-world-button" type="button">＋ &nbsp; NEW WORLD</button>
+        </div>
       </header>
-      <div class="map-tools" aria-label="Map view controls">
+      <div class="map-tools" aria-label="Map view and selection controls">
         <button class="icon-button" id="zoom-out" type="button" aria-label="Zoom out">−</button>
         <span id="zoom-level" class="zoom-level">1.0×</span>
         <button class="icon-button" id="zoom-in" type="button" aria-label="Zoom in">+</button>
         <span class="tool-separator"></span>
-        <button class="icon-button home-button" id="reset-view" type="button" aria-label="Reset map view">⌂</button>
+        <button class="icon-button home-button" id="reset-view" type="button" aria-label="Focus starting settlement" title="Focus settlement">⌂</button>
+        <button class="icon-button fit-world-button" id="fit-world" type="button" aria-label="Fit whole world" title="Fit whole world">▣</button>
+        <span class="tool-separator"></span>
+        <button id="select-people" class="map-mode-button" type="button" aria-pressed="false">SELECT PEOPLE</button>
+        <button id="overlay-toggle" class="map-mode-button" type="button" aria-expanded="false">OBSERVE</button>
       </div>
+      <aside id="overlay-panel" class="overlay-panel" aria-label="Observation overlays" hidden>
+        <div class="overlay-panel-heading"><span>OBSERVATION LAYERS</span><span id="selection-count">0 SELECTED</span></div>
+        <label class="overlay-option"><input type="checkbox" data-overlay="routes"> <span>Planned routes</span></label>
+        <label class="overlay-option"><input type="checkbox" data-overlay="trails"> <span>Recent travel trails</span></label>
+        <label class="overlay-option"><input type="checkbox" data-overlay="vision"> <span>Line of sight</span></label>
+        <label class="overlay-option"><input type="checkbox" data-overlay="targets"> <span>Destinations</span></label>
+        <p class="overlay-note">Overlays apply to selected inhabitants only.</p>
+      </aside>
       <nav class="layer-tools" aria-label="Visible map layers">
         <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
         <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
@@ -93,7 +117,9 @@ export function createAppShell(root: HTMLElement): AppShell {
         <div class="inventory-line"><span>INVENTORY</span><strong id="inspector-inventory">—</strong></div>
         <div class="inspector-actions"><button id="follow-agent" class="follow-button" type="button">FOLLOW</button></div>
       </aside>
-      <div class="map-hint">DRAG TO PAN <span>·</span> SCROLL TO ZOOM <span>·</span> SELECT AN INHABITANT</div>
+      <canvas id="minimap" class="minimap" width="180" height="120" aria-label="World minimap; click to move the camera"></canvas>
+      <button id="restore-ui" class="restore-ui-button" type="button" hidden>SHOW INTERFACE</button>
+      <div class="map-hint">DRAG TO PAN <span>·</span> SCROLL TO ZOOM <span>·</span> CLICK A PERSON TO INSPECT <span>·</span> SELECT PEOPLE TO BOX-SELECT</div>
     </section>
   `;
 
@@ -105,6 +131,7 @@ export function createAppShell(root: HTMLElement): AppShell {
 
   return {
     canvas: required<HTMLCanvasElement>("#world-map"),
+    minimapCanvas: required<HTMLCanvasElement>("#minimap"),
     newWorldButton: required<HTMLButtonElement>("#new-world"),
     activityPanel: required("#activity-panel"),
     activityList: required("#activity-list"),
@@ -120,7 +147,15 @@ export function createAppShell(root: HTMLElement): AppShell {
     zoomInButton: required<HTMLButtonElement>("#zoom-in"),
     zoomOutButton: required<HTMLButtonElement>("#zoom-out"),
     resetViewButton: required<HTMLButtonElement>("#reset-view"),
+    fitWorldButton: required<HTMLButtonElement>("#fit-world"),
     layerButtons: Array.from(root.querySelectorAll<HTMLButtonElement>("[data-layer]")),
+    selectionModeButton: required<HTMLButtonElement>("#select-people"),
+    selectionCount: required("#selection-count"),
+    overlayToggleButton: required<HTMLButtonElement>("#overlay-toggle"),
+    overlayPanel: required("#overlay-panel"),
+    overlayButtons: Array.from(root.querySelectorAll<HTMLInputElement>("[data-overlay]")),
+    hideUiButton: required<HTMLButtonElement>("#hide-ui"),
+    restoreUiButton: required<HTMLButtonElement>("#restore-ui"),
     eventList: required("#event-list"),
     inspector: required("#agent-inspector"),
     inspectorName: required("#inspector-name"),
