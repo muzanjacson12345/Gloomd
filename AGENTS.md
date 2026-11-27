@@ -28,7 +28,8 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 - All actions that gather, consume, carry, craft or build must update actual world quantities.
 - Save/load must preserve the complete simulation state. Save format v1 and IndexedDB autosave are now in source; do not claim they are verified until fresh tests and browser checks pass.
 - The web-app manifest and offline service worker are now in source; do not claim offline behaviour is verified until tested after a successful first online visit.
-- Survival timers, starvation/dehydration damage, death records, inventory drops and local resource recovery timers are now in source; keep tuning evidence-based and test all state changes.
+- Survival timers, starvation/dehydration damage, death records, inventory drops, local resource recovery timers and the initial freshwater-bank fishing loop are now in source; keep tuning evidence-based and test all state changes.
+- Fish resources are local patches, not full moving animal populations. Fishing/catching/eating is implemented; cooking, boats, fisheries management and ecosystem reproduction remain future work.
 
 ## Development rules
 
@@ -43,4 +44,4 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 
 ## Current development priority
 
-See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer, local persistence, PWA app shell and first survival/resource-pressure mechanics now have initial implementations; verify them before extending them. Next priorities are full ecology (trees, fish, wildlife), farming/fishing/hunting, production chains and emergent settlement behaviour.
+See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer, local persistence, PWA app shell and first survival/resource-pressure mechanics now have initial implementations; verify them before extending them. Next priorities are full ecology (trees, fish populations and wildlife), farming/hunting/cooking, production chains and emergent settlement behaviour.
