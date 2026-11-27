@@ -176,4 +176,48 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.resources[0]?.quantity).toBe(1 - totalCarried);
     expect(world.resources[0]?.quantity).toBeGreaterThanOrEqual(0);
   });
+  it("does not cross an impassable river to collect unreachable food", () => {
+    const world = makeWorld();
+    for (let y = 0; y < world.height; y += 1) {
+      const barrier = world.tiles[y]?.[2];
+      if (barrier) {
+        barrier.terrain = "river";
+        barrier.waterKind = "freshwater";
+        barrier.walkable = false;
+      }
+    }
+    world.resources.push({
+      id: "food-across-river",
+      kind: "wild_food",
+      x: 4,
+      y: 1,
+      quantity: 3,
+      maxQuantity: 3,
+      regrowEveryTicks: null
+    });
+    const agent = makeAgent();
+    world.agents.push(agent);
+
+    for (let count = 0; count < 6; count += 1) stepWorld(world);
+
+    expect(agent.x).toBeLessThan(2);
+    expect(world.resources[0]?.quantity).toBe(3);
+    expect(world.events.some((event) => event.kind === "gather_food")).toBe(false);
+  });
+
+  it("produces the same agent outcomes from the same world seed", () => {
+    const firstWorld = createWorld(20261127, { width: 32, height: 24 });
+    const secondWorld = createWorld(20261127, { width: 32, height: 24 });
+    firstWorld.agents = createStarterAgents(firstWorld, 5);
+    secondWorld.agents = createStarterAgents(secondWorld, 5);
+
+    stepWorld(firstWorld, 25);
+    stepWorld(secondWorld, 25);
+
+    expect(firstWorld.agents).toEqual(secondWorld.agents);
+    expect(firstWorld.resources).toEqual(secondWorld.resources);
+    expect(firstWorld.events).toEqual(secondWorld.events);
+    expect(firstWorld.randomState).toBe(secondWorld.randomState);
+  });
+
 });
