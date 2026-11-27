@@ -52,7 +52,7 @@ The visual style should take strong inspiration from the compact, map-first pres
 - Hunger, thirst, energy, health, exposure and shelter should have real consequences.
 - Starvation/dehydration should damage health over time and can eventually cause death; death must have a recorded cause.
 - Age should advance. Birth and population growth should only occur when social conditions and resources support it.
-- Resources exist at locations and have actual quantities.
+- Resources exist at locations and have actual quantities. Wild-food and forest-timber patches now use independent recovery timers that restart after harvesting; stone remains non-renewable in this version.
 - Forests should be reduced by harvesting and recover through slow regrowth. Wood must not simply reappear immediately.
 - Wild food/plants are seasonal or habitat-dependent.
 - Fish populations and wildlife herds should reproduce, migrate and decline under overharvesting.
@@ -133,8 +133,8 @@ Still not implemented:
 - directional walking, distinct carrying/work/rest animations and movement speed changes for heavy loads or difficult terrain;
 - work/activity-area overlays, resource density view, settlement boundaries and territory overlays;
 - named save slots, save history, schema migrations beyond version 1 and PWA offline caching;
-- food/water-caused health deterioration, ageing, birth and death;
-- forests as tree populations, fish and wildlife populations;
+- ageing, birth and population growth;
+- full forest ecology with visible tree/sapling populations, fish and wildlife populations;
 - fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
 - adaptive jobs/skills, memories, relationships, families, communication or social learning;
 - multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture.
@@ -168,13 +168,18 @@ Still not implemented:
 **Acceptance:** close/reopen the app and restore the same world, time, map, agents, needs, inventories, buildings, resource quantities, events and starting point. Export/import reproduces the same world. Confirm this in an actual browser and verify all checks before marking this stage complete.
 
 ### Stage 3 — survival pressure and resource ecology
-1. Daily/time-based food and water consumption.
-2. Health deterioration and death from prolonged deprivation, with cause-of-death history.
-3. Resource accounting across nature, carried loads, stockpiles, consumption and waste.
-4. Trees/forests, wild plants, fish and wildlife populations with finite harvest and ecological regeneration.
-5. Seasonal/weather influence and local resource depletion.
 
-**Acceptance:** controlled tests prove that empty settlements deteriorate, agents can die for understandable reasons, overharvesting affects local resources, and natural regeneration is slow and habitat-dependent rather than a fixed instant reset.
+**Progress:** first survival consequences and patch-local recovery timers added to source on 2026-11-27; fresh build/browser verification pending.
+
+1. [x] Critical hunger/thirst tracking, grace periods and health damage.
+2. [x] Death events identify starvation or dehydration; carried inventory is dropped at the death location.
+3. [x] Food patches recover slowly after harvest; timber recovers on a multi-day schedule; stone is finite.
+4. [ ] Full per-agent daily nutrition/water budgets, illness, shelter exposure and recovery.
+5. [ ] Forest biomass and sapling regrowth, fish populations, wildlife herds, carrying capacity and habitat.
+6. [ ] Seasonal/weather influence and local resource depletion tests.
+7. [ ] Tune survival and resource rates against actual population scenarios.
+
+**Acceptance:** controlled tests prove that empty settlements deteriorate, agents can die for understandable reasons, overharvesting affects local resources, and natural regeneration is slow and habitat-dependent rather than a fixed global timer.
 
 ### Stage 4 — jobs, logistics and production chains
 1. Goal selection and adaptive job allocation.
