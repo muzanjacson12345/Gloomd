@@ -184,6 +184,25 @@ export function serializeWorldSave(save: WorldSave): string {
   return JSON.stringify(save);
 }
 
+function migrateWorldSave(parsed: unknown): unknown {
+  // Version-one saves created before the fishing update did not have a fish
+  // inventory field. Treat those inhabitants as carrying zero fish.
+  const migrated = JSON.parse(JSON.stringify(parsed)) as unknown;
+  if (!isRecord(migrated) || !isRecord(migrated.world) ||
+      !Array.isArray(migrated.world.agents)) {
+    return migrated;
+  }
+
+  for (const agent of migrated.world.agents) {
+    if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
+    if (agent.inventory.fish === undefined) {
+      agent.inventory.fish = 0;
+    }
+  }
+
+  return migrated;
+}
+
 export function parseWorldSave(serialized: string): WorldSave {
   let parsed: unknown;
   try {
@@ -198,7 +217,10 @@ export function parseWorldSave(serialized: string): WorldSave {
   if (parsed.schemaVersion !== WORLD_SAVE_VERSION) {
     throw new Error(`Unsupported GLOOMD save version: ${String(parsed.schemaVersion)}.`);
   }
-  if (!isFiniteNumber(parsed.savedAt) || parsed.savedAt < 0 ||
+
+  parsed = migrateWorldSave(parsed);
+  if (!isRecord(parsed) ||
+      !isFiniteNumber(parsed.savedAt) || parsed.savedAt < 0 ||
       !isPoint(parsed.startingPoint) || !isWorldState(parsed.world)) {
     throw new TypeError("The GLOOMD save is incomplete or contains invalid world data.");
   }
