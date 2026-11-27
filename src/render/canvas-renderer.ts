@@ -2,6 +2,9 @@ import type { Agent, Building, GridPoint, ResourceNode, Stockpile, Tile, WorldSt
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
+import { computeVisibleTiles } from "../core/vision";
+import type { WorldSelectionRect } from "../ui/selection";
+import type { AgentMotionAnimator } from "./motion";
 
 export interface RenderLayers {
   terrain?: boolean;
@@ -11,6 +14,13 @@ export interface RenderLayers {
   stockpile?: boolean;
   startingPoint?: GridPoint;
   selectedAgentId?: string | null;
+  selectedAgentIds?: readonly string[];
+  motion?: AgentMotionAnimator;
+  showRoutes?: boolean;
+  showTrails?: boolean;
+  showVision?: boolean;
+  showTargets?: boolean;
+  selectionRect?: WorldSelectionRect | null;
 }
 
 const TERRAIN_COLOURS: Record<Tile["terrain"], string> = {
@@ -268,10 +278,15 @@ function drawStockpile(
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
   agent: Agent,
-  selected: boolean
+  position: GridPoint,
+  selected: boolean,
+  moving: boolean,
+  walkPhase: number
 ): void {
-  const x = agent.x;
-  const y = agent.y;
+  const x = position.x;
+  const y = position.y;
+  const bob = moving ? Math.abs(walkPhase) * 0.025 : 0;
+  const legSwing = moving ? walkPhase * 0.09 : 0;
 
   context.fillStyle = "#111b16a8";
   context.beginPath();
@@ -290,49 +305,52 @@ function drawAgentSprite(
   context.lineWidth = 0.09;
   context.lineCap = "round";
   context.beginPath();
-  context.moveTo(x + 0.44, y + 0.63);
-  context.lineTo(x + 0.38, y + 0.82);
-  context.moveTo(x + 0.56, y + 0.63);
-  context.lineTo(x + 0.62, y + 0.82);
+  context.moveTo(x + 0.44, y + 0.63 - bob);
+  context.lineTo(x + 0.38 - legSwing, y + 0.82);
+  context.moveTo(x + 0.56, y + 0.63 - bob);
+  context.lineTo(x + 0.62 + legSwing, y + 0.82);
   context.stroke();
 
   context.fillStyle = "#d0b88b";
   context.beginPath();
-  context.ellipse(x + 0.5, y + 0.53, 0.19, 0.24, 0, 0, Math.PI * 2);
+  context.ellipse(x + 0.5, y + 0.53 - bob, 0.19, 0.24, 0, 0, Math.PI * 2);
   context.fill();
 
   context.fillStyle = "#c68f68";
   context.beginPath();
-  context.arc(x + 0.5, y + 0.25, 0.14, 0, Math.PI * 2);
+  context.arc(x + 0.5, y + 0.25 - bob, 0.14, 0, Math.PI * 2);
   context.fill();
 
   context.fillStyle = "#3f4c3e";
   context.beginPath();
-  context.arc(x + 0.5, y + 0.2, 0.15, Math.PI, Math.PI * 2);
+  context.arc(x + 0.5, y + 0.2 - bob, 0.15, Math.PI, Math.PI * 2);
   context.fill();
 }
+
 
 function drawAgentClusters(
   context: CanvasRenderingContext2D,
   agents: readonly Agent[],
-  selectedAgentId: string | null | undefined
+  selectedIds: ReadonlySet<string>,
+  motion?: AgentMotionAnimator
 ): void {
-  const clusters = new Map<string, Agent[]>();
+  const clusters = new Map<string, Array<{ agent: Agent; position: GridPoint }>>();
 
   for (const agent of agents) {
     if (!agent.alive) continue;
-    const cellX = Math.floor(agent.x / 6);
-    const cellY = Math.floor(agent.y / 6);
+    const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    const cellX = Math.floor(position.x / 6);
+    const cellY = Math.floor(position.y / 6);
     const key = `${cellX}:${cellY}`;
     const cluster = clusters.get(key) ?? [];
-    cluster.push(agent);
+    cluster.push({ agent, position });
     clusters.set(key, cluster);
   }
 
   for (const cluster of clusters.values()) {
-    const centerX = cluster.reduce((sum, agent) => sum + agent.x + 0.5, 0) / cluster.length;
-    const centerY = cluster.reduce((sum, agent) => sum + agent.y + 0.5, 0) / cluster.length;
-    const selected = cluster.some((agent) => agent.id === selectedAgentId);
+    const centerX = cluster.reduce((sum, entry) => sum + entry.position.x + 0.5, 0) / cluster.length;
+    const centerY = cluster.reduce((sum, entry) => sum + entry.position.y + 0.5, 0) / cluster.length;
+    const selected = cluster.some((entry) => selectedIds.has(entry.agent.id));
 
     context.fillStyle = selected ? "#e5d5a3" : "#d0b88b";
     context.beginPath();
@@ -376,24 +394,146 @@ function drawAgents(
   agents: readonly Agent[],
   bounds: WorldBounds,
   zoom: number,
-  selectedAgentId: string | null | undefined
+  selectedIds: ReadonlySet<string>,
+  motion?: AgentMotionAnimator
 ): void {
-  const visible = agents.filter(
-    (agent) => agent.alive && isInsideBounds(agent.x, agent.y, bounds)
-  );
+  const visible = agents.filter((agent) => {
+    if (!agent.alive) return false;
+    const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    return isInsideBounds(position.x, position.y, bounds);
+  });
 
   if (zoom < 5) {
-    drawAgentClusters(context, visible, selectedAgentId);
+    drawAgentClusters(context, visible, selectedIds, motion);
     return;
   }
 
   for (const agent of visible) {
-    drawAgentSprite(context, agent, agent.id === selectedAgentId);
+    const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    drawAgentSprite(
+      context,
+      agent,
+      position,
+      selectedIds.has(agent.id),
+      motion?.isMoving(agent.id) ?? false,
+      motion?.getWalkCycle(agent.id) ?? 0
+    );
+  }
+}
+
+
+function drawAgentOverlays(
+  context: CanvasRenderingContext2D,
+  world: WorldState,
+  selectedAgents: readonly Agent[],
+  bounds: WorldBounds,
+  layers: RenderLayers,
+  visibilityCache: Map<string, { key: string; tiles: GridPoint[] }>
+): void {
+  const motion = layers.motion;
+  if (layers.showVision) {
+    for (const agent of selectedAgents) {
+      const key = `${world.tick}:${agent.x}:${agent.y}:${agent.sightRadius ?? 7}:${world.buildings.length}`;
+      const cached = visibilityCache.get(agent.id);
+      let visible = cached?.key === key ? cached.tiles : null;
+      if (!visible) {
+        visible = computeVisibleTiles(
+          world,
+          { x: agent.x, y: agent.y },
+          agent.sightRadius ?? 7
+        );
+        visibilityCache.set(agent.id, { key, tiles: visible });
+      }
+
+      context.fillStyle = "rgba(185, 210, 165, 0.15)";
+      for (const point of visible) {
+        if (isInsideBounds(point.x, point.y, bounds)) {
+          context.fillRect(point.x + 0.08, point.y + 0.08, 0.84, 0.84);
+        }
+      }
+    }
+  }
+
+  for (const agent of selectedAgents) {
+    const visual = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    const startX = visual.x + 0.5;
+    const startY = visual.y + 0.5;
+
+    if (layers.showTrails && motion) {
+      const trail = motion.getTrail(agent.id);
+      if (trail.length > 1) {
+        context.save();
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        for (let index = 1; index < trail.length; index += 1) {
+          const before = trail[index - 1];
+          const after = trail[index];
+          if (!before || !after) continue;
+          context.globalAlpha = 0.12 + 0.55 * (index / (trail.length - 1));
+          context.strokeStyle = "#d2c08e";
+          context.lineWidth = 0.045;
+          context.beginPath();
+          context.moveTo(before.x + 0.5, before.y + 0.5);
+          context.lineTo(after.x + 0.5, after.y + 0.5);
+          context.stroke();
+        }
+        context.restore();
+      }
+    }
+
+    if (layers.showRoutes && agent.plannedPath && agent.plannedPath.length > 0) {
+      context.save();
+      context.strokeStyle = "rgba(241, 214, 155, 0.86)";
+      context.lineWidth = 0.075;
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.setLineDash([0.22, 0.16]);
+      context.beginPath();
+      context.moveTo(startX, startY);
+      for (const point of agent.plannedPath) {
+        context.lineTo(point.x + 0.5, point.y + 0.5);
+      }
+      context.stroke();
+      context.restore();
+    }
+
+    if (layers.showTargets && agent.destination) {
+      const target = agent.destination;
+      context.save();
+      context.strokeStyle = "#f1d69b";
+      context.fillStyle = "rgba(241, 214, 155, 0.16)";
+      context.lineWidth = 0.075;
+      context.beginPath();
+      context.arc(target.x + 0.5, target.y + 0.5, 0.34, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+      context.beginPath();
+      context.moveTo(target.x + 0.5, target.y + 0.05);
+      context.lineTo(target.x + 0.5, target.y + 0.95);
+      context.moveTo(target.x + 0.05, target.y + 0.5);
+      context.lineTo(target.x + 0.95, target.y + 0.5);
+      context.stroke();
+      context.restore();
+    }
+  }
+
+  if (layers.selectionRect) {
+    const rect = layers.selectionRect;
+    context.save();
+    context.fillStyle = "rgba(212, 188, 131, 0.11)";
+    context.strokeStyle = "rgba(241, 214, 155, 0.92)";
+    context.lineWidth = 0.065;
+    context.setLineDash([0.22, 0.14]);
+    context.fillRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+    context.strokeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+    context.restore();
   }
 }
 
 /** A lightweight, read-only Canvas 2D renderer for the authoritative world state. */
 export class CanvasWorldRenderer {
+  private readonly visibilityCache = new Map<string, { key: string; tiles: GridPoint[] }>();
+
   render(
     world: WorldState,
     camera: Camera,
@@ -441,8 +581,16 @@ export class CanvasWorldRenderer {
       drawStartingPoint(context, layers.startingPoint, bounds);
     }
 
+    const selectedIds = new Set(layers.selectedAgentIds ?? []);
+    if (layers.selectedAgentId) selectedIds.add(layers.selectedAgentId);
+    const selectedAgents = world.agents.filter((agent) => agent.alive && selectedIds.has(agent.id));
+
+    if (camera.zoom >= 2 && selectedAgents.length > 0) {
+      drawAgentOverlays(context, world, selectedAgents, bounds, layers, this.visibilityCache);
+    }
+
     if (layers.agents !== false) {
-      drawAgents(context, world.agents, bounds, camera.zoom, layers.selectedAgentId);
+      drawAgents(context, world.agents, bounds, camera.zoom, selectedIds, layers.motion);
     }
 
     context.restore();
