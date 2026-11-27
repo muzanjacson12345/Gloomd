@@ -314,14 +314,20 @@ export function resizeCanvas(
   viewport: ViewportSize,
   devicePixelRatio = 1
 ): number {
+  if (
+    !Number.isFinite(viewport.width) ||
+    !Number.isFinite(viewport.height) ||
+    viewport.width <= 0 ||
+    viewport.height <= 0
+  ) {
+    throw new RangeError("Canvas viewport dimensions must be positive finite numbers.");
+  }
+
   const ratio = getCappedPixelRatio(devicePixelRatio);
   const width = Math.max(1, Math.round(viewport.width * ratio));
   const height = Math.max(1, Math.round(viewport.height * ratio));
 
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
-
-  canvas.style.width = `${viewport.width}px`;
-  canvas.style.height = `${viewport.height}px`;
   return ratio;
 }
