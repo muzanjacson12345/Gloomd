@@ -39,7 +39,8 @@ function startWorld(
     width: Math.max(1, window.innerWidth),
     height: Math.max(1, window.innerHeight)
   });
-  const initialZoom = 22;
+  // A wider opening view shows more of the surrounding landscape at once.
+  const initialZoom = 14;
   const camera = createCamera(world.width, world.height, initialZoom);
   setCameraCenter(camera, getTileCenter(startingPoint));
   const renderer = new CanvasWorldRenderer();
