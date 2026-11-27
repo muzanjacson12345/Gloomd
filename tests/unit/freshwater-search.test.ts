@@ -54,4 +54,30 @@ describe("bounded freshwater search", () => {
 
     expect(findNearestFreshwaterBank(world, { x: 1, y: 1 }, 4)).toBeNull();
   });
+
+  it("cannot search through a construction site to reach freshwater", () => {
+    const world = openWorld();
+    addFreshwater(world, 3, 1);
+
+    for (const y of [0, 2]) {
+      for (let x = 0; x < world.width; x += 1) {
+        const tile = world.tiles[y]?.[x];
+        if (tile) tile.walkable = false;
+      }
+    }
+
+    world.buildings.push({
+      id: "barrier-shelter",
+      kind: "shelter",
+      x: 2,
+      y: 1,
+      status: "under_construction",
+      workDone: 0,
+      workRequired: 12,
+      builderId: "builder-1"
+    });
+
+    expect(findNearestFreshwaterBank(world, { x: 1, y: 1 }, 8)).toBeNull();
+  });
+
 });

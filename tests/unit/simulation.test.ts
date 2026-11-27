@@ -337,6 +337,34 @@ describe("autonomous agents and consequential actions", () => {
     expect(builder.buildingId).toBeNull();
   });
 
+  it("never places a shelter on a live resource or another inhabitant", () => {
+    const world = makeWorld();
+    world.resources.push({
+      id: "resource-east",
+      kind: "wood",
+      x: 2,
+      y: 1,
+      quantity: 1,
+      maxQuantity: 1,
+      regrowEveryTicks: null
+    });
+    const builder = makeBuilder({
+      inventory: { food: 0, wood: 5, stone: 2 },
+      currentGoal: "build_shelter"
+    });
+    const neighbour = makeAgent({ id: "neighbour", name: "Bo", x: 1, y: 2 });
+    world.agents.push(builder, neighbour);
+
+    stepWorld(world);
+
+    expect(world.buildings).toHaveLength(1);
+    expect(world.buildings[0]).toMatchObject({ x: 0, y: 1, status: "under_construction" });
+    expect(world.buildings[0]?.x).not.toBe(2);
+    expect(world.buildings[0]?.y).not.toBe(2);
+    expect(builder.inventory.wood).toBe(0);
+    expect(builder.inventory.stone).toBe(0);
+  });
+
   it("pauses shelter work while urgent thirst is handled, then resumes the same site", () => {
     const world = makeWorld();
     const water = world.tiles[2]?.[1];

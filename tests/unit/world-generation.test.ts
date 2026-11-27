@@ -77,4 +77,39 @@ describe("procedural world generation", () => {
       }
     }
   });
+
+  it("treats a building tile as blocked in the world walkability helper", async () => {
+    const modulePath = "../../src/core/world-generation.ts";
+    const worldModule = await import(/* @vite-ignore */ modulePath).catch(() => null);
+
+    expect(typeof worldModule?.createWorld).toBe("function");
+    expect(typeof worldModule?.isWalkable).toBe("function");
+    if (typeof worldModule?.createWorld !== "function" || typeof worldModule?.isWalkable !== "function") return;
+
+    const world = worldModule.createWorld(12345);
+    let location: { x: number; y: number } | null = null;
+    for (let y = 0; y < world.height && location === null; y += 1) {
+      for (let x = 0; x < world.width; x += 1) {
+        if (world.tiles[y]?.[x]?.walkable) {
+          location = { x, y };
+          break;
+        }
+      }
+    }
+    if (!location) throw new Error("No walkable tile was generated");
+
+    world.buildings.push({
+      id: "test-shelter",
+      kind: "shelter",
+      x: location.x,
+      y: location.y,
+      status: "under_construction",
+      workDone: 0,
+      workRequired: 12,
+      builderId: "builder-1"
+    });
+
+    expect(worldModule.isWalkable(world, location.x, location.y)).toBe(false);
+  });
+
 });
