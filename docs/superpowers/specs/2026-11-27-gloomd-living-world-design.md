@@ -1,6 +1,6 @@
 # GLOOMD — Living World Design
 
-**Status:** Proposed design — awaiting user approval  
+**Status:** Approved for implementation by the user on 2026-11-27  
 **Date:** 2026-11-27  
 **Repository:** `muzanjacson12345/Gloomd`  
 **Working branch:** `main` (the user explicitly asked to work directly on main)
@@ -133,4 +133,4 @@ The first useful playable milestone must be more than a visual mockup: agents mu
 
 ## 10. Approval gate
 
-This is a proposed design, not a declaration that the application has been built. The user should review and approve or correct this design before application code, project scaffolding or dependencies are added. After approval, write the detailed implementation plan and execute it in tested, reviewable stages.
+This is a proposed design, not a declaration that the application has been built. The user approved implementation on 2026-11-27. Execute the detailed plan in tested, reviewable stages; routine implementation decisions do not require further approval.
