@@ -154,6 +154,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 }
 .map-hint span { margin: 0 5px; color: #c2a873; }
 
+
+@media (min-width: 761px) and (max-width: 1080px) {
+  .brand-lockup { min-width: 155px; gap: 7px; }
+  .brand-subtitle { display: none; }
+  .readout { min-width: 92px; padding: 0 10px; }
+  .homes-readout { min-width: 64px; }
+  .stockpile-readout { min-width: 140px; }
+  .resource-readout { display: none; }
+}
+
 @media (max-width: 760px) {
   .top-hud { top: 9px; left: 9px; right: 9px; min-height: 58px; padding: 8px 10px; }
   .brand-lockup { min-width: auto; gap: 7px; }

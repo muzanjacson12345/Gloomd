@@ -326,6 +326,31 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.events.some((event) => event.kind === "deliver_resources")).toBe(false);
   });
 
+  it("lets urgent thirst interrupt a hauler carrying materials without losing the load", () => {
+    const world = makeWorld();
+    world.stockpile.x = 4;
+    world.stockpile.y = 1;
+    const water = world.tiles[1]?.[2];
+    if (!water) throw new Error("Test freshwater tile was not created");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+
+    const hauler = makeHauler({
+      inventory: { food: 0, wood: 2, stone: 1 },
+      needs: { hunger: 0, thirst: 64, energy: 100, health: 100 }
+    });
+    world.agents.push(hauler);
+
+    const events = stepWorld(world);
+
+    expect(hauler.needs.thirst).toBe(20);
+    expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(events.some((event) => event.kind === "drink")).toBe(true);
+    expect(events.some((event) => event.kind === "deliver_resources")).toBe(false);
+  });
+
   it("deposits only remaining stockpile capacity and keeps the undelivered load", () => {
     const world = makeWorld();
     world.stockpile.x = 4;

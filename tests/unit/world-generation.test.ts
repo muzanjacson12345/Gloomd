@@ -22,7 +22,8 @@ describe("procedural world generation", () => {
     const worldModule = await import(/* @vite-ignore */ modulePath).catch(() => null);
 
     expect(typeof worldModule?.createWorld).toBe("function");
-    if (typeof worldModule?.createWorld !== "function") return;
+    expect(typeof worldModule?.isWalkable).toBe("function");
+    if (typeof worldModule?.createWorld !== "function" || typeof worldModule?.isWalkable !== "function") return;
 
     const world = worldModule.createWorld(2026);
     const tiles = world.tiles.flat();
@@ -37,6 +38,7 @@ describe("procedural world generation", () => {
     expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
     expect(world.stockpile.capacityPerResource).toBe(120);
     expect(world.tiles[world.stockpile.y]?.[world.stockpile.x]?.walkable).toBe(true);
+    expect(worldModule.isWalkable(world, world.stockpile.x, world.stockpile.y)).toBe(false);
     expect(world.resources.some((node: { x: number; y: number; quantity: number }) => node.x === world.stockpile.x && node.y === world.stockpile.y && node.quantity > 0)).toBe(false);
   });
 
