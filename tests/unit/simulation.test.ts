@@ -806,4 +806,20 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.events.filter((event) => event.kind === "resource_regrown")).toHaveLength(1);
   });
 
+  it("slowly restores health when hunger thirst and energy are under control", () => {
+    const world = makeWorld();
+    const agent = makeAgent({
+      needs: { hunger: 20, thirst: 20, energy: 60, health: 50 },
+      inventory: { food: 0, fish: 0, wood: 0, stone: 0 }
+    });
+    world.agents.push(agent);
+
+    stepWorld(world, 20);
+
+    expect(agent.alive).toBe(true);
+    expect(agent.needs.health).toBeCloseTo(55, 5);
+    expect(agent.needs.hunger).toBe(40);
+    expect(agent.needs.thirst).toBe(40);
+  });
+
 });
