@@ -7,7 +7,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "vite build"
+    "build": "vite build && node scripts/inline-assets.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",

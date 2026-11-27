@@ -68,6 +68,7 @@ npm run build
 - It pauses when the page is hidden or closed. There is no offline catch-up.
 - No paid APIs, per-agent LLM calls, remote simulation server or cloud database are used.
 - The renderer uses the browser's built-in Canvas 2D API.
+- The production page embeds its JavaScript and CSS directly into the HTML file, avoiding separate entry-script and stylesheet requests on GitHub Pages.
 - After opening the hosted site, the app requires no continuously running backend.
 - The app displays a readable startup error if its entry module fails or initialization does not complete within 12 seconds. The exact browser-side issue that previously left the loading message on screen could not be reproduced in the connected browser during development.
 - There is no save/load or autosave yet. Reloading or closing the tab starts a new experiment.
