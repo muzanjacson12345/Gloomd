@@ -15,5 +15,11 @@ export function takeResource(
 
   const taken = Math.min(resource.quantity, requested);
   resource.quantity -= taken;
+
+  // Harvesting restarts this patch's own recovery timer. It cannot replenish
+  // simply because the global world clock crossed a convenient boundary.
+  if (taken > 0 && resource.regrowEveryTicks !== null && resource.regrowEveryTicks > 0) {
+    resource.nextRegrowTick = world.tick + resource.regrowEveryTicks;
+  }
   return taken;
 }
