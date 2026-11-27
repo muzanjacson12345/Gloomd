@@ -28,6 +28,14 @@ export interface AppShell {
   overlayButtons: HTMLInputElement[];
   hideUiButton: HTMLButtonElement;
   restoreUiButton: HTMLButtonElement;
+  storageToggleButton: HTMLButtonElement;
+  storagePanel: HTMLElement;
+  saveNowButton: HTMLButtonElement;
+  loadWorldButton: HTMLButtonElement;
+  exportWorldButton: HTMLButtonElement;
+  importWorldButton: HTMLButtonElement;
+  importFileInput: HTMLInputElement;
+  saveStatus: HTMLElement;
   eventList: HTMLElement;
   inspector: HTMLElement;
   inspectorName: HTMLElement;
@@ -55,10 +63,22 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
         <div class="header-actions">
+          <button id="storage-toggle" class="quiet-button" type="button" aria-expanded="false">WORLD SAVE</button>
           <button id="hide-ui" class="quiet-button" type="button" title="Hide interface">HIDE UI</button>
           <button id="new-world" class="new-world-button" type="button">＋ &nbsp; NEW WORLD</button>
         </div>
       </header>
+      <aside id="storage-panel" class="storage-panel" aria-label="World save controls" hidden>
+        <div class="storage-heading"><span>WORLD DATA</span><span>LOCAL</span></div>
+        <div class="storage-actions">
+          <button id="save-now" type="button">SAVE NOW</button>
+          <button id="load-world" type="button">LOAD LAST SAVE</button>
+          <button id="export-world" type="button">EXPORT FILE</button>
+          <button id="import-world" type="button">IMPORT FILE</button>
+        </div>
+        <div id="save-status" class="save-status" aria-live="polite">Autosave is ready.</div>
+        <input id="import-world-file" type="file" accept=".json,application/json" hidden />
+      </aside>
       <div class="map-tools" aria-label="Map view and selection controls">
         <button class="icon-button" id="zoom-out" type="button" aria-label="Zoom out">−</button>
         <span id="zoom-level" class="zoom-level">1.0×</span>
@@ -156,6 +176,14 @@ export function createAppShell(root: HTMLElement): AppShell {
     overlayButtons: Array.from(root.querySelectorAll<HTMLInputElement>("[data-overlay]")),
     hideUiButton: required<HTMLButtonElement>("#hide-ui"),
     restoreUiButton: required<HTMLButtonElement>("#restore-ui"),
+    storageToggleButton: required<HTMLButtonElement>("#storage-toggle"),
+    storagePanel: required("#storage-panel"),
+    saveNowButton: required<HTMLButtonElement>("#save-now"),
+    loadWorldButton: required<HTMLButtonElement>("#load-world"),
+    exportWorldButton: required<HTMLButtonElement>("#export-world"),
+    importWorldButton: required<HTMLButtonElement>("#import-world"),
+    importFileInput: required<HTMLInputElement>("#import-world-file"),
+    saveStatus: required("#save-status"),
     eventList: required("#event-list"),
     inspector: required("#agent-inspector"),
     inspectorName: required("#inspector-name"),
