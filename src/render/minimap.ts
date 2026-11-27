@@ -67,11 +67,17 @@ export function drawMiniMap(
   context.fillStyle = "#101a15";
   context.fillRect(0, 0, width, height);
 
-  for (let y = 0; y < world.height; y += 1) {
-    const row = world.tiles[y];
+  // Sample terrain at minimap-pixel resolution instead of drawing every world tile.
+  // This bounds minimap work to its small canvas even for the largest supported map.
+  const mapPixelWidth = Math.min(width, Math.ceil(world.width * transform.scale));
+  const mapPixelHeight = Math.min(height, Math.ceil(world.height * transform.scale));
+  for (let pixelY = 0; pixelY < mapPixelHeight; pixelY += 1) {
+    const worldY = Math.min(world.height - 1, Math.floor(pixelY / transform.scale));
+    const row = world.tiles[worldY];
     if (!row) continue;
-    for (let x = 0; x < world.width; x += 1) {
-      const tile = row[x];
+    for (let pixelX = 0; pixelX < mapPixelWidth; pixelX += 1) {
+      const worldX = Math.min(world.width - 1, Math.floor(pixelX / transform.scale));
+      const tile = row[worldX];
       if (!tile) continue;
       context.fillStyle = tile.terrain === "water" ? "#294d59"
         : tile.terrain === "river" ? "#3d7180"
@@ -79,12 +85,7 @@ export function drawMiniMap(
             : tile.terrain === "forest" ? "#385541"
               : tile.terrain === "hill" ? "#777854"
                 : tile.terrain === "mountain" ? "#858980" : "#657b57";
-      context.fillRect(
-        transform.offsetX + x * transform.scale,
-        transform.offsetY + y * transform.scale,
-        Math.max(1, transform.scale + 0.15),
-        Math.max(1, transform.scale + 0.15)
-      );
+      context.fillRect(transform.offsetX + pixelX, transform.offsetY + pixelY, 1, 1);
     }
   }
 
