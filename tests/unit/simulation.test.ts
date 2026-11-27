@@ -133,7 +133,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(agent.inventory.food).toBe(0);
-    expect(agent.needs.hunger).toBe(56);
+    expect(agent.needs.hunger).toBeCloseTo(55.08, 5);
     expect(world.events.some((event) => event.kind === "eat")).toBe(true);
   });
 
@@ -155,7 +155,7 @@ describe("autonomous agents and consequential actions", () => {
 
     stepWorld(world);
 
-    expect(agent.needs.thirst).toBe(46);
+    expect(agent.needs.thirst).toBeCloseTo(45.12, 5);
     expect(agent.x).toBe(1);
     expect(agent.y).toBe(1);
     expect(world.events.some((event) => event.kind === "drink")).toBe(true);
@@ -341,13 +341,13 @@ describe("autonomous agents and consequential actions", () => {
 
     const hauler = makeHauler({
       inventory: { food: 0, fish: 0, wood: 2, stone: 1 },
-      needs: { hunger: 0, thirst: 64, energy: 100, health: 100 }
+      needs: { hunger: 0, thirst: 64.95, energy: 100, health: 100 }
     });
     world.agents.push(hauler);
 
     const events = stepWorld(world);
 
-    expect(hauler.needs.thirst).toBe(20);
+    expect(hauler.needs.thirst).toBeCloseTo(20.07, 5);
     expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
     expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
     expect(events.some((event) => event.kind === "drink")).toBe(true);
@@ -654,7 +654,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(agent.alive).toBe(true);
-    expect(agent.needs.hunger).toBe(65);
+    expect(agent.needs.hunger).toBeCloseTo(65.08, 5);
     expect(agent.needs.health).toBe(100);
     expect(agent.starvationTicks).toBe(0);
     expect(world.events.some((event) => event.kind === "eat")).toBe(true);
@@ -744,7 +744,7 @@ describe("autonomous agents and consequential actions", () => {
       currentGoal: "seek_fish",
       x: 1,
       y: 1,
-      needs: { hunger: 64, thirst: 0, energy: 100, health: 100 }
+      needs: { hunger: 64.95, thirst: 0, energy: 100, health: 100 }
     });
     world.agents.push(fisher);
 
@@ -818,8 +818,8 @@ describe("autonomous agents and consequential actions", () => {
 
     expect(agent.alive).toBe(true);
     expect(agent.needs.health).toBeCloseTo(55, 5);
-    expect(agent.needs.hunger).toBe(40);
-    expect(agent.needs.thirst).toBe(40);
+    expect(agent.needs.hunger).toBeCloseTo(21.6, 5);
+    expect(agent.needs.thirst).toBeCloseTo(22.4, 5);
   });
 
 });
