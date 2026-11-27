@@ -28,6 +28,36 @@ import { loadAutosave, saveAutosave } from "../persistence/indexeddb";
 const WORLD_SEED = createRandomWorldSeed(0);
 const SIMULATION_STEP_MS = 250;
 const SPEEDS = [1, 2, 4] as const;
+const OVERLAY_PREFERENCE_KEY = "gloomd-observation-overlays-v1";
+
+type OverlayPreferences = { routes: boolean; trails: boolean; vision: boolean; targets: boolean };
+
+function loadOverlayPreferences(): OverlayPreferences {
+  const defaults: OverlayPreferences = { routes: false, trails: false, vision: false, targets: false };
+  try {
+    const stored = window.localStorage.getItem(OVERLAY_PREFERENCE_KEY);
+    if (!stored) return defaults;
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return defaults;
+    const value = parsed as Record<string, unknown>;
+    return {
+      routes: typeof value.routes === "boolean" ? value.routes : defaults.routes,
+      trails: typeof value.trails === "boolean" ? value.trails : defaults.trails,
+      vision: typeof value.vision === "boolean" ? value.vision : defaults.vision,
+      targets: typeof value.targets === "boolean" ? value.targets : defaults.targets
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveOverlayPreferences(preferences: OverlayPreferences): void {
+  try {
+    window.localStorage.setItem(OVERLAY_PREFERENCE_KEY, JSON.stringify(preferences));
+  } catch {
+    // Overlay choices are convenience settings; storage restrictions must not stop play.
+  }
+}
 
 function startWorld(
   root: HTMLElement,
@@ -74,7 +104,11 @@ function startWorld(
   let frameHandle = 0;
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
   const layers = { terrain: true, resources: true, agents: true, buildings: true, stockpile: true };
-  const overlays = { routes: false, trails: false, vision: false, targets: false };
+  const overlays = loadOverlayPreferences();
+  for (const input of shell.overlayButtons) {
+    const name = input.dataset.overlay as keyof OverlayPreferences | undefined;
+    if (name && name in overlays) input.checked = overlays[name];
+  }
   let saveQueue: Promise<void> = Promise.resolve();
   let lastAutosaveAt = 0;
 
@@ -396,6 +430,7 @@ function startWorld(
       const name = input.dataset.overlay as keyof typeof overlays | undefined;
       if (!name || !(name in overlays)) return;
       overlays[name] = input.checked;
+      saveOverlayPreferences(overlays);
       draw();
     });
   }
