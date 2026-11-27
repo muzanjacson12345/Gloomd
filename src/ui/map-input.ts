@@ -13,7 +13,8 @@ export interface MapDragRect {
 export function findAgentAtWorldPoint(
   agents: readonly Agent[],
   point: GridPoint,
-  radius: number
+  radius: number,
+  getPosition?: (agent: Agent) => GridPoint
 ): Agent | null {
   if (!Number.isFinite(radius) || radius < 0) return null;
 
@@ -23,8 +24,9 @@ export function findAgentAtWorldPoint(
 
   for (const agent of agents) {
     if (!agent.alive) continue;
-    const dx = agent.x + 0.5 - point.x;
-    const dy = agent.y + 0.5 - point.y;
+    const position = getPosition?.(agent) ?? agent;
+    const dx = position.x + 0.5 - point.x;
+    const dy = position.y + 0.5 - point.y;
     const distanceSquared = dx * dx + dy * dy;
 
     if (distanceSquared <= radiusSquared && (nearest === null || distanceSquared < nearestDistance)) {
