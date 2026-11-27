@@ -64,10 +64,20 @@
 - GREEN evidence: latest CI run #55 (46061929007) completed with conclusion success at commit 1a20665b4136d25248be03f947fe75687b8ec153. The workflow confirms 11 test files passed, 38 tests passed, strict TypeScript checking passed, and the Vite production build succeeded. It generated dist/index.html, 8.27 kB CSS and 28.31 kB JS (10.01 kB JS gzip).
 - Result: the first observer screen is now connected to the local simulation and validated by CI. It is a first playable slice, not yet a completed social/civilization simulator.
 
+## Task 6: complete
+- Added a dedicated GitHub Pages workflow with separate build and deploy jobs. The build job runs tests, strict type-checking and Vite production build before uploading only dist/; the deploy job publishes the artifact through the official Pages deployment action.
+- Uses standard GitHub-hosted runners and the current official checkout, setup-node, configure-pages, upload-pages-artifact and deploy-pages actions, pinned to immutable commit SHAs.
+- Kept deployment unconditionally behind successful build checks and limited token permissions to repository contents read, Pages read/write and ID-token write in the relevant jobs.
+- Added README documentation for the live site, controls, local runtime, current implemented slice and later roadmap. No lockfile cache dependency, paid runner, server or paid API.
+- First deployment run #1 (46062067416) exposed that setup-node's npm cache expects a lockfile; corrected by removing caching rather than introducing a false lockfile requirement.
+- GREEN evidence: deployment run #3 (46062117602) completed successfully at commit 0b9f352bd4f21753c323233640a942cd867641cf. Both the test/build job and Publish GLOOMD job completed successfully. The Pages deployment action reported environment URL https://muzanjacson12345.github.io/Gloomd/.
+- Independent CI run #61 (46062117584) on the same commit completed successfully with tests, type-check and production build.
+- Result: the first playable GLOOMD slice is published using GitHub Pages. Longer-term memory/social/civilization, persistent saving and PWA capabilities remain planned, not completed.
+
 ## Current position
 - Task 1: complete.
 - Task 2: complete.
 - Task 3: complete.
 - Task 4: complete.
 - Task 5: complete.
-- Task 6: next — GitHub Pages deployment workflow and user-facing documentation.
+- Task 6: complete.
