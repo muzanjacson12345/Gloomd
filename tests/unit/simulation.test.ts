@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createStarterAgents } from "../../src/core/agents";
 import { stepWorld } from "../../src/core/simulation";
+import { takeResource } from "../../src/core/resources";
 import { createWorld, relocateStockpileNear } from "../../src/core/world-generation";
 import type { Agent, Tile, WorldState } from "../../src/core/types";
 
@@ -658,25 +659,27 @@ describe("autonomous agents and consequential actions", () => {
   });
 
 
-  it("regrows wild food slowly and never exceeds the original patch capacity", () => {
+  it("regrows wild food only after its own four-hour recovery timer", () => {
     const world = makeWorld();
     world.resources.push({
       id: "berry-patch",
       kind: "wild_food",
       x: 3,
       y: 3,
-      quantity: 0,
+      quantity: 2,
       maxQuantity: 2,
       regrowEveryTicks: 240
     });
+    takeResource(world, "berry-patch", 2);
 
     stepWorld(world, 239);
     expect(world.resources[0]?.quantity).toBe(0);
     stepWorld(world);
     expect(world.resources[0]?.quantity).toBe(1);
-    stepWorld(world, 480);
+    stepWorld(world, 240);
     expect(world.resources[0]?.quantity).toBe(2);
-    stepWorld(world, 480);
+    expect(world.resources[0]?.nextRegrowTick).toBeNull();
+    stepWorld(world, 240);
     expect(world.resources[0]?.quantity).toBe(2);
   });
 
@@ -688,7 +691,7 @@ describe("autonomous agents and consequential actions", () => {
         kind: "wood",
         x: 3,
         y: 3,
-        quantity: 0,
+        quantity: 2,
         maxQuantity: 2,
         regrowEveryTicks: 7200
       },
@@ -697,11 +700,13 @@ describe("autonomous agents and consequential actions", () => {
         kind: "stone",
         x: 4,
         y: 3,
-        quantity: 0,
+        quantity: 3,
         maxQuantity: 3,
         regrowEveryTicks: null
       }
     );
+    takeResource(world, "forest-timber", 2);
+    takeResource(world, "stone-vein", 3);
 
     stepWorld(world, 7199);
     expect(world.resources[0]?.quantity).toBe(0);
@@ -709,6 +714,7 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.resources[0]?.quantity).toBe(1);
     stepWorld(world, 7200);
     expect(world.resources[0]?.quantity).toBe(2);
+    expect(world.resources[0]?.nextRegrowTick).toBeNull();
     expect(world.resources[1]?.quantity).toBe(0);
   });
 
