@@ -14,10 +14,10 @@ import { updateHud } from "../ui/hud";
 import { renderAgentInspector } from "../ui/agent-inspector";
 import { renderEventLog } from "../ui/event-log";
 import { renderAgentActivity } from "../ui/agent-activity";
-import { createWorldSetup } from "../ui/world-setup";
+import { createRandomWorldSeed, createWorldSetup } from "../ui/world-setup";
 import type { GridPoint, WorldState } from "../core/types";
 
-const WORLD_SEED = Math.floor(Math.random() * 0x7fff_ffff) + 1;
+const WORLD_SEED = createRandomWorldSeed(0);
 const SIMULATION_STEP_MS = 250;
 const SPEEDS = [1, 2, 4] as const;
 
@@ -261,10 +261,6 @@ function startWorld(
   };
 }
 
-function nextWorldSeed(seed: number): number {
-  return seed >= Number.MAX_SAFE_INTEGER - 1 ? 1 : seed + 1;
-}
-
 /** Start on the world-creation screen, then mount or restore an in-memory world. */
 export function startApp(root: HTMLElement): () => void {
   let setupCleanup: (() => void) | null = null;
@@ -304,7 +300,7 @@ export function startApp(root: HTMLElement): () => void {
           root,
           result.world,
           result.startingPoint,
-          () => openWorldSetup(nextWorldSeed(result.world.seed), savedWorld)
+          () => openWorldSetup(createRandomWorldSeed(result.world.seed), savedWorld)
         );
       },
       onCancel() {
@@ -314,7 +310,7 @@ export function startApp(root: HTMLElement): () => void {
           root,
           returnTo.world,
           returnTo.startingPoint,
-          () => openWorldSetup(nextWorldSeed(returnTo.world.seed), returnTo)
+          () => openWorldSetup(createRandomWorldSeed(returnTo.world.seed), returnTo)
         );
       }
     });

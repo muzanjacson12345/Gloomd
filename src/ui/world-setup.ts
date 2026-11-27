@@ -19,7 +19,7 @@ export function clampWaterCoverage(value: number): number {
   return Math.round(Math.max(0.25, Math.min(0.55, value)) * 100) / 100;
 }
 
-function createRandomSeed(previousSeed: number): number {
+export function createRandomWorldSeed(previousSeed: number): number {
   const values = new Uint32Array(1);
   if (globalThis.crypto?.getRandomValues) {
     globalThis.crypto.getRandomValues(values);
@@ -244,7 +244,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   };
 
   const onNewTerrain = (): void => {
-    seed = createRandomSeed(seed);
+    seed = createRandomWorldSeed(seed);
     seedInput.value = String(seed);
     regenerateWorld();
   };

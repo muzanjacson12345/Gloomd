@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampStartingPopulation, clampWaterCoverage, WORLD_SIZE_PRESETS } from "../../src/ui/world-setup";
+import { clampStartingPopulation, clampWaterCoverage, createRandomWorldSeed, WORLD_SIZE_PRESETS } from "../../src/ui/world-setup";
 
 describe("world setup population selection", () => {
   it("clamps low and high values to the supported population range", () => {
@@ -25,6 +25,14 @@ describe("world setup population selection", () => {
       { id: "large", label: "LARGE · 192 × 144", width: 192, height: 144 },
       { id: "huge", label: "HUGE · 256 × 192", width: 256, height: 192 }
     ]);
+  });
+
+  it("generates a fresh seed in the reproducible numeric range for a new experiment", () => {
+    const seed = createRandomWorldSeed(42);
+    expect(Number.isSafeInteger(seed)).toBe(true);
+    expect(seed).toBeGreaterThanOrEqual(1);
+    expect(seed).toBeLessThanOrEqual(2_147_483_647);
+    expect(seed).not.toBe(42);
   });
 
   it("clamps water coverage to the supported range and defaults invalid values", () => {
