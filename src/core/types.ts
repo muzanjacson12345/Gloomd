@@ -111,6 +111,9 @@ export interface Agent {
   destination?: GridPoint | null;
   /** Remaining grid route to destination, kept aligned with the latest decision. */
   plannedPath?: GridPoint[];
+  /** Consecutive simulated minutes with critical hunger or dehydration. */
+  starvationTicks?: number;
+  dehydrationTicks?: number;
   alive: boolean;
   homeId: string | null;
   buildingId: string | null;
