@@ -85,6 +85,8 @@ export function createStarterAgents(
       sightRadius: 7,
       destination: null,
       plannedPath: [],
+      starvationTicks: 0,
+      dehydrationTicks: 0,
       alive: true,
       homeId: null,
       buildingId: null
