@@ -103,7 +103,8 @@ describe("Canvas world renderer", () => {
       terrain: false,
       resources: false,
       agents: false,
-      buildings: true
+      buildings: true,
+      stockpile: false
     });
     expect(calls.fillRect + calls.fill).toBeGreaterThan(1);
 
@@ -113,7 +114,8 @@ describe("Canvas world renderer", () => {
       terrain: false,
       resources: false,
       agents: false,
-      buildings: false
+      buildings: false,
+      stockpile: false
     });
     expect(calls.fillRect + calls.fill).toBe(1);
     expect(world).toEqual(before);
