@@ -9,9 +9,9 @@ export type TerrainType =
 
 export type WaterKind = "none" | "ocean" | "freshwater";
 
-export type ResourceKind = "wild_food" | "wood" | "stone";
+export type ResourceKind = "wild_food" | "fish" | "wood" | "stone";
 
-export type AgentRole = "forager" | "hauler" | "builder";
+export type AgentRole = "forager" | "fisher" | "hauler" | "builder";
 
 export type BuildingStatus = "under_construction" | "complete";
 
@@ -43,6 +43,8 @@ export interface Building {
 
 export type AgentGoal =
   | "seek_food"
+  | "seek_fish"
+  | "fish"
   | "gather"
   | "eat"
   | "seek_water"
@@ -101,6 +103,7 @@ export interface Agent {
   };
   inventory: {
     food: number;
+    fish: number;
     wood: number;
     stone: number;
   };
