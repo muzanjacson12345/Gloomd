@@ -1,0 +1,19 @@
+{
+  "name": "GLOOMD — A Living World",
+  "short_name": "GLOOMD",
+  "description": "Observe a living artificial civilization unfold.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#111914",
+  "theme_color": "#111914",
+  "icons": [
+    {
+      "src": "./gloomd-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
