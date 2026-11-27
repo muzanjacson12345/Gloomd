@@ -17,16 +17,16 @@ GitHub Pages serves the static application files. The simulation itself runs in 
 The first playable build includes:
 
 - A procedurally generated 128 × 96 top-down landscape with ocean, freshwater, rivers, beaches, grassland, forests, hills and mountains.
-- Thirty starter inhabitants with individual identities, basic traits, needs and inventories; six are builders and the rest are foragers.
+- Thirty starter inhabitants with individual identities, basic traits, needs and inventories: six builders, six haulers and eighteen foragers.
 - Deterministic world generation and simulation randomness from the world seed.
 - Local perception and reachable movement using grid pathfinding.
-- Real gathering, eating, drinking, resting and exploration actions. Builders gather wood and stone from reachable resource nodes, consuming those nodes and updating their inventories.
+- Real gathering, eating, drinking, resting and exploration actions. Haulers gather wood and stone from reachable resource nodes, carry materials back to the communal stockpile and deposit exact amounts; the source nodes and carrying inventories update as they go.
 - A full-window Canvas 2D map with visible-area drawing, zoom-dependent detail, people clusters when zoomed out and individual silhouettes when zoomed in.
-- A real shelter-building loop: a builder spends 5 wood and 2 stone, works for 12 simulation ticks, and receives a home when the shelter is complete. Shelters occupy map tiles and block movement; construction can be interrupted by survival needs and later resumed.
-- Camera pan and zoom, Land / Resources / People / Homes layers, click-to-select, an inhabitant inspector with home status, and follow mode.
+- A shared supply-and-building loop: the central stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone from it to start a shelter. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement.
+- Camera pan and zoom, Land / Resources / People / Homes / Stockpile layers, click-to-select, an inhabitant inspector with home status, and follow mode. The HUD displays both resources found in nature and materials held in the communal stockpile.
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 
-The current build is the foundation, not the final civilization simulator. This stage adds six builder roles and individual shelters. Agents do not yet have long-term personal memories, families, shared storage, farms, production chains, trade, villages, governance or culture.
+The current build is the foundation, not the final civilization simulator. Shared storage and physical hauling are now implemented, while food remains personal. Agents do not yet have long-term personal memories, families, farming, production chains, trade, villages, governance or culture.
 
 ## Controls
 
@@ -39,7 +39,7 @@ The current build is the foundation, not the final civilization simulator. This 
 | Follow an inhabitant | Open the inspector and select **Follow** |
 | Pause / resume | Use the playback control |
 | Change speed | Select 1×, 2× or 4× |
-| Show or hide a map layer | Select Land, Resources, People or Homes |
+| Show or hide a map layer | Select Land, Resources, People, Homes or Stockpile |
 
 ## Local development
 
@@ -72,7 +72,7 @@ The approved design includes further stages that are not yet implemented:
 
 1. More complete agent needs, skills, work roles and daily routines.
 2. Personal memories, relationships, communication, families and cooperation.
-3. Shared storage, cooperative building, farming, hunting, crafting, production chains and trade.
+3. Food sharing, multiple stockpiles, cooperative building, farming, hunting, crafting, production chains and trade.
 4. Migration, governance, conflict, technology and culture.
 5. Local autosave, save/load, portable export/import and versioned save migrations.
 6. Offline-first PWA caching and safe app updates.

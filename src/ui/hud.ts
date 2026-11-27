@@ -26,6 +26,7 @@ export function updateHud(shell: AppShell, world: WorldState, playing: boolean, 
   shell.population.textContent = population.toString().padStart(2, "0");
   shell.homeCount.textContent = completedHomes.toString().padStart(2, "0");
   shell.resourceSummary.textContent = `FOOD ${totals.wild_food} · WOOD ${totals.wood} · STONE ${totals.stone}`;
+  shell.stockpileSummary.textContent = `WOOD ${world.stockpile.inventory.wood} · STONE ${world.stockpile.inventory.stone}`;
   shell.zoomLevel.textContent = `${zoom.toFixed(1)}×`;
   shell.playButton.textContent = playing ? "Ⅱ  PAUSE" : "▶  RESUME";
   shell.playButton.setAttribute("aria-label", playing ? "Pause simulation" : "Resume simulation");

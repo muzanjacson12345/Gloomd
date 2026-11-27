@@ -54,7 +54,7 @@ export function startApp(root: HTMLElement): () => void {
   let frameHandle = 0;
   const initialZoom = camera.zoom;
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
-  const layers = { terrain: true, resources: true, agents: true, buildings: true };
+  const layers = { terrain: true, resources: true, agents: true, buildings: true, stockpile: true };
 
   const selectedAgent = () =>
     world.agents.find((agent) => agent.id === selectedAgentId && agent.alive) ?? null;

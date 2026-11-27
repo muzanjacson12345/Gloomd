@@ -6,6 +6,7 @@ export interface AppShell {
   worldTime: HTMLElement;
   population: HTMLElement;
   resourceSummary: HTMLElement;
+  stockpileSummary: HTMLElement;
   homeCount: HTMLElement;
   zoomLevel: HTMLElement;
   playButton: HTMLButtonElement;
@@ -37,6 +38,7 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="readout"><span class="readout-label">WORLD TIME</span><strong id="world-time">DAY 01 · 06:00</strong></div>
           <div class="readout"><span class="readout-label">INHABITANTS</span><strong id="population">30</strong></div>
           <div class="readout homes-readout"><span class="readout-label">HOMES</span><strong id="home-count">00</strong></div>
+          <div class="readout stockpile-readout"><span class="readout-label">STOCKPILE</span><strong id="stockpile-summary">WOOD 00 · STONE 00</strong></div>
           <div class="readout resource-readout"><span class="readout-label">IN NATURE</span><strong id="resource-summary">FOOD — · WOOD — · STONE —</strong></div>
         </div>
       </header>
@@ -52,6 +54,7 @@ export function createAppShell(root: HTMLElement): AppShell {
         <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
         <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
         <button class="layer-button is-active" data-layer="buildings" type="button" aria-pressed="true">HOMES</button>
+        <button class="layer-button is-active" data-layer="stockpile" type="button" aria-pressed="true">STOCKPILE</button>
       </nav>
       <nav class="playback-controls" aria-label="Simulation playback">
         <button class="play-button" id="play-toggle" type="button">Ⅱ &nbsp; PAUSE</button>
@@ -93,6 +96,7 @@ export function createAppShell(root: HTMLElement): AppShell {
     worldTime: required("#world-time"),
     population: required("#population"),
     resourceSummary: required("#resource-summary"),
+    stockpileSummary: required("#stockpile-summary"),
     homeCount: required("#home-count"),
     zoomLevel: required("#zoom-level"),
     playButton: required<HTMLButtonElement>("#play-toggle"),

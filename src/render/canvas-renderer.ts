@@ -1,4 +1,4 @@
-import type { Agent, Building, ResourceNode, Tile, WorldState } from "../core/types";
+import type { Agent, Building, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -8,6 +8,7 @@ export interface RenderLayers {
   resources?: boolean;
   agents?: boolean;
   buildings?: boolean;
+  stockpile?: boolean;
   selectedAgentId?: string | null;
 }
 
@@ -219,6 +220,50 @@ function drawBuildings(
   }
 }
 
+
+function drawStockpile(
+  context: CanvasRenderingContext2D,
+  stockpile: Stockpile,
+  bounds: WorldBounds,
+  zoom: number
+): void {
+  if (!isInsideBounds(stockpile.x, stockpile.y, bounds)) return;
+
+  const x = stockpile.x;
+  const y = stockpile.y;
+
+  if (zoom < 4) {
+    context.fillStyle = "#a98a5d";
+    context.fillRect(x + 0.24, y + 0.24, 0.52, 0.52);
+    context.fillStyle = "#382f22";
+    context.fillRect(x + 0.32, y + 0.32, 0.36, 0.36);
+    return;
+  }
+
+  // A few simple crates make the store recognizable without sprite assets.
+  context.fillStyle = "#171f19";
+  context.fillRect(x + 0.12, y + 0.72, 0.76, 0.14);
+
+  context.fillStyle = "#806342";
+  context.fillRect(x + 0.18, y + 0.42, 0.28, 0.34);
+  context.fillRect(x + 0.51, y + 0.34, 0.3, 0.42);
+
+  context.fillStyle = "#b89a68";
+  context.fillRect(x + 0.22, y + 0.46, 0.2, 0.08);
+  context.fillRect(x + 0.55, y + 0.38, 0.22, 0.08);
+
+  context.strokeStyle = "#3b3022";
+  context.lineWidth = 0.045;
+  context.strokeRect(x + 0.18, y + 0.42, 0.28, 0.34);
+  context.strokeRect(x + 0.51, y + 0.34, 0.3, 0.42);
+  context.beginPath();
+  context.moveTo(x + 0.32, y + 0.42);
+  context.lineTo(x + 0.32, y + 0.76);
+  context.moveTo(x + 0.51, y + 0.55);
+  context.lineTo(x + 0.81, y + 0.55);
+  context.stroke();
+}
+
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
   agent: Agent,
@@ -363,6 +408,10 @@ export class CanvasWorldRenderer {
 
     if (layers.buildings !== false) {
       drawBuildings(context, world.buildings, bounds, camera.zoom);
+    }
+
+    if (layers.stockpile !== false) {
+      drawStockpile(context, world.stockpile, bounds, camera.zoom);
     }
 
     if (layers.agents !== false) {
