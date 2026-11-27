@@ -246,5 +246,22 @@ describe("advanced random terrain", () => {
     expect(relocated.x === target.x && relocated.y === target.y).toBe(false);
     expect(world.resources.some(node => node.quantity > 0 && node.x === relocated.x && node.y === relocated.y)).toBe(false);
   });
+  it("generates fish resource patches on walkable freshwater banks", () => {
+    const world = createWorld(20261127);
+    const fishNodes = world.resources.filter((resource) => resource.kind === "fish");
+
+    expect(fishNodes.length).toBeGreaterThan(0);
+    for (const fish of fishNodes) {
+      expect(world.tiles[fish.y]?.[fish.x]?.walkable).toBe(true);
+      const adjacent = [
+        world.tiles[fish.y - 1]?.[fish.x],
+        world.tiles[fish.y + 1]?.[fish.x],
+        world.tiles[fish.y]?.[fish.x - 1],
+        world.tiles[fish.y]?.[fish.x + 1]
+      ];
+      expect(adjacent.some((tile) => tile?.waterKind === "freshwater")).toBe(true);
+    }
+  });
+
 });
 
