@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-
 :root {
   color-scheme: dark;
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -45,6 +43,15 @@ button { font: inherit; }
 .icon-button:hover { background: #ffffff12; color: #fff; }
 .zoom-level { min-width: 34px; text-align: center; font: 9px "DM Mono", monospace; color: #acb8a9; }
 .tool-separator { height: 17px; border-left: 1px solid #ffffff24; margin: 0 2px; }
+
+.layer-tools {
+  position: absolute; z-index: 6; top: 148px; right: 22px; display: flex; gap: 4px;
+  padding: 5px; border: 1px solid #d7dfc51e; border-radius: 5px;
+  background: rgba(16,25,19,.78); backdrop-filter: blur(10px);
+}
+.layer-button { padding: 6px 8px; border: 0; border-radius: 3px; background: transparent; color: #839081; cursor: pointer; font: 8px "DM Mono", monospace; letter-spacing: .08em; }
+.layer-button:hover { color: #e4e9df; }
+.layer-button.is-active { background: #ffffff12; color: #cfd9c8; }
 
 .playback-controls {
   position: absolute; z-index: 6; left: 50%; bottom: 25px; transform: translateX(-50%);
@@ -114,6 +121,7 @@ button:focus-visible { outline: 2px solid #d2dcae; outline-offset: 2px; }
   .readout-label { font-size: 7px; }
   .readout strong { font-size: 9px; }
   .map-tools { top: 78px; right: 12px; }
+  .layer-tools { top: 121px; right: 12px; }
   .map-hint { top: 88px; left: 13px; font-size: 7px; max-width: 140px; line-height: 1.6; }
   .event-feed { left: 12px; bottom: 82px; width: min(290px, calc(100vw - 24px)); padding: 9px 11px; }
   .playback-controls { bottom: 12px; }
