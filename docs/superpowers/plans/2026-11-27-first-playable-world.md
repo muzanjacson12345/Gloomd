@@ -188,31 +188,31 @@
 - Produces: `Camera`, `screenToWorld(camera, point)`, `worldToScreen(camera, point)`, `zoomAt(camera, screenPoint, factor)`, and `getVisibleWorldBounds(camera, viewport)`.
 - Produces: `CanvasWorldRenderer.render(world, camera, context, viewport, layers): void`. The renderer is read-only and cannot mutate simulation state.
 
-- [ ] **Step 1: Write failing camera and visible-bounds tests**
+- [x] **Step 1: Write failing camera and visible-bounds tests**
 
   Test world/screen coordinate round-trips, zoom anchored under the pointer, pan offsets, and visible bounds clamped to the map.
 
-- [ ] **Step 2: Run the camera tests and confirm they fail**
+- [x] **Step 2: Run the camera tests and confirm they fail**
 
   Run: `npm run test -- tests/unit/camera.test.ts tests/unit/geometry.test.ts`
 
   Expected: FAIL because camera and geometry functions do not exist.
 
-- [ ] **Step 3: Implement camera math and culling bounds**
+- [x] **Step 3: Implement camera math and culling bounds**
 
   Keep camera state independent of rendering. Clamp extreme zoom, support high-DPI resizing, and compute the visible world rectangle before drawing.
 
-- [ ] **Step 4: Implement Canvas 2D rendering**
+- [x] **Step 4: Implement Canvas 2D rendering**
 
   Draw terrain, water/coast, rivers, vegetation, resource patches and small agent sprites. Use a restrained map palette and clear silhouettes. Draw the visible region plus a small margin, not every map tile. Reduce object detail when zoomed out. Never issue simulation actions from rendering code.
 
-- [ ] **Step 5: Run the rendering-utility tests and full checks**
+- [x] **Step 5: Run the rendering-utility tests and full checks**
 
   Run: `npm run typecheck && npm run test && npm run build`
 
   Expected: all tests PASS and Vite creates a production build.
 
-- [ ] **Step 6: Commit the map renderer**
+- [x] **Step 6: Commit the map renderer**
 
   Commit camera, geometry, renderer and tests.
 
