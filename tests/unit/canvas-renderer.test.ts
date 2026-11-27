@@ -105,7 +105,7 @@ describe("Canvas world renderer", () => {
       agents: false,
       buildings: true
     });
-    expect(calls.fillRect + calls.fill).toBeGreaterThan(0);
+    expect(calls.fillRect + calls.fill).toBeGreaterThan(1);
 
     calls.fillRect = 0;
     calls.fill = 0;
@@ -115,7 +115,7 @@ describe("Canvas world renderer", () => {
       agents: false,
       buildings: false
     });
-    expect(calls.fillRect + calls.fill).toBe(0);
+    expect(calls.fillRect + calls.fill).toBe(1);
     expect(world).toEqual(before);
   });
 
