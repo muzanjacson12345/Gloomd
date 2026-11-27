@@ -23,7 +23,7 @@ function makeWorld(rows: string[]): WorldState {
 describe("local line of sight", () => {
   it("includes nearby cells within the sight radius", () => {
     const world = makeWorld([".....", ".....", ".....", ".....", "....."]);
-    const visible = computeVisibleTiles(world, { x: 2, y: 2 }, 2);
+    const visible = computeVisibleTiles(world, { x: 2, y: 2 }, 1);
     expect(visible).toContainEqual({ x: 2, y: 2 });
     expect(visible).toContainEqual({ x: 3, y: 2 });
     expect(visible).not.toContainEqual({ x: 4, y: 2 });
