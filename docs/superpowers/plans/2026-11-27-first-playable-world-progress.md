@@ -54,9 +54,20 @@
 - GREEN evidence: camera/geometry CI run #27 (46061187760) completed successfully. Latest full CI run #31 (46061356462) completed successfully at commit 948507f03c03c1ed604ce3cfd835ae69a5746869; all 9 test files passed, strict TypeScript passed, and the Vite production build succeeded.
 - Task 4 result: read-only visible-area Canvas rendering and tested camera math are ready to connect to the browser app.
 
+## Task 5: complete
+- Implementation: full-window map-first observer UI with compact HUD, playback pause and 1×/2×/4× speed controls, zoom/reset controls, functional terrain/resource/people layer switches, selected-agent inspector, follow-agent mode and a compact event feed.
+- Input: pointer drag pans the map; wheel zoom stays anchored at the cursor; click selection chooses the nearest living agent within a zoom-adjusted pick radius.
+- Runtime: a fixed-step simulation clock runs separately from animation rendering, pauses while the document is hidden, clears accumulated time on pause/resume and visibility changes, and bounds the number of simulation steps processed per frame.
+- Offline/privacy constraints retained: CSS fonts are local system fallbacks; no external runtime assets, server, paid API or LLM calls were introduced.
+- Test coverage: camera/geometry/renderer tests, agent-picking tests, fixed-step pause/visibility tests, world/simulation tests.
+- RED evidence: CI run #32 (46061396486) failed because the new fixed-step module was not yet implemented; earlier UI integration runs caught and corrected a Canvas renderer type import and missing test context details.
+- GREEN evidence: latest CI run #55 (46061929007) completed with conclusion success at commit 1a20665b4136d25248be03f947fe75687b8ec153. The workflow confirms 11 test files passed, 38 tests passed, strict TypeScript checking passed, and the Vite production build succeeded. It generated dist/index.html, 8.27 kB CSS and 28.31 kB JS (10.01 kB JS gzip).
+- Result: the first observer screen is now connected to the local simulation and validated by CI. It is a first playable slice, not yet a completed social/civilization simulator.
+
 ## Current position
 - Task 1: complete.
 - Task 2: complete.
 - Task 3: complete.
 - Task 4: complete.
-- Task 5: next — full-window observer UI and fixed-step visibility-aware clock.
+- Task 5: complete.
+- Task 6: next — GitHub Pages deployment workflow and user-facing documentation.
