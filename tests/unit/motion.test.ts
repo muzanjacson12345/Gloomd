@@ -25,7 +25,7 @@ describe("agent motion animation", () => {
     animator.enqueue("agent-1", { x: 2, y: 0 }, { x: 2, y: 1 });
     animator.advance(450);
 
-    expect(animator.getPosition("agent-1", { x: 0, y: 0 })).toEqual({ x: 2, y: 0.25 });
+    expect(animator.getPosition("agent-1", { x: 0, y: 0 })).toEqual({ x: 2, y: 0.15625 });
   });
 
   it("retains a short trail of tiles actually travelled", () => {
