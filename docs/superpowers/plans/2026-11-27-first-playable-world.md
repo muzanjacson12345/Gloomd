@@ -339,3 +339,15 @@ These details make the contracts above unambiguous for the implementer:
 - **Hidden tab / pause:** Task 5 tests advance the fixed-step clock, mark it paused/hidden for a long elapsed interval, resume, and assert there is no accumulated-time burst.
 - **Small viewport / high DPI / zoom limits:** Task 4 tests camera coordinate conversion and visible bounds at a 320 × 568 viewport and a 3840 × 2160 viewport, and assert zoom remains within configured limits. Canvas backing resolution must cap device-pixel ratio at 2.
 
+
+
+## First-milestone need loop clarification
+
+The first playable slice must make both hunger and thirst meaningful rather than showing a thirst meter that has no supporting action:
+
+- Extend `Tile` with `waterKind: "none" | "ocean" | "freshwater"`. Both rivers and lakes are freshwater but remain impassable; ocean is impassable and not drinkable.
+- Extend `Agent.currentGoal` with `"seek_water" | "drink"`. Thirst is checked before hunger when it crosses 65. An agent seeks a reachable walkable bank tile adjacent to freshwater within its perception radius, then drinks there to reduce thirst. If no freshwater is perceived, it explores.
+- Add Task 2 tests proving the generated world includes freshwater and ocean classifications, and that only freshwater is valid for the drink-site search.
+- Add Task 3 tests proving an agent can reach a drink site without entering water, drinking reduces thirst, and an isolated freshwater target does not cause a false successful drink event.
+- Use thresholds consistently: need values are 0–100; hunger and thirst rise by 1 per simulation tick; at 65 an agent seeks the relevant resource; a successful food action reduces hunger by 35; a successful drink action reduces thirst by 45. Rest increases energy by 20. These are tuning constants, not permanent design limits.
+
