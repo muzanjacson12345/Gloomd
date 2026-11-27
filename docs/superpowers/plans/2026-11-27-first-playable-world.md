@@ -273,19 +273,19 @@
 - Consumes: successful Task 1 CI and Vite production output in `dist/`.
 - Produces: a static GitHub Pages deployment at `https://muzanjacson12345.github.io/Gloomd/`.
 
-- [ ] **Step 1: Add the Pages deployment workflow**
+- [x] **Step 1: Add the Pages deployment workflow**
 
   Deploy only after CI succeeds for pushes to `main`. Use standard GitHub-hosted runners, Node LTS, install dependencies, run typecheck/tests/build, upload only `dist/`, and deploy with the official Pages actions. Grant only `contents: read`, `pages: write` and `id-token: write`. Do not use paid runners or external hosting.
 
-- [ ] **Step 2: Document how to run and publish the app**
+- [x] **Step 2: Document how to run and publish the app**
 
   Document that the simulation runs locally in the browser, Pages only serves static files, and no paid API/server is used. Include the live URL, controls, and current implemented-versus-planned features.
 
-- [ ] **Step 3: Commit the deployment workflow and documentation**
+- [x] **Step 3: Commit the deployment workflow and documentation**
 
   Commit to `main`. If GitHub Pages still has its source set to branch deployment, change it once to **GitHub Actions** in repository Settings → Pages before expecting the workflow to publish the Vite build.
 
-- [ ] **Step 4: Verify the deployment from GitHub Actions**
+- [x] **Step 4: Verify the deployment from GitHub Actions**
 
   Inspect the actual workflow run and job results. Expected: CI succeeds, the Pages deploy job succeeds, and the published page loads at the stated URL. Do not call the deployment complete based only on a commit or workflow being created.
 
