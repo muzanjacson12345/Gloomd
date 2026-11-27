@@ -127,7 +127,7 @@ function startWorld(
   const updateMinimap = (): void => {
     if (!minimapContext) return;
     const signature = [
-      world.tick,
+      Math.floor(world.tick / 4),
       camera.centerX.toFixed(2),
       camera.centerY.toFixed(2),
       camera.zoom.toFixed(2)
