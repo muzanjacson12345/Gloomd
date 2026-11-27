@@ -96,4 +96,18 @@ describe("versioned world saves", () => {
     });
   });
 
+  it("upgrades older version-one saves that predate fish inventory", () => {
+    const { world, start } = makeSavedWorld();
+    world.agents = createStarterAgents(world, 2);
+    const legacy = createWorldSave(world, start, 1000);
+    for (const agent of legacy.world.agents) {
+      delete (agent.inventory as Partial<typeof agent.inventory>).fish;
+    }
+
+    const restored = parseWorldSave(serializeWorldSave(legacy));
+
+    expect(restored.world.agents).toHaveLength(2);
+    expect(restored.world.agents.every((agent) => agent.inventory.fish === 0)).toBe(true);
+  });
+
 });
