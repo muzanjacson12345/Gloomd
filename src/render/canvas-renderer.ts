@@ -608,6 +608,20 @@ function drawAgentOverlays(
 /** A lightweight, read-only Canvas 2D renderer for the authoritative world state. */
 export class CanvasWorldRenderer {
   private readonly visibilityCache = new Map<string, { key: string; tiles: GridPoint[] }>();
+  private woodLookupTick = -1;
+  private woodQuantities = new Map<string, number>();
+
+  private getWoodQuantities(world: WorldState): ReadonlyMap<string, number> {
+    if (this.woodLookupTick !== world.tick) {
+      this.woodQuantities = new Map(
+        world.resources
+          .filter((resource) => resource.kind === "wood")
+          .map((resource) => [`${resource.x}:${resource.y}`, resource.quantity] as const)
+      );
+      this.woodLookupTick = world.tick;
+    }
+    return this.woodQuantities;
+  }
 
   render(
     world: WorldState,
@@ -637,12 +651,7 @@ export class CanvasWorldRenderer {
     const bounds = clampBounds(getVisibleWorldBounds(camera, viewport), world);
 
     if (layers.terrain !== false) {
-      const woodQuantities = new Map(
-        world.resources
-          .filter((resource) => resource.kind === "wood")
-          .map((resource) => [`${resource.x}:${resource.y}`, resource.quantity] as const)
-      );
-      drawTerrain(context, world, bounds, camera.zoom, woodQuantities);
+      drawTerrain(context, world, bounds, camera.zoom, this.getWoodQuantities(world));
     }
 
     if (layers.resources !== false) {
