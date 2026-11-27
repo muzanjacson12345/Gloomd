@@ -184,27 +184,20 @@ function classifyOcean(
     }
   }
 
-  const directions = [1, width, -1, -width] as const;
+  const directions: readonly GridPoint[] = [
+    { x: 1, y: 0 }, { x: 0, y: 1 },
+    { x: -1, y: 0 }, { x: 0, y: -1 }
+  ];
   for (let head = 0; head < tail; head += 1) {
     const current = queue[head]!;
     const x = current % width;
     const y = Math.floor(current / width);
     for (const direction of directions) {
-      const next = current + direction;
-      const nextX = next % width;
-      const nextY = Math.floor(next / width);
-      if (
-        next < 0 ||
-        next >= total ||
-        nextX < 0 ||
-        nextX >= width ||
-        nextY < 0 ||
-        nextY >= height ||
-        waterMask[next] !== 1 ||
-        oceanMask[next] === 1
-      ) {
-        continue;
-      }
+      const nextX = x + direction.x;
+      const nextY = y + direction.y;
+      if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) continue;
+      const next = nextY * width + nextX;
+      if (waterMask[next] !== 1 || oceanMask[next] === 1) continue;
       oceanMask[next] = 1;
       queue[tail++] = next;
     }
@@ -508,14 +501,6 @@ function createResources(
 
 const STOCKPILE_CAPACITY_PER_RESOURCE = 120;
 
-
-function occupiedResourceTiles(resources: ResourceNode[]): Set<number> {
-  const occupied = new Set<number>();
-  for (const resource of resources) {
-    if (resource.quantity > 0) occupied.add(resource.y * 10_000 + resource.x);
-  }
-  return occupied;
-}
 
 function createStockpile(
   tiles: Tile[][],

@@ -18,6 +18,7 @@ const WATER_RESTORE = 45;
 const RESTORE_ENERGY = 20;
 const SHELTER_MATERIALS = { wood: 5, stone: 2 } as const;
 const SHELTER_WORK_TICKS = 12;
+const HAULER_LOAD_CAPACITY = 3;
 const MAX_STORED_EVENTS = 120;
 
 interface Target {
@@ -225,8 +226,11 @@ function materialNeededBySettlement(world: WorldState): "wood" | "stone" | null 
   const capacity = world.stockpile.capacityPerResource;
 
   if (wood >= capacity && stone >= capacity) return null;
+  if (wood >= SHELTER_MATERIALS.wood && stone >= SHELTER_MATERIALS.stone) return null;
   if (wood >= capacity) return "stone";
   if (stone >= capacity) return "wood";
+  if (wood >= SHELTER_MATERIALS.wood) return "stone";
+  if (stone >= SHELTER_MATERIALS.stone) return "wood";
   return wood * 2 <= stone * 5 ? "wood" : "stone";
 }
 
@@ -239,7 +243,7 @@ function gatherHaulerMaterial(
 ): void {
   const target = nearestResource(world, agent, kind);
   if (!target?.resource) {
-    agent.currentGoal = "explore";
+    agent.currentGoal = "search_resources";
     explore(world, agent, random);
     return;
   }
@@ -247,7 +251,12 @@ function gatherHaulerMaterial(
   agent.currentGoal = kind === "wood" ? "gather_wood" : "gather_stone";
   if (!moveToward(world, agent, target)) return;
 
-  const gathered = takeResource(world, target.resource.id, 1);
+  const committed = committedMaterialCount(world, kind);
+  const recipeTarget = kind === "wood" ? SHELTER_MATERIALS.wood : SHELTER_MATERIALS.stone;
+  const remainingForRecipe = Math.max(0, recipeTarget - committed);
+  const availableCapacity = Math.max(0, world.stockpile.capacityPerResource - committed);
+  const loadAmount = Math.min(HAULER_LOAD_CAPACITY, remainingForRecipe, availableCapacity);
+  const gathered = takeResource(world, target.resource.id, loadAmount);
   if (gathered <= 0) {
     agent.currentGoal = "explore";
     return;
@@ -352,6 +361,13 @@ function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
   }
 
   return null;
+}
+
+function hasShelterMaterials(world: WorldState): boolean {
+  return (
+    world.stockpile.inventory.wood >= SHELTER_MATERIALS.wood &&
+    world.stockpile.inventory.stone >= SHELTER_MATERIALS.stone
+  );
 }
 
 function startShelter(
@@ -556,8 +572,11 @@ function stepAgent(
     }
 
     if (agent.homeId === null) {
-      if (!startShelter(world, agent, emitted)) {
-        agent.currentGoal = "explore";
+      if (!hasShelterMaterials(world)) {
+        agent.currentGoal = "wait_for_materials";
+        explore(world, agent, random);
+      } else if (!startShelter(world, agent, emitted)) {
+        agent.currentGoal = "find_build_site";
         explore(world, agent, random);
       }
       return;

@@ -12,6 +12,9 @@ const GOAL_LABELS: Record<AgentGoal, string> = {
   gather_wood: "Gathering wood",
   gather_stone: "Gathering stone",
   deliver_resources: "Hauling to stockpile",
+  search_resources: "Searching for building materials",
+  wait_for_materials: "Waiting for building supplies",
+  find_build_site: "Finding a building site",
   build_shelter: "Building a shelter"
 };
 
