@@ -38,7 +38,7 @@ export function createStarterAgents(world: WorldState, count: number): Agent[] {
     available[swapIndex] = current;
 
     const number = index + 1;
-    const name = STARTER_NAMES[index % STARTER_NAMES.length];
+    const name = STARTER_NAMES[index % STARTER_NAMES.length] ?? "Ari";
     agents.push({
       id: `agent-${number}`,
       name: number > STARTER_NAMES.length ? `${name} ${number}` : name,
