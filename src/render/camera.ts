@@ -20,7 +20,7 @@ export interface Camera {
   worldHeight: number;
 }
 
-const DEFAULT_MIN_ZOOM = 3;
+const DEFAULT_MIN_ZOOM = 1;
 const DEFAULT_MAX_ZOOM = 48;
 
 function clamp(value: number, min: number, max: number): number {
