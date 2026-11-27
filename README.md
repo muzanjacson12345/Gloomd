@@ -28,6 +28,7 @@ The first playable build includes:
 - An explicit **SELECT PEOPLE** mode: normal map dragging still pans and ordinary clicks inspect an inhabitant; only while selection mode is active does a drag draw a rectangle to select multiple inhabitants. Escape exits the mode.
 - An **OBSERVE** panel with optional route, recent travel trail, vision and destination overlays for selected inhabitants. Vision is calculated separately from resource-search radius and blocked by impassable map tiles and buildings. Overlays are off by default.
 - A minimap showing terrain, inhabitants, the stockpile and current camera view; click it to navigate. **Fit world** frames the whole map, and **Hide UI** provides a cinematic view with a restore button.
+- A versioned local world-save format and IndexedDB autosave. The app checkpoints every 15 seconds while active, saves when paused or hidden, and resumes the last local save on startup. The **WORLD SAVE** menu provides Save Now, Load Last Save, Export File and Import File. Exported JSON includes the seed, complete world state and chosen starting point.
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 - A New World action from the active simulation. The world is held in memory and paused while the creation screen is open; Back to Current World returns to it. Creating a replacement discards the current unsaved world.
 
@@ -43,6 +44,9 @@ The current build is the foundation, not the final civilization simulator. Only 
 | Navigate with the minimap | Click a location on the minimap to centre the main camera there. |
 | Fit the whole world | Select the fit-world map button (square icon). |
 | Hide or restore the interface | Select **HIDE UI** or press Escape / **SHOW INTERFACE**. |
+| Save the current world | Open **WORLD SAVE** and select **SAVE NOW**. Autosave also runs every 15 seconds while the world is active. |
+| Resume a saved world | Open **WORLD SAVE** and select **LOAD LAST SAVE**. On a later visit, the latest save is restored automatically when available. |
+| Back up or move a world | Use **EXPORT FILE** to download a JSON save or **IMPORT FILE** to restore one. |
 | Zoom | Mouse wheel or the + / − buttons |
 | Reset view | Select the home button to centre on the chosen settlement |
 | Create a world | Set the population (5–30, default 12), select Small / Standard / Large / Huge, set water coverage (25–55%), choose or enter a seed, and click the preview to pick the starting area; then select Create World |
@@ -82,8 +86,8 @@ npm run build
 - The production page embeds its JavaScript and CSS directly into the HTML file, avoiding separate entry-script and stylesheet requests on GitHub Pages.
 - After opening the hosted site, the app requires no continuously running backend.
 - The app displays a readable startup error if its entry module fails or initialization does not complete within 12 seconds. The exact browser-side issue that previously left the loading message on screen could not be reproduced in the connected browser during development.
-- There is no save/load or autosave yet. Reloading or closing the tab starts a new experiment.
-- The continuous movement, selection and overlay features have been added to the codebase, but their full typecheck, test-suite and browser verification still need to be confirmed by a fresh GitHub Actions run.
+- The PWA offline cache and install flow are not implemented yet. After closing the tab, simulation time does not advance; reopening the hosted site resumes the latest local autosave when browser storage is available.
+- The new movement, observation and save/load features have automated unit tests in the repository, but their full typecheck, test-suite, browser verification and Pages deployment still need to be confirmed by fresh GitHub Actions results.
 
 ## Planned work
 
