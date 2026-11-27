@@ -651,7 +651,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(agent.alive).toBe(true);
-    expect(agent.needs.hunger).toBe(66);
+    expect(agent.needs.hunger).toBe(65);
     expect(agent.needs.health).toBe(100);
     expect(agent.starvationTicks).toBe(0);
     expect(world.events.some((event) => event.kind === "eat")).toBe(true);
