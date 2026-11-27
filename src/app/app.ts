@@ -240,7 +240,8 @@ function startWorld(
         const agent = findAgentAtWorldPoint(
           world.agents,
           worldPoint,
-          Math.max(0.6, 10 / camera.zoom)
+          Math.max(0.6, 10 / camera.zoom),
+          (candidate) => motion.getPosition(candidate.id, candidate)
         );
         if (selectionMode) {
           toggleAgentInGroup(agent?.id ?? null);
@@ -254,7 +255,11 @@ function startWorld(
       },
       onAreaSelect(rect) {
         const worldRect = screenRectToWorld(rect);
-        const ids = selectAgentsInWorldRect(world.agents, worldRect);
+        const ids = selectAgentsInWorldRect(
+          world.agents,
+          worldRect,
+          (candidate) => motion.getPosition(candidate.id, candidate)
+        );
         selectionRect = null;
         setSelectedAgents(ids);
       },
