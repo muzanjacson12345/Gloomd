@@ -127,13 +127,13 @@ describe("autonomous agents and consequential actions", () => {
 
   it("does not report drinking when every freshwater bank tile is unreachable", () => {
     const world = makeWorld();
-    const water = world.tiles[8]?.[8];
+    const water = world.tiles[5]?.[5];
     if (!water) throw new Error("Test water tile was not created");
     water.terrain = "river";
     water.waterKind = "freshwater";
     water.walkable = false;
 
-    for (const [x, y] of [[7, 8], [9, 8], [8, 7], [8, 9]]) {
+    for (const [x, y] of [[4, 5], [6, 5], [5, 4], [5, 6]]) {
       const tile = world.tiles[y]?.[x];
       if (tile) {
         tile.terrain = "mountain";
@@ -168,10 +168,11 @@ describe("autonomous agents and consequential actions", () => {
     const second = makeAgent({ id: "agent-b", name: "Bo", x: 1, y: 2 });
     world.agents.push(first, second);
 
-    for (let count = 0; count < 8; count += 1) stepWorld(world);
+    for (let count = 0; count < 2; count += 1) stepWorld(world);
 
     const totalCarried = first.inventory.food + second.inventory.food;
-    expect(totalCarried).toBeLessThanOrEqual(1);
+    expect(totalCarried).toBe(1);
+    expect(world.events.filter((event) => event.kind === "gather_food")).toHaveLength(1);
     expect(world.resources[0]?.quantity).toBe(1 - totalCarried);
     expect(world.resources[0]?.quantity).toBeGreaterThanOrEqual(0);
   });
