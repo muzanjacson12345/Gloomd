@@ -6,7 +6,7 @@ GLOOMD is a local-first, browser-based artificial-life simulation. You observe a
 
 ## Open the world
 
-Once the GitHub Pages workflow has been enabled for this repository, the site will be available at:
+The site is published through GitHub Actions and is available at:
 
 <https://muzanjacson12345.github.io/Gloomd/>
 
