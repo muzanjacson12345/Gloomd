@@ -657,4 +657,59 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.events.some((event) => event.kind === "eat")).toBe(true);
   });
 
+
+  it("regrows wild food slowly and never exceeds the original patch capacity", () => {
+    const world = makeWorld();
+    world.resources.push({
+      id: "berry-patch",
+      kind: "wild_food",
+      x: 3,
+      y: 3,
+      quantity: 0,
+      maxQuantity: 2,
+      regrowEveryTicks: 240
+    });
+
+    stepWorld(world, 239);
+    expect(world.resources[0]?.quantity).toBe(0);
+    stepWorld(world);
+    expect(world.resources[0]?.quantity).toBe(1);
+    stepWorld(world, 480);
+    expect(world.resources[0]?.quantity).toBe(2);
+    stepWorld(world, 480);
+    expect(world.resources[0]?.quantity).toBe(2);
+  });
+
+  it("allows forest timber to recover slowly while stone deposits remain finite", () => {
+    const world = makeWorld();
+    world.resources.push(
+      {
+        id: "forest-timber",
+        kind: "wood",
+        x: 3,
+        y: 3,
+        quantity: 0,
+        maxQuantity: 2,
+        regrowEveryTicks: 7200
+      },
+      {
+        id: "stone-vein",
+        kind: "stone",
+        x: 4,
+        y: 3,
+        quantity: 0,
+        maxQuantity: 3,
+        regrowEveryTicks: null
+      }
+    );
+
+    stepWorld(world, 7199);
+    expect(world.resources[0]?.quantity).toBe(0);
+    stepWorld(world);
+    expect(world.resources[0]?.quantity).toBe(1);
+    stepWorld(world, 7200);
+    expect(world.resources[0]?.quantity).toBe(2);
+    expect(world.resources[1]?.quantity).toBe(0);
+  });
+
 });
