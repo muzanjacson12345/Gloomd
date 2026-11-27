@@ -37,4 +37,24 @@ describe("fixed-step simulation clock", () => {
     expect(() => clock.advance(-1, true, () => undefined)).toThrow(RangeError);
     expect(() => clock.advance(Number.NaN, true, () => undefined)).toThrow(RangeError);
   });
+
+  it("reports only newly accepted time before executing ticks when frame catch-up is capped", () => {
+    const clock = new FixedStepClock(100, 3);
+    const accepted: number[] = [];
+    let ticks = 0;
+
+    clock.advance(60, true, () => ticks += 1, (elapsed) => accepted.push(elapsed));
+    clock.advance(10_000, true, () => ticks += 1, (elapsed) => accepted.push(elapsed));
+
+    expect(accepted).toEqual([60, 240]);
+    expect(ticks).toBe(3);
+  });
+
+  it("does not advance animation time while paused or hidden", () => {
+    const clock = new FixedStepClock(100, 3);
+    const accepted: number[] = [];
+    clock.advance(60, false, () => undefined, (elapsed) => accepted.push(elapsed));
+    expect(accepted).toEqual([]);
+  });
+
 });
