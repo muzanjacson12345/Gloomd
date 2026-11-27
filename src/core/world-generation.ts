@@ -22,6 +22,7 @@ const MAX_WATER_COVERAGE = 0.55;
 // much more slowly as a rough forest-regeneration model; stone remains finite.
 export const RESOURCE_FOOD_REGROW_TICKS = 240;
 export const RESOURCE_WOOD_REGROW_TICKS = 7_200;
+export const RESOURCE_FISH_REGROW_TICKS = 720;
 
 function clamp(value: number, min = 0, max = 1): number {
   return Math.max(min, Math.min(max, value));
@@ -39,6 +40,10 @@ function resourceEligible(kind: ResourceKind, tile: Tile): boolean {
       return tile.walkable && (tile.terrain === "forest" || tile.terrain === "grassland");
     case "stone":
       return tile.walkable && (tile.terrain === "hill" || tile.terrain === "mountain" || tile.terrain === "grassland");
+    case "fish":
+      // Fish habitat depends on a neighbouring freshwater tile and is checked
+      // with map context in createResources(), not by this tile-only helper.
+      return false;
   }
 }
 
@@ -472,6 +477,16 @@ function createResources(
       ) {
         addResource("stone", x, y, random.int(3, 8), null);
       }
+
+      const freshwaterBank = [
+        tiles[y - 1]?.[x],
+        tiles[y + 1]?.[x],
+        tiles[y]?.[x - 1],
+        tiles[y]?.[x + 1]
+      ].some((neighbor) => neighbor?.waterKind === "freshwater");
+      if (freshwaterBank && random.next() < 0.075) {
+        addResource("fish", x, y, random.int(3, 6), RESOURCE_FISH_REGROW_TICKS);
+      }
     }
   }
 
@@ -484,14 +499,28 @@ function createResources(
 
       for (let x = 0; x < row.length; x += 1) {
         const tile = row[x];
-        if (!tile || !resourceEligible(kind, tile)) continue;
+        if (!tile) continue;
 
-        const quantity = kind === "wild_food" ? 3 : 4;
+        if (kind === "fish") {
+          const freshwaterBank = [
+            tiles[y - 1]?.[x],
+            tiles[y + 1]?.[x],
+            tiles[y]?.[x - 1],
+            tiles[y]?.[x + 1]
+          ].some((neighbor) => neighbor?.waterKind === "freshwater");
+          if (!tile.walkable || !freshwaterBank) continue;
+        } else if (!resourceEligible(kind, tile)) {
+          continue;
+        }
+
+        const quantity = kind === "wild_food" ? 3 : kind === "fish" ? 4 : 4;
         const regrow = kind === "wild_food"
           ? RESOURCE_FOOD_REGROW_TICKS
           : kind === "wood"
             ? RESOURCE_WOOD_REGROW_TICKS
-            : null;
+            : kind === "fish"
+              ? RESOURCE_FISH_REGROW_TICKS
+              : null;
         addResource(kind, x, y, quantity, regrow);
         return;
       }
@@ -499,6 +528,7 @@ function createResources(
   };
 
   ensureResource("wild_food");
+  ensureResource("fish");
   ensureResource("wood");
   ensureResource("stone");
 
