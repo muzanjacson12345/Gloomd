@@ -65,7 +65,13 @@ export function createStarterAgents(
 
     const number = index + 1;
     const name = STARTER_NAMES[index % STARTER_NAMES.length] ?? "Ari";
-    const role = number % 5 === 0 ? "builder" : number % 5 === 2 ? "hauler" : "forager";
+    const role = number % 5 === 0
+      ? "builder"
+      : number % 5 === 2
+        ? "hauler"
+        : number % 7 === 4
+          ? "fisher"
+          : "forager";
     agents.push({
       id: `agent-${number}`,
       name: number > STARTER_NAMES.length ? `${name} ${number}` : name,
@@ -78,10 +84,10 @@ export function createStarterAgents(
         sociability: random.next()
       },
       needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
-      inventory: { food: 0, wood: 0, stone: 0 },
+      inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
       role,
       currentGoal: "explore",
-      perceptionRadius: role === "hauler" ? 24 : 12,
+      perceptionRadius: role === "hauler" ? 24 : role === "fisher" ? 18 : 12,
       sightRadius: 7,
       destination: null,
       plannedPath: [],
