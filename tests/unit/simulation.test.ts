@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createStarterAgents, stepWorld } from "../../src/core/agents";
+import { createStarterAgents } from "../../src/core/agents";
+import { stepWorld } from "../../src/core/simulation";
 import { createWorld } from "../../src/core/world-generation";
 import type { Agent, Tile, WorldState } from "../../src/core/types";
 
