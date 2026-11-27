@@ -34,7 +34,7 @@ The first playable build includes:
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 - A New World action from the active simulation. The current world is checkpointed before the creation screen opens and remains available in memory; Back to Current World returns to it. Starting a replacement creates a separate world.
 
-The current build is the foundation, not the final civilization simulator. Only shelters are buildable so far; there are no advanced building types, roads or multi-store logistics yet. Shared storage and physical hauling are implemented, while food remains personal. Agents do not yet have long-term personal memories, families, farming, production chains, trade, villages, governance or culture.
+The current build is the foundation, not the final civilization simulator. Fishing currently uses local fish patches at freshwater banks, not a full moving/reproducing fish ecosystem. Only shelters are buildable so far; there are no advanced building types, roads or multi-store logistics yet. Shared storage and physical hauling are implemented, while food remains personal. Agents do not yet have long-term personal memories, families, farming, hunting, cooking, production chains, trade, villages, governance or culture.
 
 ## Controls
 
@@ -91,7 +91,7 @@ npm run build
 - The web-app manifest and offline service worker are implemented. After the first successful online visit and service-worker installation, the cached app shell can reopen offline; actual offline restart and update behaviour still need hands-on browser verification. App updates require an internet connection.
 - After closing the tab, simulation time does not advance; reopening the hosted site resumes the latest local autosave when browser storage is available.
 - Wild-food patches regenerate one unit every four simulated hours after their latest harvest; fish patches recover one fish every twelve simulated hours after their latest catch; forest timber patches recover one unit every five simulated days after their latest harvest; stone deposits do not regenerate. These are initial tuning values and will be balanced with larger-world tests.
-- GitHub Actions checks have passed for the current source: tests, TypeScript type-checking, production build and GitHub Pages deployment. Visual interaction and offline behaviour still deserve a manual check in Chrome.
+- The observer, persistence, survival and PWA implementation passed GitHub Actions tests, type-checking, production build and Pages deployment before the newest fishing commits. The current fishing additions are committed on main and await a fresh CI/deployment result; visual interaction and offline behaviour still need a manual Chrome check.
 
 ## Planned work
 
