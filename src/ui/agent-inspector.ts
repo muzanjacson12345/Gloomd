@@ -16,7 +16,7 @@ export function renderAgentInspector(shell: AppShell, agent: Agent | null): void
     : agent.buildingId !== null
       ? "UNDER CONSTRUCTION"
       : "NONE";
-  shell.inspectorInventory.textContent = `${agent.inventory.food} food · ${agent.inventory.wood} wood · ${agent.inventory.stone} stone`;
+  shell.inspectorInventory.textContent = `${agent.inventory.food} food · ${agent.inventory.fish} fish · ${agent.inventory.wood} wood · ${agent.inventory.stone} stone`;
   for (const need of NEEDS) {
     const value = Math.max(0, Math.min(100, agent.needs[need]));
     shell.needs[need].fill.style.width = `${value}%`;
