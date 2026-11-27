@@ -35,7 +35,16 @@
 - Follow-up verification: latest CI run #10 (`46060373604`) also completed successfully on the direct-import cleanup commit.
 - Task 2 result: deterministic 128 × 96 world, seedable random source, terrain/water typing and resource accounting are implemented and CI-verified.
 
+## Task 3: complete
+- RED evidence: CI run #12 (`46060692784`) failed because `src/core/pathfinding.ts` did not yet exist; CI run #13 (`46060696338`) failed because the autonomous-agent module did not yet exist. These were the intended test-first failures.
+- Implementation: deterministic four-way A* with a binary min-heap; unique walkable starter-agent spawns; local perception-based choices; movement, food gathering/eating, freshwater drinking, resting, exploration, resource regrowth and truthful events.
+- Edge cases: tests cover blocked/unreachable routes, no crossing an impassable river to reach food, drink only at a reachable freshwater bank, no false drink event when all nearby banks are blocked, competing agents cannot overdraw a node, and repeatable agent outcomes from the same seed.
+- Debugging/verification: CI run #17 (`46060848408`) exposed a test assertion that observed carried inventory after the agent had legitimately eaten; the test was tightened to inspect the gathering tick. CI run #18 (`46060909420`) passed tests but exposed two strict-index TypeScript errors; both were fixed without relaxing strict mode.
+- GREEN evidence: CI run #20 (`46060979679`) passed the test suite, strict TypeScript check and Vite production build. The additional unreachable-food and seeded-reproducibility tests were then added; latest CI run #21 (`46061035688`) also completed with conclusion `success`, including tests, type-check and build.
+- Task 3 result: autonomous agents now have reachable, consequential first actions; there is no LLM/API call or fake success event.
+
 ## Current position
 - Task 1: complete.
 - Task 2: complete.
-- Task 3: in progress — write pathfinding and agent-action tests first.
+- Task 3: complete.
+- Task 4: next — camera math, visible bounds and read-only Canvas 2D renderer.
