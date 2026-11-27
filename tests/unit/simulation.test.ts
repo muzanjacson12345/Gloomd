@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createStarterAgents } from "../../src/core/agents";
 import { stepWorld } from "../../src/core/simulation";
-import { createWorld } from "../../src/core/world-generation";
+import { createWorld, relocateStockpileNear } from "../../src/core/world-generation";
 import type { Agent, Tile, WorldState } from "../../src/core/types";
 
 function makeWorld(): WorldState {
@@ -520,6 +520,73 @@ describe("autonomous agents and consequential actions", () => {
     expect(firstWorld.resources).toEqual(secondWorld.resources);
     expect(firstWorld.events).toEqual(secondWorld.events);
     expect(firstWorld.randomState).toBe(secondWorld.randomState);
+  });
+
+
+  it("gathers a useful three-unit load from one nearby material node", () => {
+    const world = makeWorld();
+    world.resources.push({
+      id: "wood-bundle",
+      kind: "wood",
+      x: 4,
+      y: 1,
+      quantity: 7,
+      maxQuantity: 7,
+      regrowEveryTicks: null
+    });
+    const hauler = makeHauler({ x: 1, y: 1 });
+    world.agents.push(hauler);
+    stepWorld(world, 4);
+    expect(hauler.inventory.wood).toBe(3);
+    expect(world.resources[0]?.quantity).toBe(4);
+  });
+
+  it("clearly reports when builders are waiting for the shared material recipe", () => {
+    const world = makeWorld();
+    const builder = makeBuilder();
+    world.agents.push(builder);
+    stepWorld(world);
+    expect(builder.currentGoal).toBe("wait_for_materials");
+    expect(world.buildings).toHaveLength(0);
+  });
+
+  it("clearly reports when a builder needs to find an open construction site", () => {
+    const world = makeWorld();
+    for (const [x, y] of [[2, 1], [1, 2], [0, 1], [1, 0]] as const) {
+      const tile = world.tiles[y]?.[x];
+      if (tile) tile.walkable = false;
+    }
+    world.stockpile.inventory = { wood: 5, stone: 2 };
+    const builder = makeBuilder();
+    world.agents.push(builder);
+    stepWorld(world);
+    expect(builder.currentGoal).toBe("find_build_site");
+    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2 });
+  });
+
+  it("completes a first shelter from a normal builder and hauler after relocating the stockpile to the chosen start", () => {
+    const world = makeWorld();
+    relocateStockpileNear(world, { x: 1, y: 1 });
+    world.resources.push(
+      { id: "wood-near", kind: "wood", x: 5, y: 2, quantity: 5, maxQuantity: 5, regrowEveryTicks: null },
+      { id: "stone-near", kind: "stone", x: 6, y: 2, quantity: 4, maxQuantity: 4, regrowEveryTicks: null },
+      { id: "food-near", kind: "wild_food", x: 1, y: 4, quantity: 20, maxQuantity: 20, regrowEveryTicks: 20 }
+    );
+    const water = world.tiles[4]?.[2];
+    if (!water) throw new Error("Freshwater test tile missing");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+    const builder = makeBuilder({ x: 2, y: 2 });
+    const hauler = makeHauler({ id: "hauler-live", name: "Bo", x: 3, y: 2, perceptionRadius: 24 });
+    world.agents.push(builder, hauler);
+
+    stepWorld(world, 180);
+
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.buildings.some(building => building.kind === "shelter" && building.status === "complete")).toBe(true);
+    expect(builder.homeId).not.toBeNull();
+    expect(world.events.some(event => event.kind === "shelter_complete")).toBe(true);
   });
 
 });

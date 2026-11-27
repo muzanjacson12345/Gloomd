@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createWorld, relocateStockpileNear } from "../../src/core/world-generation";
+import type { WorldState } from "../../src/core/types";
 
 describe("procedural world generation", () => {
   it("creates the same terrain and resources for the same seed", async () => {
@@ -170,3 +172,79 @@ describe("procedural world generation", () => {
   });
 
 });
+
+
+function countFreshwaterComponents(world: WorldState): number {
+  const seen = new Set<number>();
+  let components = 0;
+  for (let y = 0; y < world.height; y += 1) {
+    for (let x = 0; x < world.width; x += 1) {
+      const index = y * world.width + x;
+      if (seen.has(index) || world.tiles[y]?.[x]?.waterKind !== "freshwater") continue;
+      components += 1;
+      const queue = [index];
+      seen.add(index);
+      for (let cursor = 0; cursor < queue.length; cursor += 1) {
+        const current = queue[cursor]!;
+        const currentX = current % world.width;
+        const currentY = Math.floor(current / world.width);
+        for (const [dx, dy] of [[1,0],[0,1],[-1,0],[0,-1]] as const) {
+          const nextX = currentX + dx;
+          const nextY = currentY + dy;
+          const nextIndex = nextY * world.width + nextX;
+          if (nextX < 0 || nextY < 0 || nextX >= world.width || nextY >= world.height) continue;
+          if (seen.has(nextIndex) || world.tiles[nextY]?.[nextX]?.waterKind !== "freshwater") continue;
+          seen.add(nextIndex);
+          queue.push(nextIndex);
+        }
+      }
+    }
+  }
+  return components;
+}
+
+describe("advanced random terrain", () => {
+  it("changes coastline and terrain between different seeds", () => {
+    const first = createWorld(1001, { width: 128, height: 96 });
+    const second = createWorld(2002, { width: 128, height: 96 });
+    expect(first.tiles).not.toEqual(second.tiles);
+  });
+
+  it("creates multiple separated inland freshwater bodies in a standard world", () => {
+    const world = createWorld(20261127, { width: 128, height: 96 });
+    expect(countFreshwaterComponents(world)).toBeGreaterThanOrEqual(2);
+    expect(world.tiles.flat().filter(tile => tile.waterKind === "freshwater").length).toBeGreaterThan(50);
+  });
+
+  it("raises water coverage when the requested water setting is increased", () => {
+    const low = createWorld(4242, { width: 128, height: 96, waterCoverage: 0.25 });
+    const high = createWorld(4242, { width: 128, height: 96, waterCoverage: 0.55 });
+    const lowRatio = low.tiles.flat().filter(tile => tile.waterKind !== "none").length / (low.width * low.height);
+    const highRatio = high.tiles.flat().filter(tile => tile.waterKind !== "none").length / (high.width * high.height);
+    expect(highRatio - lowRatio).toBeGreaterThan(0.15);
+  });
+
+  it("keeps the total generated tile budget at or below 65,536", () => {
+    expect(() => createWorld(7, { width: 257, height: 256 })).toThrow(/65,536|tile budget/i);
+  });
+
+  it("moves the communal stockpile beside the chosen start and away from resources", () => {
+    const world = createWorld(88, { width: 32, height: 24 });
+    const target = { x: 8, y: 8 };
+    world.resources.push({
+      id: "reserved-start-resource",
+      kind: "wood",
+      x: target.x,
+      y: target.y,
+      quantity: 4,
+      maxQuantity: 4,
+      regrowEveryTicks: null
+    });
+    const relocated = relocateStockpileNear(world, target);
+    expect(relocated).toEqual({ x: world.stockpile.x, y: world.stockpile.y });
+    expect(Math.abs(relocated.x - target.x) + Math.abs(relocated.y - target.y)).toBeLessThanOrEqual(2);
+    expect(relocated.x === target.x && relocated.y === target.y).toBe(false);
+    expect(world.resources.some(node => node.quantity > 0 && node.x === relocated.x && node.y === relocated.y)).toBe(false);
+  });
+});
+
