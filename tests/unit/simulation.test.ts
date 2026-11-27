@@ -42,7 +42,7 @@ function makeAgent(overrides: Partial<Agent> = {}): Agent {
     y: 1,
     traits: { curiosity: 0.5, diligence: 0.5, sociability: 0.5 },
     needs: { hunger: 90, thirst: 0, energy: 100, health: 100 },
-    inventory: { food: 0, wood: 0, stone: 0 },
+    inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
     homeId: null,
     buildingId: null,
     role: "forager",
@@ -60,7 +60,7 @@ function makeBuilder(overrides: Partial<Agent> = {}): Agent & {
 } {
   const agent = makeAgent({
     needs: { hunger: 0, thirst: 0, energy: 100, health: 100 },
-    inventory: { food: 0, wood: 0, stone: 0 },
+    inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
     ...overrides
   });
   return Object.assign(agent, { role: "builder" as const, homeId: null, buildingId: null });
@@ -73,7 +73,7 @@ function makeHauler(overrides: Partial<Agent> = {}): Agent & {
 } {
   const agent = makeAgent({
     needs: { hunger: 0, thirst: 0, energy: 100, health: 100 },
-    inventory: { food: 0, wood: 0, stone: 0 },
+    inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
     ...overrides
   });
   return Object.assign(agent, { role: "hauler" as const, homeId: null, buildingId: null });
@@ -125,7 +125,7 @@ describe("autonomous agents and consequential actions", () => {
     const world = makeWorld();
     const agent = makeAgent({
       currentGoal: "eat",
-      inventory: { food: 1, wood: 0, stone: 0 }
+      inventory: { food: 1, fish: 0, wood: 0, stone: 0 }
     });
     world.agents.push(agent);
 
@@ -317,7 +317,7 @@ describe("autonomous agents and consequential actions", () => {
       }
     }
     const hauler = makeHauler({
-      inventory: { food: 0, wood: 2, stone: 1 }
+      inventory: { food: 0, fish: 0, wood: 2, stone: 1 }
     });
     world.agents.push(hauler);
 
@@ -339,7 +339,7 @@ describe("autonomous agents and consequential actions", () => {
     water.walkable = false;
 
     const hauler = makeHauler({
-      inventory: { food: 0, wood: 2, stone: 1 },
+      inventory: { food: 0, fish: 0, wood: 2, stone: 1 },
       needs: { hunger: 0, thirst: 64, energy: 100, health: 100 }
     });
     world.agents.push(hauler);
@@ -361,7 +361,7 @@ describe("autonomous agents and consequential actions", () => {
     const hauler = makeHauler({
       x: 3,
       y: 1,
-      inventory: { food: 0, wood: 5, stone: 0 }
+      inventory: { food: 0, fish: 0, wood: 5, stone: 0 }
     });
     world.agents.push(hauler);
 
@@ -602,7 +602,7 @@ describe("autonomous agents and consequential actions", () => {
 
     const agent = makeAgent({
       needs: { hunger: 100, thirst: 0, energy: 100, health: 100 },
-      inventory: { food: 0, wood: 2, stone: 1 }
+      inventory: { food: 0, fish: 0, wood: 2, stone: 1 }
     });
     world.agents.push(agent);
 
@@ -645,7 +645,7 @@ describe("autonomous agents and consequential actions", () => {
 
     const agent = makeAgent({
       needs: { hunger: 100, thirst: 0, energy: 100, health: 100 },
-      inventory: { food: 1, wood: 0, stone: 0 },
+      inventory: { food: 1, fish: 0, wood: 0, stone: 0 },
       starvationTicks: 40
     });
     world.agents.push(agent);
