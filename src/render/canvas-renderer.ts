@@ -52,7 +52,8 @@ function drawTerrain(
   context: CanvasRenderingContext2D,
   world: WorldState,
   bounds: WorldBounds,
-  zoom: number
+  zoom: number,
+  woodQuantities: ReadonlyMap<string, number>
 ): void {
   for (let y = bounds.top; y < bounds.bottom; y += 1) {
     const row = world.tiles[y];
@@ -72,16 +73,39 @@ function drawTerrain(
       }
 
       if (zoom >= 7 && tile.terrain === "forest") {
-        const offset = ((x * 17 + y * 11) % 5) * 0.06;
-        context.fillStyle = "#243f31";
-        context.beginPath();
-        context.moveTo(x + 0.5, y + 0.18 + offset);
-        context.lineTo(x + 0.17, y + 0.82);
-        context.lineTo(x + 0.83, y + 0.82);
-        context.closePath();
-        context.fill();
-        context.fillStyle = "#9a8b62";
-        context.fillRect(x + 0.46, y + 0.72, 0.08, 0.2);
+        const stock = woodQuantities.get(`${x}:${y}`);
+        if (stock === 0) {
+          // An exhausted wood patch leaves a visible stump and a small clearing.
+          context.fillStyle = "#665641";
+          context.fillRect(x + 0.2, y + 0.69, 0.6, 0.16);
+          context.fillStyle = "#8f7952";
+          context.fillRect(x + 0.39, y + 0.57, 0.22, 0.18);
+          context.fillStyle = "#c1a77a";
+          context.fillRect(x + 0.42, y + 0.55, 0.16, 0.05);
+        } else if (stock !== undefined && stock <= 2) {
+          // Early recovery appears as a small sapling rather than a mature tree.
+          context.fillStyle = "#58744c";
+          context.beginPath();
+          context.moveTo(x + 0.5, y + 0.42);
+          context.lineTo(x + 0.28, y + 0.82);
+          context.lineTo(x + 0.72, y + 0.82);
+          context.closePath();
+          context.fill();
+          context.fillStyle = "#9a8b62";
+          context.fillRect(x + 0.46, y + 0.73, 0.08, 0.15);
+        } else {
+          const offset = ((x * 17 + y * 11) % 5) * 0.06;
+          const canopyScale = stock === undefined ? 1 : Math.min(1, 0.58 + stock * 0.07);
+          context.fillStyle = "#243f31";
+          context.beginPath();
+          context.moveTo(x + 0.5, y + 0.18 + offset);
+          context.lineTo(x + 0.5 - 0.33 * canopyScale, y + 0.82);
+          context.lineTo(x + 0.5 + 0.33 * canopyScale, y + 0.82);
+          context.closePath();
+          context.fill();
+          context.fillStyle = "#9a8b62";
+          context.fillRect(x + 0.46, y + 0.72, 0.08, 0.2);
+        }
       } else if (zoom >= 8 && tile.terrain === "mountain") {
         context.fillStyle = "#a7aaa1";
         context.beginPath();
@@ -613,7 +637,12 @@ export class CanvasWorldRenderer {
     const bounds = clampBounds(getVisibleWorldBounds(camera, viewport), world);
 
     if (layers.terrain !== false) {
-      drawTerrain(context, world, bounds, camera.zoom);
+      const woodQuantities = new Map(
+        world.resources
+          .filter((resource) => resource.kind === "wood")
+          .map((resource) => [`${resource.x}:${resource.y}`, resource.quantity] as const)
+      );
+      drawTerrain(context, world, bounds, camera.zoom, woodQuantities);
     }
 
     if (layers.resources !== false) {
