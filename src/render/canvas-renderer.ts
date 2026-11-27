@@ -613,11 +613,12 @@ export class CanvasWorldRenderer {
 
   private getWoodQuantities(world: WorldState): ReadonlyMap<string, number> {
     if (this.woodLookupTick !== world.tick) {
-      this.woodQuantities = new Map(
-        world.resources
-          .filter((resource) => resource.kind === "wood")
-          .map((resource) => [`${resource.x}:${resource.y}`, resource.quantity] as const)
-      );
+      this.woodQuantities = new Map<string, number>();
+      for (const resource of world.resources) {
+        if (resource.kind !== "wood") continue;
+        const key = `${resource.x}:${resource.y}`;
+        this.woodQuantities.set(key, (this.woodQuantities.get(key) ?? 0) + resource.quantity);
+      }
       this.woodLookupTick = world.tick;
     }
     return this.woodQuantities;
