@@ -131,7 +131,7 @@ Not yet implemented:
 - fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
 - adaptive jobs/skills, memories, relationships, families, communication or social learning;
 - multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture;
-- full local save/load/autosave/export/import;
+- versioned local save/load/autosave/export/import is now present in the codebase; fresh build/browser verification is still required;
 - PWA offline caching.
 
 ## Development order
@@ -146,13 +146,17 @@ Not yet implemented:
 **Acceptance:** the user can watch a villager walk continuously between tiles; select one or a group without interfering with normal panning; switch overlays on/off; inspect routes and vision; navigate between whole-world and local views; hide the UI.
 
 ### Stage 2 — reliable world persistence
-1. Versioned save model and round-trip tests.
-2. IndexedDB local saves, autosave and named save slots.
-3. Export/import portable world file with validation and size limits.
-4. Restore all state exactly; never advance simulation while closed.
-5. PWA shell caching and safe update behaviour.
 
-**Acceptance:** close/reopen the app and restore the same world, time, map, agents, inventories, buildings, resource quantities, events, camera preferences and settings. Export/import reproduces the same world.
+**Progress:** initial implementation added to source on 2026-11-27; fresh GitHub Actions and browser verification pending.
+
+1. [x] Versioned save model and JSON round-trip tests added.
+2. [x] IndexedDB rolling autosave, 15-second active-tab checkpoints, save-on-pause/hidden, and auto-resume added.
+3. [x] Manual Save Now / Load Last Save controls added.
+4. [x] Portable JSON export/import with schema validation and a 50 MB import limit added.
+5. [ ] Named save slots, save management and future schema migrations beyond version 1.
+6. [ ] PWA shell caching and safe update behaviour.
+
+**Acceptance:** close/reopen the app and restore the same world, time, map, agents, needs, inventories, buildings, resource quantities, events and starting point. Export/import reproduces the same world. Confirm this in an actual browser and verify all checks before marking this stage complete.
 
 ### Stage 3 — survival pressure and resource ecology
 1. Daily/time-based food and water consumption.
