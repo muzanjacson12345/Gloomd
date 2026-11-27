@@ -2,9 +2,6 @@ import type { Agent } from "../core/types";
 import type { AppShell, AgentNeed } from "./app-shell";
 import { formatAgentGoal } from "./agent-activity";
 
-function formatGoal(goal: string): string {
-  return goal.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
 const NEEDS: readonly AgentNeed[] = ["hunger", "thirst", "energy", "health"];
 
 export function renderAgentInspector(shell: AppShell, agent: Agent | null): void {
