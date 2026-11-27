@@ -52,7 +52,9 @@ function isResource(value: unknown, width: number, height: number): value is Res
     isFiniteNumber(value.quantity) && value.quantity >= 0 &&
     isFiniteNumber(value.maxQuantity) && value.maxQuantity >= value.quantity &&
     (value.regrowEveryTicks === null ||
-      (isFiniteNumber(value.regrowEveryTicks) && value.regrowEveryTicks > 0));
+      (isFiniteNumber(value.regrowEveryTicks) && value.regrowEveryTicks > 0)) &&
+    (value.nextRegrowTick === undefined || value.nextRegrowTick === null ||
+      (isInteger(value.nextRegrowTick) && value.nextRegrowTick >= 0));
 }
 
 function isAgent(value: unknown, width: number, height: number): value is Agent {
