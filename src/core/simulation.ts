@@ -107,7 +107,11 @@ function applySurvivalDamage(
 ): boolean {
   let cause: "starvation" | "dehydration" | null = null;
 
-  if (agent.needs.hunger < CRITICAL_HUNGER_THRESHOLD || agent.inventory.food > 0) {
+  if (
+    agent.needs.hunger < CRITICAL_HUNGER_THRESHOLD ||
+    agent.inventory.food > 0 ||
+    agent.inventory.fish > 0
+  ) {
     agent.starvationTicks = 0;
   }
   if (agent.needs.thirst < CRITICAL_THIRST_THRESHOLD) {
