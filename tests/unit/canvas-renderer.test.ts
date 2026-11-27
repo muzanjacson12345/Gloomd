@@ -119,4 +119,70 @@ describe("Canvas world renderer", () => {
     expect(world).toEqual(before);
   });
 
+
+  it("draws the communal stockpile only when its layer is enabled and it is visible", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    const before = structuredClone(world);
+    const calls = { fillRect: 0, fill: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {},
+      restore() {},
+      setTransform() {},
+      translate() {},
+      scale() {},
+      clearRect() {},
+      fillRect() { calls.fillRect += 1; },
+      beginPath() {},
+      closePath() {},
+      moveTo() {},
+      lineTo() {},
+      arc() {},
+      ellipse() {},
+      fill() { calls.fill += 1; },
+      stroke() {},
+      strokeRect() {},
+      fillText() {},
+      setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 6);
+    const viewport = { width: 96, height: 96 };
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      buildings: false,
+      agents: false,
+      stockpile: true
+    });
+    expect(calls.fillRect + calls.fill).toBeGreaterThan(1);
+
+    calls.fillRect = 0;
+    calls.fill = 0;
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      buildings: false,
+      agents: false,
+      stockpile: false
+    });
+    expect(calls.fillRect + calls.fill).toBe(1);
+
+    calls.fillRect = 0;
+    calls.fill = 0;
+    camera.zoom = 48;
+    camera.centerX = 0.5;
+    camera.centerY = 0.5;
+    renderer.render(world, camera, context, viewport, {
+      terrain: false,
+      resources: false,
+      buildings: false,
+      agents: false,
+      stockpile: true
+    });
+    expect(calls.fillRect + calls.fill).toBe(1);
+    expect(world).toEqual(before);
+  });
+
 });
