@@ -52,6 +52,9 @@ export type AgentGoal =
   | "gather_wood"
   | "gather_stone"
   | "deliver_resources"
+  | "search_resources"
+  | "wait_for_materials"
+  | "find_build_site"
   | "build_shelter";
 
 export interface GridPoint {
@@ -132,6 +135,7 @@ export interface WorldState {
 export interface WorldOptions {
   width?: number;
   height?: number;
+  waterCoverage?: number;
 }
 
 export interface RandomSource {
