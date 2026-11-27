@@ -127,12 +127,13 @@ Implemented in source in the current work session (fresh build/browser verificat
 - separate sightRadius and resource-search perceptionRadius;
 - minimap with camera viewport, click-to-jump, fit-world and a wider opening zoom;
 - Hide UI / restore interface mode;
-- versioned world-save format v1, validated JSON export/import, IndexedDB rolling autosave, 15-second active-tab checkpoints, save on pause/hidden, and auto-resume on startup.
+- versioned world-save format v1, validated JSON export/import, IndexedDB rolling autosave, 15-second active-tab checkpoints, save on pause/hidden, and auto-resume on startup;
+- web-app manifest, SVG icon and service worker for offline app-shell caching.
 
 Still not implemented:
 - directional walking, distinct carrying/work/rest animations and movement speed changes for heavy loads or difficult terrain;
 - work/activity-area overlays, resource density view, settlement boundaries and territory overlays;
-- named save slots, save history, schema migrations beyond version 1 and PWA offline caching;
+- named save slots, save history and schema migrations beyond version 1; the PWA offline cache is in source but still needs browser verification;
 - ageing, birth and population growth;
 - full forest ecology with visible tree/sapling populations, fish and wildlife populations;
 - fishing, hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
