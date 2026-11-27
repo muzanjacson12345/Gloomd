@@ -36,9 +36,23 @@ root.dataset.appState = "starting";
 root.dataset.appVersion = APP_VERSION;
 document.title = `GLOOMD ${APP_VERSION} — A living world`;
 
+function registerOfflineAppShell(): void {
+  if (!("serviceWorker" in navigator)) return;
+
+  // Vite's configured base keeps the worker and its scope inside /Gloomd/
+  // on GitHub Pages rather than accidentally registering it at the domain root.
+  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, {
+    scope: import.meta.env.BASE_URL
+  }).catch((error: unknown) => {
+    // Offline support is an enhancement; a worker failure must not stop play.
+    console.warn("GLOOMD offline app setup could not be registered.", error);
+  });
+}
+
 try {
   startApp(root);
   root.dataset.appState = "ready";
+  registerOfflineAppShell();
 } catch (error) {
   showStartupFailure(error);
 }
