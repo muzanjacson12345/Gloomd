@@ -117,6 +117,25 @@ function drawFood(context: CanvasRenderingContext2D, x: number, y: number): void
   context.stroke();
 }
 
+function drawFish(context: CanvasRenderingContext2D, x: number, y: number): void {
+  context.save();
+  context.fillStyle = "#77aeb0";
+  context.beginPath();
+  context.ellipse(x + 0.48, y + 0.5, 0.25, 0.13, -0.12, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.moveTo(x + 0.25, y + 0.5);
+  context.lineTo(x + 0.08, y + 0.34);
+  context.lineTo(x + 0.08, y + 0.66);
+  context.closePath();
+  context.fill();
+  context.fillStyle = "#d9e1c8";
+  context.beginPath();
+  context.arc(x + 0.61, y + 0.46, 0.025, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
 function drawWood(context: CanvasRenderingContext2D, x: number, y: number): void {
   context.strokeStyle = "#b19770";
   context.lineWidth = 0.12;
@@ -160,6 +179,9 @@ function drawResources(
     switch (resource.kind) {
       case "wild_food":
         drawFood(context, resource.x, resource.y);
+        break;
+      case "fish":
+        drawFish(context, resource.x, resource.y);
         break;
       case "wood":
         drawWood(context, resource.x, resource.y);
