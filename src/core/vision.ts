@@ -3,7 +3,12 @@ import type { GridPoint, WorldState } from "./types";
 function blocksSight(world: WorldState, point: GridPoint): boolean {
   const tile = world.tiles[point.y]?.[point.x];
   if (!tile) return true;
-  if (!tile.walkable || tile.terrain === "mountain" || tile.waterKind !== "none") return true;
+  if (
+    !tile.walkable ||
+    tile.terrain === "mountain" ||
+    tile.terrain === "forest" ||
+    tile.waterKind !== "none"
+  ) return true;
   return world.buildings.some((building) => building.x === point.x && building.y === point.y);
 }
 
