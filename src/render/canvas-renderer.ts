@@ -219,7 +219,7 @@ function drawShoreline(
   y: number,
   zoom: number
 ): void {
-  if (zoom < 3.5) return;
+  if (zoom < 11.5) return;
   const edges = [
     { neighbor: world.tiles[y - 1]?.[x], x1: x, y1: y, x2: x + 1, y2: y },
     { neighbor: world.tiles[y]?.[x + 1], x1: x + 1, y1: y, x2: x + 1, y2: y + 1 },
@@ -249,7 +249,7 @@ function drawWaterTexture(
   tile: Tile,
   zoom: number
 ): void {
-  if (zoom < 5.5 || terrainVariation(x, y, 53) > 0.62) return;
+  if (zoom < 11.5 || terrainVariation(x, y, 53) > 0.62) return;
   const offset = terrainVariation(x, y, 59) * 0.48;
   context.save();
   context.globalAlpha = tile.waterKind === "ocean" ? 0.18 : 0.24;
@@ -285,7 +285,7 @@ function drawTerrain(
       if (tile.waterKind !== "none") {
         drawShoreline(context, world, x, y, zoom);
         drawWaterTexture(context, x, y, tile, zoom);
-      } else if (zoom >= 5.5) {
+      } else if (zoom >= 11.5) {
         switch (tile.terrain) {
           case "grassland":
             drawGrassTexture(context, x, y, tile);
@@ -294,13 +294,13 @@ function drawTerrain(
             drawBeachTexture(context, x, y);
             break;
           case "forest":
-            if (zoom >= 7) drawForestTile(context, x, y, woodQuantities.get(`${x}:${y}`));
+            if (zoom >= 11.5) drawForestTile(context, x, y, woodQuantities.get(`${x}:${y}`));
             break;
           case "hill":
             drawHillContours(context, x, y, tile.elevation);
             break;
           case "mountain":
-            if (zoom >= 6.5) drawMountainPeak(context, x, y, tile.elevation);
+            if (zoom >= 11.5) drawMountainPeak(context, x, y, tile.elevation);
             break;
           case "water":
           case "river":
