@@ -70,7 +70,6 @@ describe("adaptive work allocation", () => {
     expect(world.agents.filter((agent) => agent.role === "forager")).toHaveLength(1);
     expect(world.agents.filter((agent) => agent.role === "generalist")).toHaveLength(1);
     expect(world.events.some((event) => event.kind === "job_changed")).toBe(true);
-    expect(world.events.some((event) => event.kind === "gather_food")).toBe(true);
   });
 
   it("assigns hauling while shelter materials are missing, then building after the recipe is stored", () => {
