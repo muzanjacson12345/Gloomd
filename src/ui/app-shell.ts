@@ -106,6 +106,8 @@ export function createAppShell(root: HTMLElement): AppShell {
         <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
         <button class="layer-button is-active" data-layer="buildings" type="button" aria-pressed="true">HOMES</button>
         <button class="layer-button is-active" data-layer="stockpile" type="button" aria-pressed="true">STOCKPILE</button>
+        <button class="layer-button" data-layer="resourceDensity" type="button" aria-pressed="false" title="Remaining natural resource quantities">RESOURCE HEAT</button>
+        <button class="layer-button" data-layer="activities" type="button" aria-pressed="false" title="Current inhabitant tasks across the map">ACTIVITY</button>
       </nav>
       <nav class="playback-controls" aria-label="Simulation playback">
         <button class="play-button" id="play-toggle" type="button">Ⅱ &nbsp; PAUSE</button>
