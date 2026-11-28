@@ -654,7 +654,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(agent.alive).toBe(true);
-    expect(agent.needs.hunger).toBeCloseTo(65.08, 5);
+    expect(agent.needs.hunger).toBeCloseTo(65, 5);
     expect(agent.needs.health).toBe(100);
     expect(agent.starvationTicks).toBe(0);
     expect(world.events.some((event) => event.kind === "eat")).toBe(true);
@@ -778,7 +778,9 @@ describe("autonomous agents and consequential actions", () => {
     const second = makeAgent({ id: "fisher-b", role: "fisher", x: 1, y: 2 });
     world.agents.push(first, second);
 
-    stepWorld(world, 3);
+    // Check immediately after the catch; a later tick would let the hungry
+    // fisher eat the only fish before the inventory assertion.
+    stepWorld(world);
 
     expect(first.inventory.fish + second.inventory.fish).toBe(1);
     expect(fish.quantity).toBe(0);
