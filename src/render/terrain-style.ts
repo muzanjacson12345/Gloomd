@@ -21,7 +21,7 @@ export const MAP_SYMBOL_LEGEND_ITEMS: readonly (MapLegendItem & { shape: "dot" |
   { label: "FISH", color: "#77aeb0", shape: "dot" },
   { label: "WOOD", color: "#b19770", shape: "dot" },
   { label: "STONE", color: "#a5aaa5", shape: "dot" },
-  { label: "PEOPLE", color: "#e1c58b", shape: "dot" },
+  { label: "PEOPLE", color: "#d0b88b", shape: "dot" },
   { label: "BUILDINGS", color: "#b5a17a", shape: "square" },
   { label: "STOCKPILE", color: "#806342", shape: "square" }
 ] as const;
