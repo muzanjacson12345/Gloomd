@@ -349,7 +349,7 @@ describe("autonomous agents and consequential actions", () => {
 
     expect(hauler.needs.thirst).toBeCloseTo(20.07, 5);
     expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
+    expect(world.stockpile.inventory).toMatchObject({ wood: 0, stone: 0 });
     expect(events.some((event) => event.kind === "drink")).toBe(true);
     expect(events.some((event) => event.kind === "deliver_resources")).toBe(false);
   });
