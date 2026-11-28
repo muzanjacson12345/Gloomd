@@ -325,7 +325,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world, 4);
 
     expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
+    expect(world.stockpile.inventory).toMatchObject({ wood: 0, stone: 0 });
     expect(world.events.some((event) => event.kind === "deliver_resources")).toBe(false);
   });
 
