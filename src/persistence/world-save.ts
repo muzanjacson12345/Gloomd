@@ -27,12 +27,6 @@ function isPoint(value: unknown): value is GridPoint {
   return isRecord(value) && isInteger(value.x) && isInteger(value.y);
 }
 
-function isMaterialBundle(value: unknown): value is { wood: number; stone: number } {
-  return isRecord(value) &&
-    isFiniteNumber(value.wood) && value.wood >= 0 &&
-    isFiniteNumber(value.stone) && value.stone >= 0;
-}
-
 function isStockpileInventory(value: unknown): boolean {
   return isRecord(value) &&
     isFiniteNumber(value.wood) && value.wood >= 0 &&
