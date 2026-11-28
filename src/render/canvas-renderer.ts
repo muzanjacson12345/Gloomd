@@ -1,4 +1,4 @@
-import type { Agent, Building, GridPoint, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
+import type { Agent, AgentGoal, Building, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -12,6 +12,8 @@ export interface RenderLayers {
   agents?: boolean;
   buildings?: boolean;
   stockpile?: boolean;
+  resourceDensity?: boolean;
+  activities?: boolean;
   startingPoint?: GridPoint;
   selectedAgentId?: string | null;
   selectedAgentIds?: readonly string[];
@@ -218,6 +220,66 @@ function drawResources(
 }
 
 
+const RESOURCE_DENSITY_COLOURS: Record<ResourceKind, string> = {
+  wild_food: "#c9856c",
+  fish: "#73aeb0",
+  wood: "#91ad78",
+  stone: "#afb4b0"
+};
+
+/** Shows the remaining stock at real resource nodes; it does not invent influence zones. */
+function drawResourceDensity(
+  context: CanvasRenderingContext2D,
+  resources: readonly ResourceNode[],
+  bounds: WorldBounds,
+  zoom: number
+): void {
+  if (zoom < 2) return;
+
+  const cells = new Map<string, {
+    x: number;
+    y: number;
+    quantity: number;
+    capacity: number;
+    byKind: Map<ResourceKind, number>;
+  }>();
+
+  for (const resource of resources) {
+    if (resource.quantity <= 0 || !isInsideBounds(resource.x, resource.y, bounds)) continue;
+    const key = `${resource.x}:${resource.y}`;
+    const cell = cells.get(key) ?? {
+      x: resource.x,
+      y: resource.y,
+      quantity: 0,
+      capacity: 0,
+      byKind: new Map<ResourceKind, number>()
+    };
+    cell.quantity += resource.quantity;
+    cell.capacity += Math.max(resource.quantity, resource.maxQuantity);
+    cell.byKind.set(resource.kind, (cell.byKind.get(resource.kind) ?? 0) + resource.quantity);
+    cells.set(key, cell);
+  }
+
+  for (const cell of cells.values()) {
+    if (cell.capacity <= 0) continue;
+    let dominantKind: ResourceKind = "wild_food";
+    let dominantQuantity = -1;
+    for (const [kind, quantity] of cell.byKind) {
+      if (quantity > dominantQuantity) {
+        dominantKind = kind;
+        dominantQuantity = quantity;
+      }
+    }
+    const remainingRatio = Math.max(0, Math.min(1, cell.quantity / cell.capacity));
+    context.save();
+    context.globalAlpha = 0.06 + remainingRatio * 0.27;
+    context.fillStyle = RESOURCE_DENSITY_COLOURS[dominantKind];
+    context.fillRect(cell.x + 0.04, cell.y + 0.04, 0.92, 0.92);
+    context.restore();
+  }
+}
+
+
 function drawBuildings(
   context: CanvasRenderingContext2D,
   buildings: readonly Building[],
@@ -326,24 +388,41 @@ function drawAgentSprite(
   position: GridPoint,
   selected: boolean,
   moving: boolean,
-  walkPhase: number
+  walkPhase: number,
+  facing: GridPoint,
+  cargoColour: string | null
 ): void {
-  const x = position.x;
-  const y = position.y;
   const bob = moving ? Math.abs(walkPhase) * 0.025 : 0;
   const legSwing = moving ? walkPhase * 0.09 : 0;
+  // The sprite's local forward direction is north. Rotate the whole figure so
+  // the visible facing follows its actual last/active grid movement.
+  const angle = Math.atan2(facing.x, -facing.y);
+  const x = -0.5;
+  const y = -0.5;
+
+  context.save();
+  context.translate(position.x + 0.5, position.y + 0.5);
+  context.rotate(angle);
 
   context.fillStyle = "#111b16a8";
   context.beginPath();
-  context.ellipse(x + 0.5, y + 0.83, 0.26, 0.09, 0, 0, Math.PI * 2);
+  context.ellipse(0, 0.33, 0.26, 0.09, 0, 0, Math.PI * 2);
   context.fill();
 
   if (selected) {
     context.strokeStyle = "#e5d5a3";
     context.lineWidth = 0.075;
     context.beginPath();
-    context.arc(x + 0.5, y + 0.48, 0.48, 0, Math.PI * 2);
+    context.arc(0, -0.02, 0.48, 0, Math.PI * 2);
     context.stroke();
+  }
+
+  if (cargoColour) {
+    // A small pack sits behind the body and remains readable at close zoom.
+    context.fillStyle = "#292b22";
+    context.fillRect(x + 0.65, y + 0.43 - bob, 0.16, 0.17);
+    context.fillStyle = cargoColour;
+    context.fillRect(x + 0.67, y + 0.45 - bob, 0.12, 0.13);
   }
 
   context.strokeStyle = "#252f28";
@@ -370,6 +449,14 @@ function drawAgentSprite(
   context.beginPath();
   context.arc(x + 0.5, y + 0.2 - bob, 0.15, Math.PI, Math.PI * 2);
   context.fill();
+  context.restore();
+}
+
+function getCargoColour(agent: Agent): string | null {
+  if (agent.inventory.wood > 0 || agent.inventory.stone > 0) return "#b69a68";
+  if (agent.inventory.fish > 0) return "#6faeb0";
+  if (agent.inventory.food > 0) return "#c98267";
+  return null;
 }
 
 
@@ -460,8 +547,104 @@ function drawAgents(
       position,
       selectedIds.has(agent.id),
       motion?.isMoving(agent.id) ?? false,
-      motion?.getWalkCycle(agent.id) ?? 0
+      motion?.getWalkCycle(agent.id) ?? 0,
+      motion?.getFacing(agent.id) ?? { x: 0, y: -1 },
+      getCargoColour(agent)
     );
+  }
+}
+
+
+const ACTIVITY_COLOURS: Record<AgentGoal, string> = {
+  seek_food: "#c9856c",
+  seek_fish: "#73aeb0",
+  fish: "#73aeb0",
+  gather: "#c9856c",
+  eat: "#c6a4b5",
+  seek_water: "#74a9c0",
+  drink: "#74a9c0",
+  rest: "#b1a4bf",
+  explore: "#a5ad9c",
+  gather_wood: "#91ad78",
+  gather_stone: "#afb4b0",
+  deliver_resources: "#c2b07d",
+  search_resources: "#a2ad8d",
+  wait_for_materials: "#a2ad8d",
+  find_build_site: "#d2a46f",
+  build_shelter: "#d28e69"
+};
+
+function drawAgentActivities(
+  context: CanvasRenderingContext2D,
+  agents: readonly Agent[],
+  bounds: WorldBounds,
+  zoom: number,
+  motion?: AgentMotionAnimator
+): void {
+  const visible = agents.filter((agent) => {
+    if (!agent.alive) return false;
+    const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    return isInsideBounds(position.x, position.y, bounds);
+  });
+
+  if (zoom < 5) {
+    const buckets = new Map<string, {
+      x: number;
+      y: number;
+      count: number;
+      goals: Map<AgentGoal, number>;
+    }>();
+    for (const agent of visible) {
+      const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+      const key = `${Math.floor(position.x / 6)}:${Math.floor(position.y / 6)}`;
+      const bucket = buckets.get(key) ?? { x: 0, y: 0, count: 0, goals: new Map<AgentGoal, number>() };
+      bucket.x += position.x + 0.5;
+      bucket.y += position.y + 0.5;
+      bucket.count += 1;
+      bucket.goals.set(agent.currentGoal, (bucket.goals.get(agent.currentGoal) ?? 0) + 1);
+      buckets.set(key, bucket);
+    }
+
+    for (const bucket of buckets.values()) {
+      let dominantGoal: AgentGoal = "explore";
+      let dominantCount = -1;
+      for (const [goal, count] of bucket.goals) {
+        if (count > dominantCount) {
+          dominantGoal = goal;
+          dominantCount = count;
+        }
+      }
+      const x = bucket.x / bucket.count;
+      const y = bucket.y / bucket.count;
+      context.save();
+      context.fillStyle = ACTIVITY_COLOURS[dominantGoal];
+      context.globalAlpha = 0.78;
+      context.beginPath();
+      context.arc(x, y, 0.24 + Math.min(0.1, bucket.count * 0.015), 0, Math.PI * 2);
+      context.fill();
+      if (bucket.count > 1) {
+        context.globalAlpha = 1;
+        context.fillStyle = "#17221c";
+        context.font = "0.3px sans-serif";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(String(bucket.count), x, y + 0.01);
+      }
+      context.restore();
+    }
+    return;
+  }
+
+  for (const agent of visible) {
+    const position = motion?.getPosition(agent.id, agent) ?? { x: agent.x, y: agent.y };
+    context.save();
+    context.strokeStyle = ACTIVITY_COLOURS[agent.currentGoal];
+    context.globalAlpha = 0.9;
+    context.lineWidth = 0.055;
+    context.beginPath();
+    context.arc(position.x + 0.5, position.y + 0.5, 0.29, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
   }
 }
 
@@ -655,6 +838,10 @@ export class CanvasWorldRenderer {
       drawTerrain(context, world, bounds, camera.zoom, this.getWoodQuantities(world));
     }
 
+    if (layers.resourceDensity) {
+      drawResourceDensity(context, world.resources, bounds, camera.zoom);
+    }
+
     if (layers.resources !== false) {
       drawResources(context, world.resources, bounds, camera.zoom);
     }
@@ -681,6 +868,10 @@ export class CanvasWorldRenderer {
 
     if (layers.agents !== false) {
       drawAgents(context, world.agents, bounds, camera.zoom, selectedIds, layers.motion);
+    }
+
+    if (layers.activities) {
+      drawAgentActivities(context, world.agents, bounds, camera.zoom, layers.motion);
     }
 
     context.restore();
