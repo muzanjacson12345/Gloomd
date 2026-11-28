@@ -350,7 +350,7 @@ function explore(world: WorldState, agent: Agent): void {
   }
 
   if (agent.explorationComplete) {
-    agent.currentGoal = "wait";
+    if (agent.currentGoal === "explore") agent.currentGoal = "wait";
     agent.destination = null;
     agent.plannedPath = [];
     return;
@@ -359,7 +359,7 @@ function explore(world: WorldState, agent: Agent): void {
   const target = findNearestUnexploredRoute(world, agent);
   if (!target) {
     agent.explorationComplete = true;
-    agent.currentGoal = "wait";
+    if (agent.currentGoal === "explore") agent.currentGoal = "wait";
     agent.destination = null;
     agent.plannedPath = [];
     return;
