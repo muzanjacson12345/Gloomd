@@ -25,7 +25,7 @@ function makeWorld(): WorldState {
     height,
     tiles,
     resources: [],
-    stockpile: { id: "settlement-stockpile", x: 14, y: 14, inventory: { wood: 0, stone: 0 }, capacityPerResource: 120 },
+    stockpile: { id: "settlement-stockpile", x: 14, y: 14, inventory: { wood: 0, stone: 0, food: 0, fish: 0 }, capacityPerResource: 120 },
     buildings: [],
     agents: [],
     tick: 0,
