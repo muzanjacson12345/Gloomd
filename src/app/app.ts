@@ -493,7 +493,7 @@ function startWorld(
     shell.overlayToggleButton.setAttribute("aria-expanded", String(!shell.overlayPanel.hidden));
     if (!shell.overlayPanel.hidden) setMapLegendOpen(false);
   });
-  const toggleMapLegend = (): void => setMapLegendOpen(shell.mapLegendPanel.hidden);
+  const toggleMapLegend = (): void => setMapLegendOpen(Boolean(shell.mapLegendPanel.hidden));
   const closeMapLegend = (): void => setMapLegendOpen(false);
   shell.mapKeyToggleButton.addEventListener("click", toggleMapLegend);
   shell.closeMapLegendButton.addEventListener("click", closeMapLegend);
