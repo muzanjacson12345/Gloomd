@@ -108,7 +108,7 @@ These should emerge from needs, knowledge, geography, resource pressure and rela
 Already implemented:
 - deterministic seeded terrain generation and configurable map sizes;
 - coast, ocean, freshwater, lakes, rivers, grassland, forests, hills and mountains;
-- moisture/elevation-informed deterministic terrain palette, zoom-gated shore/grass/forest/hill/mountain detail, and shared minimap terrain colours;
+- moisture/elevation-informed deterministic terrain palette, zoom-gated shore/grass/forest/hill/mountain detail, shared main-map/minimap colours and resource/person/building key;
 - four-direction grid pathfinding and blocked terrain/buildings;
 - agents with hunger, thirst, energy, health, traits, inventories and simple forager/fisher/hauler/builder roles;
 - wild food gathering/eating, fishing and fish consumption, freshwater drinking and resting;
@@ -116,13 +116,13 @@ Already implemented:
 - haulers that physically gather wood/stone and deliver them to one communal stockpile;
 - one shelter recipe (5 wood + 2 stone) and construction work over 12 ticks;
 - full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
-- terrain/resource/people/buildings/stockpile layers, map field guide, terrain composition preview and nearby start-area resource/water context;
+- terrain/resource/people/buildings/stockpile layers, dismissible map field guide, terrain composition preview, nearby start-area resource/water context and minimap building markers;
 - minimap markers for settlement buildings;
 - individual NPC click/inspector, follow mode and live activity roster;
 - pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;
 - GitHub Pages static hosting.
 
-Implemented in source in the current work session (fresh build/browser verification still pending):
+Implemented in source and verified by GitHub Actions on 2026-11-28 (manual browser review still pending):
 - smooth visual interpolation between authoritative grid steps and lightweight walking bob/leg motion;
 - button-activated SELECT PEOPLE mode, rectangle selection, group highlights and Escape-to-exit;
 - optional selected-agent planned-route, recent-trail, destination and obstacle-aware line-of-sight overlays;
@@ -147,7 +147,9 @@ Still not implemented:
 
 ### Stage 0.5 — map geography and field guide
 
-**Progress:** first map readability and observer-context pass implemented on 2026-11-28; fresh CI and live-browser visual review pending.
+**Verification:** CI run [46138806777](https://github.com/muzanjacson12345/Gloomd/actions/runs/46138806777) passed tests, type-check and production build. Pages deployment [46138806333](https://github.com/muzanjacson12345/Gloomd/actions/runs/46138806333) succeeded. Manual browser inspection is still outstanding.
+
+**Progress:** map readability and observer-context pass implemented on 2026-11-28. GitHub Actions tests, type-check, production build and the matching Pages deployment all passed; live-browser visual review remains pending.
 
 1. [x] Derive stable terrain colours from existing moisture/elevation data; distinguish ocean, freshwater and river surfaces.
 2. [x] Add zoom-gated surface detail for shorelines, grass, sand, forest canopies, hill contours, water ripples and mountain peaks.

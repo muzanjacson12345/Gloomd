@@ -40,6 +40,12 @@ Make the existing world map easier to read and more rewarding to observe without
 - Preserve visible-region culling and gate detail by zoom.
 - All decorative variation is a pure function of coordinates and tile data.
 
+## Verification record
+
+- GitHub Actions CI run [46138806777](https://github.com/muzanjacson12345/Gloomd/actions/runs/46138806777): tests, TypeScript type-check and production build passed on 2026-11-28.
+- GitHub Pages deployment [46138806333](https://github.com/muzanjacson12345/Gloomd/actions/runs/46138806333): completed successfully on 2026-11-28.
+- Manual live-canvas inspection at whole-world, settlement and close zoom is still pending because the connected browser reader could not navigate or interact with the existing tabs.
+
 ## Acceptance checks
 
 - Re-rendering the same tile at the same coordinates produces the same appearance.
