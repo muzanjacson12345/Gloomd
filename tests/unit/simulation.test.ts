@@ -778,9 +778,9 @@ describe("autonomous agents and consequential actions", () => {
     const second = makeAgent({ id: "fisher-b", role: "fisher", x: 1, y: 2 });
     world.agents.push(first, second);
 
-    // Check immediately after the catch; a later tick would let the hungry
-    // fisher eat the only fish before the inventory assertion.
-    stepWorld(world);
+    // Two ticks let the first fisher reach and catch the fish; a third tick
+    // would let the hungry fisher eat it before the inventory assertion.
+    stepWorld(world, 2);
 
     expect(first.inventory.fish + second.inventory.fish).toBe(1);
     expect(fish.quantity).toBe(0);
