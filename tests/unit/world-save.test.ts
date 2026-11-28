@@ -103,11 +103,15 @@ describe("versioned world saves", () => {
     for (const agent of legacy.world.agents) {
       delete (agent.inventory as Partial<typeof agent.inventory>).fish;
     }
+    delete (legacy.world.stockpile.inventory as Partial<typeof legacy.world.stockpile.inventory>).food;
+    delete (legacy.world.stockpile.inventory as Partial<typeof legacy.world.stockpile.inventory>).fish;
 
     const restored = parseWorldSave(serializeWorldSave(legacy));
 
     expect(restored.world.agents).toHaveLength(2);
     expect(restored.world.agents.every((agent) => agent.inventory.fish === 0)).toBe(true);
+    expect(restored.world.stockpile.inventory.food).toBe(0);
+    expect(restored.world.stockpile.inventory.fish).toBe(0);
   });
 
 });
