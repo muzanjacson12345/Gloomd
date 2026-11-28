@@ -80,6 +80,11 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   letter-spacing: .12em; cursor: pointer;
 }
 .layer-button.is-active { color: var(--accent); background: rgba(212,188,131,.11); }
+.layer-tools {
+  max-height: calc(50vh - 105px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 
 .playback-controls {
   position: absolute; z-index: 5; left: 50%; bottom: 22px; transform: translateX(-50%);
@@ -176,7 +181,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .resource-readout, .stockpile-readout { display: none; }
   .homes-readout { min-width: 66px; }
   .map-tools { left: 9px; }
-  .layer-tools { left: 9px; }
+  .layer-tools {
+    left: 9px;
+    right: auto;
+    top: auto;
+    bottom: 76px;
+    max-height: min(150px, calc(100vh - 180px));
+    max-width: min(285px, calc(100vw - 18px));
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+  .layer-button { padding: 6px 7px; font-size: 7px; }
   .event-feed { right: 9px; bottom: 76px; width: min(245px, calc(100vw - 18px)); padding: 10px 11px; }
   .agent-inspector { top: 77px; right: 9px; width: min(276px, calc(100vw - 18px)); padding: 11px 12px; }
   .playback-controls { bottom: 9px; }
