@@ -274,7 +274,7 @@ describe("autonomous agents and consequential actions", () => {
 
     expect(hauler.inventory.wood).toBe(0);
     expect(hauler.inventory.stone).toBe(0);
-    expect(world.stockpile.inventory).toEqual({ wood: 3, stone: 2 });
+    expect(world.stockpile.inventory).toEqual({ wood: 3, stone: 2, food: 0, fish: 0 });
     expect(world.resources.map((node) => node.quantity)).toEqual([0, 0]);
     expect(world.events.filter((event) => event.kind === "gather_wood")).toHaveLength(1);
     expect(world.events.filter((event) => event.kind === "gather_stone")).toHaveLength(1);
@@ -325,7 +325,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world, 4);
 
     expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(world.events.some((event) => event.kind === "deliver_resources")).toBe(false);
   });
 
@@ -349,7 +349,7 @@ describe("autonomous agents and consequential actions", () => {
 
     expect(hauler.needs.thirst).toBeCloseTo(20.07, 5);
     expect(hauler.inventory).toMatchObject({ wood: 2, stone: 1 });
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(events.some((event) => event.kind === "drink")).toBe(true);
     expect(events.some((event) => event.kind === "deliver_resources")).toBe(false);
   });
@@ -394,7 +394,7 @@ describe("autonomous agents and consequential actions", () => {
     });
     expect(builder.inventory.wood).toBe(0);
     expect(builder.inventory.stone).toBe(0);
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(builder.buildingId).toBe(site?.id);
     expect(builder.homeId).toBeNull();
 
@@ -427,7 +427,7 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.buildings).toHaveLength(0);
     expect(builder.inventory.wood).toBe(0);
     expect(builder.inventory.stone).toBe(0);
-    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2 });
+    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2, food: 0, fish: 0 });
     expect(builder.buildingId).toBeNull();
   });
 
@@ -455,7 +455,7 @@ describe("autonomous agents and consequential actions", () => {
     expect(world.buildings[0]?.y).not.toBe(2);
     expect(builder.inventory.wood).toBe(0);
     expect(builder.inventory.stone).toBe(0);
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
   });
 
   it("does not let competing builders spend the same shared shelter recipe twice", () => {
@@ -468,7 +468,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(world.buildings).toHaveLength(1);
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(world.events.filter((event) => event.kind === "shelter_started")).toHaveLength(1);
     expect([first.buildingId, second.buildingId].filter((id) => id !== null)).toHaveLength(1);
   });
@@ -481,7 +481,7 @@ describe("autonomous agents and consequential actions", () => {
     stepWorld(world);
 
     expect(world.buildings).toHaveLength(0);
-    expect(world.stockpile.inventory).toEqual({ wood: 4, stone: 2 });
+    expect(world.stockpile.inventory).toEqual({ wood: 4, stone: 2, food: 0, fish: 0 });
   });
 
   it("pauses shelter work while urgent thirst is handled, then resumes the same site", () => {
@@ -564,7 +564,7 @@ describe("autonomous agents and consequential actions", () => {
     world.agents.push(builder);
     stepWorld(world);
     expect(builder.currentGoal).toBe("find_build_site");
-    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2 });
+    expect(world.stockpile.inventory).toEqual({ wood: 5, stone: 2, food: 0, fish: 0 });
   });
 
   it("completes a first shelter from a normal builder and hauler after relocating the stockpile to the chosen start", () => {
@@ -586,7 +586,7 @@ describe("autonomous agents and consequential actions", () => {
 
     stepWorld(world, 180);
 
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(world.buildings.some(building => building.kind === "shelter" && building.status === "complete")).toBe(true);
     expect(builder.homeId).not.toBeNull();
     expect(world.events.some(event => event.kind === "shelter_complete")).toBe(true);
