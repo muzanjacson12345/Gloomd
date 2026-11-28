@@ -66,9 +66,11 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
   const needs = value.needs;
   const inventory = value.inventory;
   const traits = value.traits;
+  const skills = value.skills;
   const needNames = ["hunger", "thirst", "energy", "health"] as const;
   const inventoryNames = ["food", "fish", "wood", "stone"] as const;
   const traitNames = ["curiosity", "diligence", "sociability"] as const;
+  const skillNames = ["foraging", "fishing", "hauling", "building"] as const;
 
   return typeof value.id === "string" &&
     typeof value.name === "string" &&
@@ -78,7 +80,9 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     needNames.every((name) => isFiniteNumber(needs[name]) && needs[name] >= 0 && needs[name] <= 100) &&
     inventoryNames.every((name) => isFiniteNumber(inventory[name]) && inventory[name] >= 0) &&
     traitNames.every((name) => isFiniteNumber(traits[name]) && traits[name] >= 0 && traits[name] <= 1) &&
-    ["forager", "fisher", "hauler", "builder"].includes(String(value.role)) &&
+    isRecord(skills) && skillNames.every((name) => isFiniteNumber(skills[name]) && skills[name] >= 0 && skills[name] <= 100) &&
+    (value.roleChangedTick === undefined || (isInteger(value.roleChangedTick) && value.roleChangedTick >= 0)) &&
+    ["forager", "fisher", "hauler", "builder", "generalist"].includes(String(value.role)) &&
     typeof value.currentGoal === "string" &&
     isFiniteNumber(value.perceptionRadius) && value.perceptionRadius >= 0 &&
     (value.sightRadius === undefined || (isFiniteNumber(value.sightRadius) && value.sightRadius >= 0)) &&
@@ -202,6 +206,13 @@ function migrateWorldSave(parsed: unknown): unknown {
     for (const agent of migrated.world.agents) {
       if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
       if (agent.inventory.fish === undefined) agent.inventory.fish = 0;
+      if (!isRecord(agent.skills)) {
+        const skills = { foraging: 0, fishing: 0, hauling: 0, building: 0 };
+        const roleSkill = { forager: "foraging", fisher: "fishing", hauler: "hauling", builder: "building" }[String(agent.role) as "forager" | "fisher" | "hauler" | "builder"];
+        if (roleSkill) skills[roleSkill] = 18;
+        agent.skills = skills;
+      }
+      if (!isInteger(agent.roleChangedTick) || agent.roleChangedTick < 0) agent.roleChangedTick = 0;
     }
   }
 
