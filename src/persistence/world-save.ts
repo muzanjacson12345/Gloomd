@@ -1,4 +1,4 @@
-import type { Agent, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
+import type { Agent, AgentSkills, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
 
 export const WORLD_SAVE_FORMAT = "gloomd-world-save" as const;
 export const WORLD_SAVE_VERSION = 1 as const;
@@ -207,8 +207,16 @@ function migrateWorldSave(parsed: unknown): unknown {
       if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
       if (agent.inventory.fish === undefined) agent.inventory.fish = 0;
       if (!isRecord(agent.skills)) {
-        const skills = { foraging: 0, fishing: 0, hauling: 0, building: 0 };
-        const roleSkill = { forager: "foraging", fisher: "fishing", hauler: "hauling", builder: "building" }[String(agent.role) as "forager" | "fisher" | "hauler" | "builder"];
+        const skills: AgentSkills = { foraging: 0, fishing: 0, hauling: 0, building: 0 };
+        const roleSkill: keyof AgentSkills | undefined = agent.role === "forager"
+          ? "foraging"
+          : agent.role === "fisher"
+            ? "fishing"
+            : agent.role === "hauler"
+              ? "hauling"
+              : agent.role === "builder"
+                ? "building"
+                : undefined;
         if (roleSkill) skills[roleSkill] = 18;
         agent.skills = skills;
       }
