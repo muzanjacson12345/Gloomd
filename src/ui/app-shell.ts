@@ -1,3 +1,5 @@
+import { MAP_SYMBOL_LEGEND_ITEMS, TERRAIN_LEGEND_ITEMS } from "../render/terrain-style";
+
 export type AgentNeed = "hunger" | "thirst" | "energy" | "health";
 export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
 
@@ -21,6 +23,9 @@ export interface AppShell {
   zoomOutButton: HTMLButtonElement;
   resetViewButton: HTMLButtonElement;
   fitWorldButton: HTMLButtonElement;
+  mapKeyToggleButton: HTMLButtonElement;
+  mapLegendPanel: HTMLElement;
+  closeMapLegendButton: HTMLButtonElement;
   layerButtons: HTMLButtonElement[];
   selectionModeButton: HTMLButtonElement;
   selectionCount: HTMLElement;
@@ -91,6 +96,7 @@ export function createAppShell(root: HTMLElement): AppShell {
         <span class="tool-separator"></span>
         <button id="select-people" class="map-mode-button" type="button" aria-pressed="false">SELECT PEOPLE</button>
         <button id="overlay-toggle" class="map-mode-button" type="button" aria-expanded="false">OBSERVE</button>
+        <button id="map-key-toggle" class="map-mode-button" type="button" aria-expanded="false">MAP KEY</button>
       </div>
       <aside id="overlay-panel" class="overlay-panel" aria-label="Observation overlays" hidden>
         <div class="overlay-panel-heading"><span>OBSERVATION LAYERS</span><span id="selection-count">0 SELECTED</span></div>
@@ -99,6 +105,25 @@ export function createAppShell(root: HTMLElement): AppShell {
         <label class="overlay-option"><input type="checkbox" data-overlay="vision"> <span>Line of sight</span></label>
         <label class="overlay-option"><input type="checkbox" data-overlay="targets"> <span>Destinations</span></label>
         <p class="overlay-note">Overlays apply to selected inhabitants only.</p>
+      </aside>
+      <aside id="map-legend" class="map-legend" aria-label="Map key" hidden>
+        <div class="map-legend-heading">
+          <div><span>FIELD GUIDE</span><strong>MAP KEY</strong></div>
+          <button id="close-map-legend" class="close-button" type="button" aria-label="Close map key">×</button>
+        </div>
+        <section class="map-legend-section">
+          <span class="map-legend-label">GEOGRAPHY</span>
+          <div class="map-legend-grid">
+            ${TERRAIN_LEGEND_ITEMS.map((item) => `<span class="map-legend-item"><i class="map-legend-swatch" style="background:${item.color}"></i><span>${item.label}</span></span>`).join("")}
+          </div>
+          <p class="map-legend-note">Grassland shades change with local moisture. Hills and mountains vary with elevation.</p>
+        </section>
+        <section class="map-legend-section">
+          <span class="map-legend-label">RESOURCES & PLACES</span>
+          <div class="map-legend-grid">
+            ${MAP_SYMBOL_LEGEND_ITEMS.map((item) => `<span class="map-legend-item"><i class="map-legend-swatch ${item.shape === "dot" ? "is-dot" : "is-square"}" style="background:${item.color}"></i><span>${item.label}</span></span>`).join("")}
+          </div>
+        </section>
       </aside>
       <nav class="layer-tools" aria-label="Visible map layers">
         <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
@@ -173,6 +198,9 @@ export function createAppShell(root: HTMLElement): AppShell {
     zoomOutButton: required<HTMLButtonElement>("#zoom-out"),
     resetViewButton: required<HTMLButtonElement>("#reset-view"),
     fitWorldButton: required<HTMLButtonElement>("#fit-world"),
+    mapKeyToggleButton: required<HTMLButtonElement>("#map-key-toggle"),
+    mapLegendPanel: required("#map-legend"),
+    closeMapLegendButton: required<HTMLButtonElement>("#close-map-legend"),
     layerButtons: Array.from(root.querySelectorAll<HTMLButtonElement>("[data-layer]")),
     selectionModeButton: required<HTMLButtonElement>("#select-people"),
     selectionCount: required("#selection-count"),
