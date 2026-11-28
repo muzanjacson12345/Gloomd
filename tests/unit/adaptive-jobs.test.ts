@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { stepWorld } from "../../src/core/simulation";
 import { createWorld } from "../../src/core/world-generation";
-import type { Agent, AgentRole, Tile, WorldState } from "../../src/core/types";
+import type { Agent, AgentRole, WorldState } from "../../src/core/types";
 
 function makeWorld(): WorldState {
   const world = createWorld(31, { width: 32, height: 32 });
