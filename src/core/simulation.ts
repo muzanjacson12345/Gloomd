@@ -401,7 +401,6 @@ function gatherHaulerMaterial(
   world: WorldState,
   agent: Agent,
   kind: "wood" | "stone",
-  random: ReturnType<typeof createRandom>,
   emitted: WorldEvent[]
 ): void {
   const target = nearestResource(world, agent, kind);
@@ -472,7 +471,6 @@ function nearestStockpileAccess(world: WorldState, agent: Agent): Target | null 
 function deliverCarriedMaterials(
   world: WorldState,
   agent: Agent,
-  random: ReturnType<typeof createRandom>,
   emitted: WorldEvent[]
 ): void {
   if (agent.inventory.wood <= 0 && agent.inventory.stone <= 0) return;
@@ -948,7 +946,6 @@ function workOnShelter(
   world: WorldState,
   agent: Agent,
   building: Building,
-  random: ReturnType<typeof createRandom>,
   emitted: WorldEvent[]
 ): void {
   const target = nearestShelterWorkTarget(world, agent, building);
@@ -982,7 +979,6 @@ function workOnShelter(
 function stepAgent(
   world: WorldState,
   agent: Agent,
-  random: ReturnType<typeof createRandom>,
   emitted: WorldEvent[]
 ): void {
   if (!agent.alive) return;
@@ -1082,7 +1078,7 @@ function stepAgent(
 
   // Any carried building material must be delivered before another resource job.
   if (agent.inventory.wood > 0 || agent.inventory.stone > 0) {
-    deliverCarriedMaterials(world, agent, random, emitted);
+    deliverCarriedMaterials(world, agent, emitted);
     return;
   }
 
@@ -1092,7 +1088,7 @@ function stepAgent(
     );
 
     if (currentProject?.status === "under_construction") {
-      workOnShelter(world, agent, currentProject, random, emitted);
+      workOnShelter(world, agent, currentProject, emitted);
       return;
     }
 
@@ -1123,7 +1119,7 @@ function stepAgent(
       return;
     }
 
-    gatherHaulerMaterial(world, agent, material, random, emitted);
+    gatherHaulerMaterial(world, agent, material, emitted);
     return;
   }
 
@@ -1192,7 +1188,7 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
     }
 
     for (const agent of world.agents) {
-      stepAgent(world, agent, random, emitted);
+      stepAgent(world, agent, emitted);
     }
   }
 

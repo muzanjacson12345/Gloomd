@@ -34,13 +34,13 @@ function makeFarmWorld() {
   return world;
 }
 
-function makeFarmer(): Agent {
+function makeFarmer(point: { x: number; y: number } = { x: 8, y: 8 }): Agent {
   return {
     id: "farmer-test",
     name: "Ari",
     ageYears: 24,
-    x: 8,
-    y: 8,
+    x: point.x,
+    y: point.y,
     traits: { curiosity: 0.5, diligence: 0.8, sociability: 0.5 },
     needs: { hunger: 0, thirst: 0, energy: 100, health: 100 },
     inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
