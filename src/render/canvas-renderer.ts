@@ -356,6 +356,14 @@ function drawStockpile(
     context.fillRect(x + 0.24, y + 0.24, 0.52, 0.52);
     context.fillStyle = "#382f22";
     context.fillRect(x + 0.32, y + 0.32, 0.36, 0.36);
+    if (stockpile.inventory.food > 0) {
+      context.fillStyle = "#c9856c";
+      context.fillRect(x + 0.25, y + 0.26, 0.12, 0.12);
+    }
+    if (stockpile.inventory.fish > 0) {
+      context.fillStyle = "#73aeb0";
+      context.fillRect(x + 0.63, y + 0.26, 0.12, 0.12);
+    }
     return;
   }
 
@@ -381,6 +389,20 @@ function drawStockpile(
   context.moveTo(x + 0.51, y + 0.55);
   context.lineTo(x + 0.81, y + 0.55);
   context.stroke();
+
+  // Small coloured sacks show actual communal food stores without adding labels.
+  if (stockpile.inventory.food > 0) {
+    context.fillStyle = "#c9856c";
+    context.fillRect(x + 0.22, y + 0.20, 0.18, 0.14);
+    context.strokeStyle = "#3b3022";
+    context.strokeRect(x + 0.22, y + 0.20, 0.18, 0.14);
+  }
+  if (stockpile.inventory.fish > 0) {
+    context.fillStyle = "#73aeb0";
+    context.fillRect(x + 0.60, y + 0.18, 0.18, 0.14);
+    context.strokeStyle = "#3b3022";
+    context.strokeRect(x + 0.60, y + 0.18, 0.18, 0.14);
+  }
 }
 
 function drawAgentSprite(
