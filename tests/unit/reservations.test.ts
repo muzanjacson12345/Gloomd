@@ -12,6 +12,10 @@ describe("temporary worksite reservations", () => {
     if (!first || !second) throw new Error("Test workers were not created");
     first.currentGoal = "gather_wood";
     second.currentGoal = "gather_wood";
+    world.resources.push({
+      id: "wood-patch", kind: "wood", x: 7, y: 8,
+      quantity: 1, maxQuantity: 1, regrowEveryTicks: null
+    });
 
     expect(reserveWorksite(world, first.id, "resource", "wood-patch", 7, 8)).toBe(true);
     expect(isWorksiteReserved(world, "resource", "wood-patch", second.id)).toBe(true);
@@ -26,6 +30,10 @@ describe("temporary worksite reservations", () => {
     const second = world.agents[1];
     if (!first || !second) throw new Error("Test workers were not created");
     first.currentGoal = "gather_wood";
+    world.resources.push(
+      { id: "wood-a", kind: "wood", x: 4, y: 4, quantity: 1, maxQuantity: 1, regrowEveryTicks: null },
+      { id: "wood-b", kind: "wood", x: 5, y: 5, quantity: 1, maxQuantity: 1, regrowEveryTicks: null }
+    );
     expect(reserveWorksite(world, first.id, "resource", "wood-a", 4, 4)).toBe(true);
     expect(reserveWorksite(world, first.id, "resource", "wood-b", 5, 5)).toBe(true);
     expect(world.workReservations).toHaveLength(1);

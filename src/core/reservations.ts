@@ -26,11 +26,12 @@ export function reserveWorksite(
 ): boolean {
   const agent = world.agents.find((candidate) => candidate.id === agentId && candidate.alive);
   if (!agent || isWorksiteReserved(world, kind, targetId, agentId)) return false;
-  const reservations = world.workReservations ?? (world.workReservations = []);
-  const existing = reservations.find((reservation) => reservation.agentId === agentId &&
+  const existing = (world.workReservations ?? []).find((reservation) => reservation.agentId === agentId &&
     reservation.kind === kind && reservation.targetId === targetId);
   if (existing) return true;
+  // releaseAgentWorksites replaces the array, so obtain the active reference only after release.
   releaseAgentWorksites(world, agentId);
+  const reservations = world.workReservations ?? (world.workReservations = []);
   reservations.push({ id: kind + ":" + targetId, agentId, kind, targetId, x, y });
   return true;
 }
