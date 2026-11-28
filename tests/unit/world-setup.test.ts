@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { clampStartingPopulation, clampWaterCoverage, createRandomWorldSeed, WORLD_SIZE_PRESETS } from "../../src/ui/world-setup";
+import { createWorld } from "../../src/core/world-generation";
+import {
+  clampStartingPopulation,
+  clampWaterCoverage,
+  createRandomWorldSeed,
+  describeStartingArea,
+  getWorldTerrainSummary,
+  WORLD_SIZE_PRESETS
+} from "../../src/ui/world-setup";
 
 describe("world setup population selection", () => {
   it("clamps low and high values to the supported population range", () => {
@@ -41,5 +49,27 @@ describe("world setup population selection", () => {
     expect(clampWaterCoverage(0.55)).toBe(0.55);
     expect(clampWaterCoverage(0.9)).toBe(0.55);
     expect(clampWaterCoverage(Number.NaN)).toBe(0.38);
+  });
+
+  it("summarizes land, water, forest and highland coverage from generated tiles", () => {
+    const world = createWorld(20261128, { width: 64, height: 48 });
+    const summary = getWorldTerrainSummary(world);
+
+    expect(summary.landPercent + summary.waterPercent).toBe(100);
+    expect(summary.oceanPercent).toBeGreaterThan(0);
+    expect(summary.freshwaterPercent).toBeGreaterThan(0);
+    expect(summary.forestPercent).toBeGreaterThan(0);
+    expect(summary.highlandPercent).toBeGreaterThan(0);
+    expect(summary.riverPercent).toBeGreaterThanOrEqual(0);
+    expect(summary.riverPercent).toBeLessThanOrEqual(summary.freshwaterPercent);
+  });
+
+  it("describes a selected start area using nearby resources and freshwater distance", () => {
+    const world = createWorld(20261128, { width: 64, height: 48 });
+    const start = { x: Math.floor(world.width / 2), y: Math.floor(world.height / 2) };
+    const description = describeStartingArea(world, start);
+
+    expect(description).toMatch(/resource patches within 8 tiles/);
+    expect(description).toMatch(/freshwater (\\d+ tiles away|no freshwater found)/);
   });
 });
