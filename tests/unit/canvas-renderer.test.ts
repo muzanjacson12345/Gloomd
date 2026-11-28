@@ -236,4 +236,85 @@ describe("Canvas world renderer", () => {
     expect(calls.arc).toBe(0);
   });
 
+
+  it("shows remaining resource quantities only when the resource-density layer is enabled", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    world.resources = [{
+      id: "visible-food",
+      kind: "wild_food",
+      x: 8,
+      y: 8,
+      quantity: 3,
+      maxQuantity: 4,
+      regrowEveryTicks: 240
+    }];
+    const calls = { fillRect: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {}, restore() {}, setTransform() {}, translate() {}, scale() {},
+      clearRect() {},
+      fillRect() { calls.fillRect += 1; },
+      beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc() {},
+      ellipse() {}, fill() {}, stroke() {}, strokeRect() {}, fillText() {},
+      setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 6);
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, { width: 96, height: 96 }, {
+      terrain: false, resources: false, agents: false, buildings: false,
+      stockpile: false, resourceDensity: true
+    });
+    expect(calls.fillRect).toBeGreaterThan(1);
+
+    calls.fillRect = 0;
+    renderer.render(world, camera, context, { width: 96, height: 96 }, {
+      terrain: false, resources: false, agents: false, buildings: false,
+      stockpile: false, resourceDensity: false
+    });
+    expect(calls.fillRect).toBe(1);
+  });
+
+  it("shows the current activity of inhabitants only when the activity layer is enabled", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    world.agents.push({
+      id: "worker",
+      name: "Kemi",
+      ageYears: 24,
+      x: 8,
+      y: 8,
+      traits: { curiosity: 0.5, diligence: 0.5, sociability: 0.5 },
+      needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
+      inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
+      role: "hauler",
+      currentGoal: "gather_wood",
+      perceptionRadius: 12,
+      alive: true,
+      homeId: null,
+      buildingId: null
+    });
+    const calls = { arc: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {}, restore() {}, setTransform() {}, translate() {}, scale() {},
+      clearRect() {}, fillRect() {}, beginPath() {}, closePath() {},
+      moveTo() {}, lineTo() {}, arc() { calls.arc += 1; }, ellipse() {},
+      fill() {}, stroke() {}, strokeRect() {}, fillText() {}, setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 6);
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, { width: 96, height: 96 }, {
+      terrain: false, resources: false, agents: false, buildings: false,
+      stockpile: false, activities: true
+    });
+    expect(calls.arc).toBeGreaterThan(0);
+
+    calls.arc = 0;
+    renderer.render(world, camera, context, { width: 96, height: 96 }, {
+      terrain: false, resources: false, agents: false, buildings: false,
+      stockpile: false, activities: false
+    });
+    expect(calls.arc).toBe(0);
+  });
 });
