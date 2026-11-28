@@ -34,7 +34,9 @@ function isMaterialBundle(value: unknown): value is { wood: number; stone: numbe
 }
 
 function isStockpileInventory(value: unknown): boolean {
-  return isMaterialBundle(value) && isRecord(value) &&
+  return isRecord(value) &&
+    isFiniteNumber(value.wood) && value.wood >= 0 &&
+    isFiniteNumber(value.stone) && value.stone >= 0 &&
     isFiniteNumber(value.food) && value.food >= 0 &&
     isFiniteNumber(value.fish) && value.fish >= 0;
 }
