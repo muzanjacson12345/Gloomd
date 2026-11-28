@@ -572,7 +572,7 @@ function createStockpile(
     id: "settlement-stockpile",
     x: selected.x,
     y: selected.y,
-    inventory: { wood: 0, stone: 0 },
+    inventory: { wood: 0, stone: 0, food: 0, fish: 0 },
     capacityPerResource: STOCKPILE_CAPACITY_PER_RESOURCE
   };
 }
