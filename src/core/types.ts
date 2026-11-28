@@ -11,7 +11,7 @@ export type WaterKind = "none" | "ocean" | "freshwater";
 
 export type ResourceKind = "wild_food" | "fish" | "wood" | "stone";
 
-export type AgentRole = "forager" | "fisher" | "hauler" | "builder";
+export type AgentRole = "forager" | "fisher" | "hauler" | "builder" | "generalist";
 
 export type BuildingStatus = "under_construction" | "complete";
 
@@ -19,6 +19,12 @@ export type BuildingMaterial = "wood" | "stone";
 
 export type StoredFoodKind = "food" | "fish";
 
+export interface AgentSkills {
+  foraging: number;
+  fishing: number;
+  hauling: number;
+  building: number;
+}
 export interface MaterialBundle {
   wood: number;
   stone: number;
@@ -118,6 +124,10 @@ export interface Agent {
     stone: number;
   };
   role: AgentRole;
+  /** Learned work skills; absent only in legacy or hand-built test agents. */
+  skills?: AgentSkills;
+  /** World tick at which this agent last changed its ordinary work role. */
+  roleChangedTick?: number;
   currentGoal: AgentGoal;
   perceptionRadius: number;
   /** Visual line-of-sight radius; separate from resource-search perception. */
