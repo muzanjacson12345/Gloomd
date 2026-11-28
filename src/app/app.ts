@@ -29,8 +29,53 @@ const WORLD_SEED = createRandomWorldSeed(0);
 const SIMULATION_STEP_MS = 250;
 const SPEEDS = [1, 2, 4] as const;
 const OVERLAY_PREFERENCE_KEY = "gloomd-observation-overlays-v1";
+const LAYER_PREFERENCE_KEY = "gloomd-map-layers-v1";
 
 type OverlayPreferences = { routes: boolean; trails: boolean; vision: boolean; targets: boolean };
+
+type MapLayerPreferences = {
+  terrain: boolean;
+  resources: boolean;
+  agents: boolean;
+  buildings: boolean;
+  stockpile: boolean;
+  resourceDensity: boolean;
+  activities: boolean;
+};
+
+function loadMapLayerPreferences(): MapLayerPreferences {
+  const defaults: MapLayerPreferences = {
+    terrain: true,
+    resources: true,
+    agents: true,
+    buildings: true,
+    stockpile: true,
+    resourceDensity: false,
+    activities: false
+  };
+  try {
+    const stored = window.localStorage.getItem(LAYER_PREFERENCE_KEY);
+    if (!stored) return defaults;
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return defaults;
+    const value = parsed as Record<string, unknown>;
+    const result = { ...defaults };
+    for (const key of Object.keys(defaults) as Array<keyof MapLayerPreferences>) {
+      if (typeof value[key] === "boolean") result[key] = value[key];
+    }
+    return result;
+  } catch {
+    return defaults;
+  }
+}
+
+function saveMapLayerPreferences(layers: MapLayerPreferences): void {
+  try {
+    window.localStorage.setItem(LAYER_PREFERENCE_KEY, JSON.stringify(layers));
+  } catch {
+    // Map display preferences are optional and must never block simulation.
+  }
+}
 
 function loadOverlayPreferences(): OverlayPreferences {
   const defaults: OverlayPreferences = { routes: false, trails: false, vision: false, targets: false };
@@ -103,7 +148,13 @@ function startWorld(
   let lastMinimapSignature = "";
   let frameHandle = 0;
   const clock = new FixedStepClock(SIMULATION_STEP_MS, 5);
-  const layers = { terrain: true, resources: true, agents: true, buildings: true, stockpile: true };
+  const layers = loadMapLayerPreferences();
+  for (const button of shell.layerButtons) {
+    const name = button.dataset.layer as keyof MapLayerPreferences | undefined;
+    if (!name || !(name in layers)) continue;
+    button.classList.toggle("is-active", layers[name]);
+    button.setAttribute("aria-pressed", String(layers[name]));
+  }
   const overlays = loadOverlayPreferences();
   for (const input of shell.overlayButtons) {
     const name = input.dataset.overlay as keyof OverlayPreferences | undefined;
@@ -498,11 +549,12 @@ function startWorld(
 
   for (const button of shell.layerButtons) {
     button.addEventListener("click", () => {
-      const layer = button.dataset.layer as keyof typeof layers;
-      if (!(layer in layers)) return;
+      const layer = button.dataset.layer as keyof MapLayerPreferences | undefined;
+      if (!layer || !(layer in layers)) return;
       layers[layer] = !layers[layer];
       button.classList.toggle("is-active", layers[layer]);
       button.setAttribute("aria-pressed", String(layers[layer]));
+      saveMapLayerPreferences(layers);
       draw();
     });
   }
