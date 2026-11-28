@@ -129,6 +129,30 @@ describe("real crop farming", () => {
     expect(world.farmSeedBank).toBe(1);
   });
 
+  it("lets a replacement farmer reach a field after its original farmer dies", () => {
+    const world = makeFarmWorld();
+    const originalFarmer = makeFarmer();
+    originalFarmer.id = "farmer-who-died";
+    originalFarmer.alive = false;
+    const replacement = makeFarmer({ x: 2, y: 2 });
+    replacement.id = "replacement-farmer";
+    replacement.perceptionRadius = 1;
+    world.agents.push(originalFarmer, replacement);
+    const plot = prepareFarmPlot(world, { x: 5, y: 5 }, originalFarmer.id);
+    expect(plot).not.toBeNull();
+    if (!plot) return;
+    plot.stage = "ready";
+    plot.growthProgress = CROP_GROWTH_TICKS;
+
+    stepWorld(world, 10);
+
+    expect(replacement.inventory.food).toBe(4);
+    expect(plot.stage).toBe("prepared");
+    expect(world.events.some((event) =>
+      event.kind === "crop_harvested" && event.agentId === replacement.id
+    )).toBe(true);
+  });
+
   it("lets an autonomous farmer harvest a ripe field into carried food", () => {
     const world = makeFarmWorld();
     const farmer = makeFarmer();

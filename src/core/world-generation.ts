@@ -615,7 +615,8 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
     tick: 0,
     events: [],
     farmPlots: [],
-    farmSeedBank: 6
+    farmSeedBank: 6,
+    exploredTiles: []
   };
 }
 

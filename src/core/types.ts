@@ -90,7 +90,8 @@ export type AgentGoal =
   | "plant_crop"
   | "tend_crop"
   | "harvest_crop"
-  | "wait_for_crops";
+  | "wait_for_crops"
+  | "wait";
 
 export interface GridPoint {
   x: number;
@@ -153,6 +154,14 @@ export interface Agent {
   destination?: GridPoint | null;
   /** Remaining grid route to destination, kept aligned with the latest decision. */
   plannedPath?: GridPoint[];
+  /** Tile indexes this inhabitant has personally discovered. */
+  exploredTiles?: number[];
+  /** Current frontier tile chosen for purposeful exploration. */
+  explorationTarget?: GridPoint | null;
+  /** True after every reachable tile has been discovered. */
+  explorationComplete?: boolean;
+  /** Last tile index whose line-of-sight area was added to memory. */
+  explorationRecordIndex?: number;
   /** Consecutive simulated minutes with critical hunger or dehydration. */
   starvationTicks?: number;
   dehydrationTicks?: number;
@@ -183,6 +192,8 @@ export interface WorldState {
   events: WorldEvent[];
   farmPlots?: FarmPlot[];
   farmSeedBank?: number;
+  /** Settlement-wide map knowledge shared by all inhabitants. */
+  exploredTiles?: number[];
 }
 
 export interface WorldOptions {

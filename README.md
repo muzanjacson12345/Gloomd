@@ -22,10 +22,10 @@ The first playable build includes:
 - Local perception and reachable movement using grid pathfinding.
 - Real gathering, fishing, eating, drinking, resting and exploration actions. Freshwater banks contain limited fish patches, some inhabitants take on the fisher role, and caught fish can be carried and eaten. One simulation tick represents one displayed world minute; hunger rises by 0.08 points and thirst by 0.12 points per minute. Critical thresholds, grace periods, health damage and recorded death causes make prolonged shortages dangerous. Agents can die from prolonged starvation or dehydration; carried food or fish can prevent starvation damage, and carried materials are dropped at the place of death for others to recover.
 - Haulers search within a larger local radius, collect up to three units per trip (capped at the exact outstanding shelter recipe), physically return to the nearby communal stockpile and deposit them. Source nodes and carrying inventories update as they go.
-- A first autonomous farming loop: farmers prepare nearby moist grassland, plant from a finite six-seed reserve, tend crops after a work interval, wait for gradual moisture-weighted growth, harvest four real food units and recycle one seed into the reserve. Fields are visible on the map; seeds and field count appear with the stockpile readout.
-- A full-window Canvas 2D map with visible-area drawing, zoom-dependent terrain detail, people clusters when zoomed out and individual silhouettes when zoomed in. Terrain colours reflect moisture and elevation; close zoom adds shorelines, grass, forest canopies, hill contours, water ripples and mountain peaks. The map opens focused on the chosen settlement at a close, readable zoom; Reset View returns to that start area.
+- A first autonomous farming loop: farmers prepare nearby moist grassland, plant from a finite six-seed reserve, tend crops after a work interval, wait for gradual moisture-weighted growth, harvest four real food units and recycle one seed into the reserve. Fields are shared settlement assets: any living farmer can reach and tend or harvest any plot, including when the original farmer has died. Fields are visible on the map; seeds and field count appear with the stockpile readout.
+- A full-window Canvas 2D map with visible-area drawing, zoom-dependent terrain detail, people clusters when zoomed out and individual silhouettes when zoomed in. Terrain colours reflect moisture and elevation; close zoom adds shorelines, grass, forest canopies, hill contours, water ripples and mountain peaks. Static terrain is raster-cached once per world, close-up details are cached in small chunks, and live redraws are capped at 30 frames per second while running; paused worlds do not continuously redraw the map. The map opens focused on the chosen settlement at a close, readable zoom; Reset View returns to that start area.
 - A shared supply-and-building loop: the stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone to start a shelter. Builders visibly report whether they are waiting for supplies, finding a site or constructing. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement. A tested empty-stockpile builder/hauler settlement can gather its first recipe and complete a shelter automatically.
-- Camera pan and zoom, Land / Resources / People / Homes / Stockpile / Resource Heat / Activity layers, click-to-select, an inhabitant inspector with home status, and follow mode. A live roster shows every living inhabitant's name, role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays resources remaining in on-map nodes separately from materials held in the communal stockpile.
+- Camera pan and zoom, Land / Resources / People / Homes / Stockpile / Resource Heat / Activity layers, click-to-select, an inhabitant inspector with home status, and follow mode. Each person has occupation-coloured clothing and a letter badge; zoomed-out groups use role-coloured markers, and the MAP KEY explains the palette. A live roster shows every living inhabitant's name, colour-coded role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays resources remaining in on-map nodes separately from materials held in the communal stockpile.
 - Continuous visual interpolation between the actual grid steps selected by pathfinding. The world still owns integer tile positions; the renderer animates those real moves and never changes collision or action rules.
 - An explicit **SELECT PEOPLE** mode: normal map dragging still pans and ordinary clicks inspect an inhabitant; only while selection mode is active does a drag draw a rectangle to select multiple inhabitants. Escape exits the mode.
 - An **OBSERVE** panel with optional route, recent travel trail, vision and destination overlays for selected inhabitants. Vision is calculated separately from resource-search radius and blocked by impassable map tiles and buildings. Overlays are off by default.
@@ -33,11 +33,12 @@ The first playable build includes:
 - A compact **MAP KEY** explaining terrain, resources, people, buildings and the stockpile. The world-creation screen also reports land/water/forest/highland coverage and nearby resource-patch/freshwater context for the selected starting point.
 - A versioned local world-save format and IndexedDB autosave. The app checkpoints every 15 seconds while active, saves when paused or hidden, and resumes the last local save on startup. The **WORLD SAVE** menu provides Save Now, Load Last Save, Export File and Import File. Exported JSON includes the seed, complete world state and chosen starting point.
 - An installable web-app manifest and a lightweight service worker that caches the self-contained app page, manifest and icon. After the first successful online load and service-worker installation, GLOOMD can reopen offline; saved worlds remain in browser-local IndexedDB.
-- Initial adaptive workforce reviews that can reassign available inhabitants when shared food reserves are low or shelter materials/construction are needed; early experience grows through foraging, fishing, hauling and building.
+- Initial adaptive workforce reviews that can reassign available inhabitants when shared food reserves are low or shelter materials/construction are needed; early experience grows through foraging, fishing, farming, hauling and building.
+- Spatial exploration memory: inhabitants record only ground they can actually see, and the settlement shares discoveries. Generalists follow reachable unknown frontiers instead of random-walking across already mapped ground; once reachable land is known, they wait for useful work. This is map knowledge, not yet biographical memory or idea-sharing.
 - Pause, 1× / 2× / 4× speed controls, and a simulation clock that pauses when the page is hidden.
 - A New World action from the active simulation. The current world is checkpointed before the creation screen opens and remains available in memory; Back to Current World returns to it. Starting a replacement creates a separate world.
 
-The current build is the foundation, not the final civilization simulator. Fishing currently uses local fish patches at freshwater banks, not a full moving/reproducing fish ecosystem. Farming is an initial small-plot crop cycle, not yet a seasonal agricultural economy. Only shelters are buildable so far; there are no advanced building types, roads or multi-store logistics yet. Shared storage and physical hauling are implemented. Agents do not yet have long-term personal memories, families, hunting, cooking, production chains, trade, villages, governance or culture.
+The current build is the foundation, not the final civilization simulator. Fishing currently uses local fish patches at freshwater banks, not a full moving/reproducing fish ecosystem. Farming is an initial small-plot crop cycle, not yet a seasonal agricultural economy. Only shelters are buildable so far; there are no advanced building types, roads or multi-store logistics yet. Shared storage and physical hauling are implemented. Spatial map memory is now present, but inhabitants do not yet have personal life histories, reflections, learned ideas, teaching, families, hunting, cooking, production chains, trade, villages, governance or culture.
 
 ## Controls
 
@@ -46,7 +47,7 @@ The current build is the foundation, not the final civilization simulator. Fishi
 | Pan the map | Drag with the primary mouse button while not in SELECT PEOPLE mode |
 | Select multiple inhabitants | Press **SELECT PEOPLE**, then drag a rectangle around them. Press Escape or **DONE SELECTING** to return to observation. |
 | Toggle observation overlays | Open **OBSERVE** and select routes, trails, vision or destinations. Overlays are drawn for selected inhabitants only. |
-| Understand map symbols | Open **MAP KEY** for terrain, resources, people, buildings and stockpile symbols. |
+| Understand map symbols and jobs | Open **MAP KEY** for terrain, resources, buildings, stockpile and occupation colours/badges. |
 | Navigate with the minimap | Click a location on the minimap to centre the main camera there. |
 | Fit the whole world | Select the fit-world map button (square icon). |
 | Hide or restore the interface | Select **HIDE UI** or press Escape / **SHOW INTERFACE**. |
@@ -88,7 +89,7 @@ npm run build
 - The simulation runs locally in the open browser tab.
 - It pauses when the page is hidden or closed. There is no offline catch-up.
 - No paid APIs, per-agent LLM calls, remote simulation server or cloud database are used.
-- The renderer uses the browser's built-in Canvas 2D API.
+- The renderer uses the browser's built-in Canvas 2D API. Static terrain and zoomed-in detail chunks are cached instead of redrawing every tile each display frame; normal live redraws are limited to 30 fps, and no idle map redraw runs while paused.
 - The production page embeds its JavaScript and CSS directly into the HTML file, avoiding separate entry-script and stylesheet requests on GitHub Pages.
 - After opening the hosted site, the app requires no continuously running backend.
 - The app displays a readable startup error if its entry module fails or initialization does not complete within 12 seconds. The exact browser-side issue that previously left the loading message on screen could not be reproduced in the connected browser during development.
@@ -101,9 +102,9 @@ npm run build
 
 The approved design includes further stages that are not yet implemented:
 
-1. Browser review of the map at world, settlement and close zoom; tune visual density and responsive panel placement from a real browser session.
+1. Measure the cached renderer and input responsiveness in a real browser on the user's PC; tune detail density and responsive desktop panel placement from a real session.
 2. More complete agent needs, skills, work roles and daily routines.
-3. Personal memories, relationships, communication, families and cooperation.
+3. Personal life memories, reflection, relationships, communication, teaching, families and cooperation. Spatial map discovery is implemented, but it is not yet social or biographical memory.
 4. Food sharing, multiple stockpiles, cooperative building, farming, hunting, crafting, production chains and trade.
 5. Migration, governance, conflict, technology and culture.
 6. Named save slots, save history and schema migrations beyond save format v1.

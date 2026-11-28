@@ -118,6 +118,10 @@ Already implemented:
 - full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
 - terrain/resource/people/buildings/stockpile layers, dismissible map field guide, terrain composition preview and nearby start-area resource/water context;
 - minimap markers for settlement buildings;
+- cached Canvas terrain: one static raster image per generated map plus lazily cached close-zoom detail chunks, with active redraws capped at 30 fps and no continuous map redraw while paused;
+- visible occupation identity through role-coloured clothing, letter badges, role-coloured zoomed-out group markers, and a shared occupation palette in the map key and live roster;
+- line-of-sight exploration memory per inhabitant plus settlement-wide shared discovery, frontier-based scouting instead of random wandering, a waiting state when reachable land has been mapped, and save/load compatibility;
+- farm plots are shared settlement assets available to any living farmer, rather than owned by the first farmer to create them.
 - individual NPC click/inspector, follow mode and live activity roster;
 - pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;
 - GitHub Pages static hosting.
@@ -141,7 +145,7 @@ Still not implemented:
 - ageing, birth and population growth;
 - full forest ecology with visible tree/sapling populations and wildlife herds; fish are currently represented as local fish patches, not full animal populations;
 - hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
-- deeper skill specialisation, personal memories, relationships, families, communication or social learning;
+- deeper skill specialisation, personal life-event memories, reflection, relationships, families, communication or social learning. Spatial map discovery is implemented, but agents do not yet remember conversations or form ideas;
 - multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture.
 
 ## Development order
@@ -228,7 +232,7 @@ Still not implemented:
 **Acceptance:** scenarios with resource pressure can produce believable adaptation, cooperation or migration without hard-coded outcomes.
 
 ### Stage 6 — performance, balancing and release quality
-1. Measure frame rate, simulation ticks per second, memory and input latency.
+1. Measure frame rate, simulation ticks per second, memory and input latency on the live cached terrain renderer; code-level caching is implemented, but hardware benchmarking is not yet complete.
 2. Optimise using spatial indexing, update scheduling, culling and level-of-detail.
 3. Benchmark on the user's modest PC.
 4. Tune resource rates, need rates, population and production cycles.

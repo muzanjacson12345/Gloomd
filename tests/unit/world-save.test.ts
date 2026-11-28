@@ -67,6 +67,26 @@ describe("versioned world saves", () => {
     expect(() => parseWorldSave(JSON.stringify(corrupted))).toThrow(/starting point/i);
     expect(() => parseWorldSave("{not json")).toThrow();
   });
+  it("round-trips each inhabitant's explored ground and current frontier", () => {
+    const { world, start } = makeSavedWorld();
+    world.agents = createStarterAgents(world, 1);
+    const agent = world.agents[0];
+    if (!agent) throw new Error("Test scout was not created");
+    agent.exploredTiles = [start.y * world.width + start.x, agent.y * world.width + agent.x];
+    agent.explorationTarget = { ...start };
+    agent.explorationComplete = false;
+    agent.explorationRecordIndex = agent.y * world.width + agent.x;
+
+    const restored = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1000)));
+    expect(restored.world.agents[0]?.exploredTiles).toEqual(agent.exploredTiles);
+    expect(restored.world.agents[0]?.explorationTarget).toEqual(agent.explorationTarget);
+    expect(restored.world.agents[0]?.explorationComplete).toBe(false);
+    expect(restored.world.agents[0]?.explorationRecordIndex).toBe(agent.explorationRecordIndex);
+    world.exploredTiles = [start.y * world.width + start.x];
+    const withSharedMap = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1001)));
+    expect(withSharedMap.world.exploredTiles).toEqual(world.exploredTiles);
+  });
+
   it("round-trips prepared and growing fields plus the remaining seed reserve", () => {
     const { world, start } = makeSavedWorld();
     world.farmPlots = [{
@@ -126,6 +146,10 @@ describe("versioned world saves", () => {
     delete legacy.world.farmSeedBank;
     for (const agent of legacy.world.agents) {
       if (agent.skills) delete (agent.skills as Partial<typeof agent.skills>).farming;
+      delete agent.exploredTiles;
+      delete agent.explorationTarget;
+      delete agent.explorationComplete;
+      delete agent.explorationRecordIndex;
     }
 
     const restored = parseWorldSave(serializeWorldSave(legacy));
@@ -137,6 +161,11 @@ describe("versioned world saves", () => {
     expect(restored.world.farmPlots).toEqual([]);
     expect(restored.world.farmSeedBank).toBe(6);
     expect(restored.world.agents.every((agent) => agent.skills?.farming === 0)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.exploredTiles?.length === 0)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.explorationTarget === null)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.explorationComplete === false)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.explorationRecordIndex === -1)).toBe(true);
+    expect(restored.world.exploredTiles).toEqual([]);
   });
 
 });

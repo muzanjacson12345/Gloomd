@@ -740,3 +740,132 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .setup-terrain-key { gap: 7px 10px; }
   .setup-terrain-key-item { font-size: 6px; }
 }
+
+
+/* Occupation key in the live roster. */
+.activity-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.activity-role::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--role-colour, #d0b88b);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.15);
+}
+
+/* Desktop map layout: reserve distinct zones so panels and controls do not collide. */
+@media (min-width: 1081px) {
+  .top-hud {
+    top: 10px;
+    left: 12px;
+    right: 12px;
+    min-height: 54px;
+    padding: 7px 10px;
+    gap: 10px;
+    display: grid;
+    grid-template-columns: 156px minmax(0, 1fr) auto;
+  }
+  .brand-lockup { min-width: 0; gap: 8px; }
+  .brand-subtitle { display: none; }
+  .world-readouts { min-width: 0; justify-content: flex-end; }
+  .readout { min-width: 82px; padding: 0 9px; }
+  .readout-label { font-size: 7px; margin-bottom: 3px; }
+  .readout strong { font-size: 9px; }
+  .homes-readout { min-width: 63px; padding: 0 8px; }
+  .stockpile-readout { min-width: 190px; padding: 0 9px; }
+  .resource-readout { display: none; }
+  .header-actions { gap: 5px; }
+  .quiet-button, .new-world-button { padding: 7px 8px; font-size: 7px; }
+  .map-tools {
+    top: 88px;
+    left: 12px;
+    transform: none;
+  }
+  .layer-tools {
+    top: 88px;
+    left: 64px;
+    right: 300px;
+    max-width: none;
+    max-height: 48px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+  .layer-button { flex: 0 0 auto; padding: 8px 10px; font-size: 7px; }
+  .overlay-panel, .map-legend {
+    top: 148px;
+    left: 64px;
+    transform: none;
+    max-height: calc(100vh - 166px);
+  }
+  .activity-panel {
+    top: 88px;
+    right: 12px;
+    width: 270px;
+    max-height: calc(100vh - 244px);
+  }
+  .activity-row { padding: 7px 8px 6px; }
+  .event-feed {
+    left: 64px;
+    bottom: 12px;
+    width: 235px;
+    max-height: 18vh;
+    padding: 10px 11px 8px;
+    overflow: hidden;
+  }
+  .event-list { max-height: 12vh; margin-top: 8px; gap: 6px; overflow: hidden; }
+  .minimap { right: 12px; bottom: 12px; width: 154px; height: 103px; }
+  .playback-controls { bottom: 12px; }
+  .map-hint { display: none; }
+}
+
+@media (min-width: 761px) and (max-width: 1080px) {
+  .top-hud {
+    top: 9px; left: 10px; right: 10px; min-height: 56px;
+    padding: 7px 9px; gap: 7px;
+  }
+  .brand-lockup { min-width: 120px; gap: 7px; }
+  .brand-subtitle, .resource-readout, .stockpile-readout { display: none; }
+  .readout { min-width: 73px; padding: 0 7px; }
+  .readout-label { font-size: 7px; margin-bottom: 3px; }
+  .readout strong { font-size: 9px; }
+  .header-actions { gap: 4px; }
+  .quiet-button, .new-world-button { padding: 7px 6px; font-size: 7px; }
+  .map-tools { top: 84px; left: 10px; transform: none; }
+  .layer-tools {
+    top: 84px; left: 62px; right: 258px;
+    max-width: none; max-height: 43px;
+    flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+  }
+  .layer-button { flex: 0 0 auto; padding: 7px 8px; font-size: 7px; }
+  .overlay-panel, .map-legend { top: 137px; left: 62px; transform: none; max-height: calc(100vh - 155px); }
+  .activity-panel { top: 84px; right: 10px; width: 236px; max-height: calc(100vh - 235px); }
+  .event-feed { left: 62px; bottom: 10px; width: 210px; max-height: 16vh; padding: 9px 10px; }
+  .event-list { max-height: 10vh; margin-top: 6px; gap: 5px; overflow: hidden; }
+  .minimap { right: 10px; bottom: 10px; width: 140px; height: 94px; }
+  .playback-controls { bottom: 10px; }
+  .map-hint { display: none; }
+}
+@media (min-width: 761px) and (max-height: 700px) {
+  .activity-panel { max-height: calc(100vh - 212px); }
+  .event-feed { max-height: 14vh; }
+  .event-list { max-height: 8vh; }
+}
+
+.map-legend-swatch.occupation-key-mark {
+  display: grid;
+  place-items: center;
+  color: #17221c;
+  font-size: 7px;
+  font-weight: 850;
+  line-height: 1;
+}

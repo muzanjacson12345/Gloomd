@@ -141,6 +141,7 @@ function startWorld(
   let uiHidden = false;
   let running = true;
   let previousFrameTime: number | null = null;
+  let lastRenderAt = Number.NEGATIVE_INFINITY;
   let lastHudTick = -1;
   let lastInspectorTick = -1;
   let lastActivityTick = -1;
@@ -654,7 +655,12 @@ function startWorld(
       updateReadouts();
     }
 
-    draw();
+    // Keep live map motion smooth while avoiding a full canvas redraw on every display refresh.
+    // When paused, input handlers draw immediately and the loop performs no idle canvas work.
+    if (active && timestamp - lastRenderAt >= 1000 / 30) {
+      draw();
+      lastRenderAt = timestamp;
+    }
 
     if (world.tick !== lastHudTick) {
       lastHudTick = world.tick;

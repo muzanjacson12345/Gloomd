@@ -1,4 +1,5 @@
 import { MAP_SYMBOL_LEGEND_ITEMS, TERRAIN_LEGEND_ITEMS } from "../render/terrain-style";
+import { ROLE_VISUALS } from "../core/role-visuals";
 
 export type AgentNeed = "hunger" | "thirst" | "energy" | "health";
 export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
@@ -123,6 +124,13 @@ export function createAppShell(root: HTMLElement): AppShell {
           <div class="map-legend-grid">
             ${MAP_SYMBOL_LEGEND_ITEMS.map((item) => `<span class="map-legend-item"><i class="map-legend-swatch ${item.shape === "dot" ? "is-dot" : "is-square"}" style="background:${item.color}"></i><span>${item.label}</span></span>`).join("")}
           </div>
+        </section>
+        <section class="map-legend-section">
+          <span class="map-legend-label">OCCUPATIONS · CLOTHING & BADGES</span>
+          <div class="map-legend-grid">
+            ${Object.values(ROLE_VISUALS).map((role) => `<span class="map-legend-item"><i class="map-legend-swatch is-dot occupation-key-mark" style="background:${role.color}">${role.symbol}</i><span>${role.label}</span></span>`).join("")}
+          </div>
+          <p class="map-legend-note">Each person's clothing colour and badge show their current occupation.</p>
         </section>
       </aside>
       <nav class="layer-tools" aria-label="Visible map layers">

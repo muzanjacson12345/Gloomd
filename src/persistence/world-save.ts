@@ -92,6 +92,16 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     (value.plannedPath === undefined ||
       (Array.isArray(value.plannedPath) && value.plannedPath.every((point) =>
         isPoint(point) && point.x >= 0 && point.x < width && point.y >= 0 && point.y < height))) &&
+    (value.exploredTiles === undefined ||
+      (Array.isArray(value.exploredTiles) && value.exploredTiles.length <= width * height &&
+        value.exploredTiles.every((index) => isInteger(index) && index >= 0 && index < width * height))) &&
+    (value.explorationTarget === undefined || value.explorationTarget === null ||
+      (isPoint(value.explorationTarget) && value.explorationTarget.x >= 0 && value.explorationTarget.x < width &&
+        value.explorationTarget.y >= 0 && value.explorationTarget.y < height)) &&
+    (value.explorationComplete === undefined || typeof value.explorationComplete === "boolean") &&
+    (value.explorationRecordIndex === undefined ||
+      (isInteger(value.explorationRecordIndex) && value.explorationRecordIndex >= -1 &&
+        value.explorationRecordIndex < width * height)) &&
     (value.starvationTicks === undefined || (isInteger(value.starvationTicks) && value.starvationTicks >= 0)) &&
     (value.dehydrationTicks === undefined || (isInteger(value.dehydrationTicks) && value.dehydrationTicks >= 0)) &&
     typeof value.alive === "boolean" &&
@@ -131,6 +141,9 @@ function isWorldState(value: unknown): value is WorldState {
       (!Array.isArray(value.farmPlots) || !value.farmPlots.every((plot) => isFarmPlot(plot, width, height)))) return false;
   if (value.farmSeedBank !== undefined &&
       (!isInteger(value.farmSeedBank) || value.farmSeedBank < 0 || value.farmSeedBank > 24)) return false;
+  if (value.exploredTiles !== undefined &&
+      (!Array.isArray(value.exploredTiles) || value.exploredTiles.length > width * height ||
+        !value.exploredTiles.every((index) => isInteger(index) && index >= 0 && index < width * height))) return false;
 
   if (!Array.isArray(value.buildings) || !value.buildings.every((building) => {
     if (!isRecord(building)) return false;
@@ -212,6 +225,7 @@ function migrateWorldSave(parsed: unknown): unknown {
 
   if (!Array.isArray(migrated.world.farmPlots)) migrated.world.farmPlots = [];
   if (!isInteger(migrated.world.farmSeedBank) || migrated.world.farmSeedBank < 0) migrated.world.farmSeedBank = 6;
+  if (!Array.isArray(migrated.world.exploredTiles)) migrated.world.exploredTiles = [];
 
   const stockpile = migrated.world.stockpile;
   if (isRecord(stockpile) && isRecord(stockpile.inventory)) {
@@ -239,6 +253,12 @@ function migrateWorldSave(parsed: unknown): unknown {
                   : undefined;
         if (roleSkill) skills[roleSkill] = 18;
         agent.skills = skills;
+      }
+      if (!Array.isArray(agent.exploredTiles)) agent.exploredTiles = [];
+      if (agent.explorationTarget === undefined) agent.explorationTarget = null;
+      if (typeof agent.explorationComplete !== "boolean") agent.explorationComplete = false;
+      if (!isInteger(agent.explorationRecordIndex) || agent.explorationRecordIndex < -1) {
+        agent.explorationRecordIndex = -1;
       }
       if (!isInteger(agent.roleChangedTick) || agent.roleChangedTick < 0) agent.roleChangedTick = 0;
     }

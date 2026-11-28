@@ -1,4 +1,5 @@
 import type { Agent, AgentGoal } from "../core/types";
+import { ROLE_VISUALS } from "../core/role-visuals";
 import type { AppShell } from "./app-shell";
 
 const GOAL_LABELS: Record<AgentGoal, string> = {
@@ -25,7 +26,8 @@ const GOAL_LABELS: Record<AgentGoal, string> = {
   plant_crop: "Planting crops",
   tend_crop: "Tending crops",
   harvest_crop: "Harvesting crops",
-  wait_for_crops: "Waiting for crops to grow"
+  wait_for_crops: "Waiting for crops to grow",
+  wait: "Waiting — nearby land is already explored"
 };
 
 export function formatAgentGoal(goal: AgentGoal): string {
@@ -68,7 +70,8 @@ export function renderAgentActivity(
     name.className = "activity-name";
     name.textContent = agent.name;
     role.className = "activity-role";
-    role.textContent = agent.role.toUpperCase();
+    role.textContent = ROLE_VISUALS[agent.role].label;
+    role.style.setProperty("--role-colour", ROLE_VISUALS[agent.role].color);
     task.className = "activity-task";
     task.textContent = formatAgentGoal(agent.currentGoal);
 

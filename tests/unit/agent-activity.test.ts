@@ -25,7 +25,8 @@ describe("readable inhabitant activity", () => {
     ["plant_crop", "Planting crops"],
     ["tend_crop", "Tending crops"],
     ["harvest_crop", "Harvesting crops"],
-    ["wait_for_crops", "Waiting for crops to grow"]
+    ["wait_for_crops", "Waiting for crops to grow"],
+    ["wait", "Waiting — nearby land is already explored"]
   ];
 
   it.each(cases)("translates %s into a clear current activity", (goal, label) => {

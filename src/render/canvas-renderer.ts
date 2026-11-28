@@ -1,4 +1,5 @@
-import type { Agent, AgentGoal, Building, FarmPlot, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
+import type { Agent, AgentGoal, AgentRole, Building, FarmPlot, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
+import { ROLE_VISUALS } from "../core/role-visuals";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -277,6 +278,37 @@ function drawWaterTexture(
   context.restore();
 }
 
+function drawTerrainDetails(
+  context: CanvasRenderingContext2D,
+  world: WorldState,
+  bounds: WorldBounds,
+  zoom: number,
+  woodQuantities: ReadonlyMap<string, number>
+): void {
+  for (let y = bounds.top; y < bounds.bottom; y += 1) {
+    const row = world.tiles[y];
+    if (!row) continue;
+    for (let x = bounds.left; x < bounds.right; x += 1) {
+      const tile = row[x];
+      if (!tile) continue;
+      if (tile.waterKind !== "none") {
+        drawShoreline(context, world, x, y, zoom);
+        drawWaterTexture(context, x, y, tile, zoom);
+      } else if (zoom >= 11.5) {
+        switch (tile.terrain) {
+          case "grassland": drawGrassTexture(context, x, y, tile); break;
+          case "beach": drawBeachTexture(context, x, y); break;
+          case "forest": drawForestTile(context, x, y, woodQuantities.get(`${x}:${y}`)); break;
+          case "hill": drawHillContours(context, x, y, tile.elevation); break;
+          case "mountain": drawMountainPeak(context, x, y, tile.elevation); break;
+          case "water":
+          case "river": break;
+        }
+      }
+    }
+  }
+}
+
 function drawTerrain(
   context: CanvasRenderingContext2D,
   world: WorldState,
@@ -287,41 +319,14 @@ function drawTerrain(
   for (let y = bounds.top; y < bounds.bottom; y += 1) {
     const row = world.tiles[y];
     if (!row) continue;
-
     for (let x = bounds.left; x < bounds.right; x += 1) {
       const tile = row[x];
       if (!tile) continue;
-
       context.fillStyle = getTerrainBaseColour(tile, x, y);
       context.fillRect(x, y, 1.01, 1.01);
-
-      if (tile.waterKind !== "none") {
-        drawShoreline(context, world, x, y, zoom);
-        drawWaterTexture(context, x, y, tile, zoom);
-      } else if (zoom >= 11.5) {
-        switch (tile.terrain) {
-          case "grassland":
-            drawGrassTexture(context, x, y, tile);
-            break;
-          case "beach":
-            drawBeachTexture(context, x, y);
-            break;
-          case "forest":
-            if (zoom >= 11.5) drawForestTile(context, x, y, woodQuantities.get(`${x}:${y}`));
-            break;
-          case "hill":
-            drawHillContours(context, x, y, tile.elevation);
-            break;
-          case "mountain":
-            if (zoom >= 11.5) drawMountainPeak(context, x, y, tile.elevation);
-            break;
-          case "water":
-          case "river":
-            break;
-        }
-      }
     }
   }
+  drawTerrainDetails(context, world, bounds, zoom, woodQuantities);
 }
 
 function drawFood(context: CanvasRenderingContext2D, x: number, y: number): void {
@@ -660,6 +665,7 @@ function drawStockpile(
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
   position: GridPoint,
+  role: AgentRole,
   selected: boolean,
   moving: boolean,
   walkPhase: number,
@@ -709,7 +715,7 @@ function drawAgentSprite(
   context.lineTo(x + 0.62 + legSwing, y + 0.82);
   context.stroke();
 
-  context.fillStyle = "#d0b88b";
+  context.fillStyle = ROLE_VISUALS[role].color;
   context.beginPath();
   context.ellipse(x + 0.5, y + 0.53 - bob, 0.19, 0.24, 0, 0, Math.PI * 2);
   context.fill();
@@ -723,6 +729,23 @@ function drawAgentSprite(
   context.beginPath();
   context.arc(x + 0.5, y + 0.2 - bob, 0.15, Math.PI, Math.PI * 2);
   context.fill();
+
+  context.restore();
+
+  // Keep the occupation letter upright even when the inhabitant faces sideways.
+  context.save();
+  context.fillStyle = ROLE_VISUALS[role].color;
+  context.strokeStyle = "#17221c";
+  context.lineWidth = 0.045;
+  context.beginPath();
+  context.arc(position.x + 0.5, position.y + 0.02 - bob, 0.2, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.fillStyle = "#17221c";
+  context.font = "bold 0.23px sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(ROLE_VISUALS[role].symbol, position.x + 0.5, position.y + 0.02 - bob);
   context.restore();
 }
 
@@ -758,14 +781,30 @@ function drawAgentClusters(
     const centerY = cluster.reduce((sum, entry) => sum + entry.position.y + 0.5, 0) / cluster.length;
     const selected = cluster.some((entry) => selectedIds.has(entry.agent.id));
 
-    context.fillStyle = selected ? "#e5d5a3" : "#d0b88b";
-    context.beginPath();
-    context.arc(centerX, centerY, 0.32, 0, Math.PI * 2);
-    context.fill();
-
-    if (cluster.length > 1) {
+    if (cluster.length === 1) {
+      context.fillStyle = selected ? "#e5d5a3" : ROLE_VISUALS[cluster[0]!.agent.role].color;
+      context.beginPath();
+      context.arc(centerX, centerY, 0.32, 0, Math.PI * 2);
+      context.fill();
+    } else {
       context.fillStyle = "#1c2921";
-      context.font = "0.36px sans-serif";
+      context.beginPath();
+      context.arc(centerX, centerY, 0.32, 0, Math.PI * 2);
+      context.fill();
+      const roleCounts = new Map<AgentRole, number>();
+      for (const entry of cluster) roleCounts.set(entry.agent.role, (roleCounts.get(entry.agent.role) ?? 0) + 1);
+      let angle = -Math.PI / 2;
+      for (const [role, count] of roleCounts) {
+        const nextAngle = angle + (count / cluster.length) * Math.PI * 2;
+        context.strokeStyle = ROLE_VISUALS[role].color;
+        context.lineWidth = 0.13;
+        context.beginPath();
+        context.arc(centerX, centerY, 0.38, angle, nextAngle);
+        context.stroke();
+        angle = nextAngle;
+      }
+      context.fillStyle = "#e5e7d9";
+      context.font = "bold 0.3px sans-serif";
       context.textAlign = "center";
       context.textBaseline = "middle";
       context.fillText(String(cluster.length), centerX, centerY + 0.01);
@@ -819,6 +858,7 @@ function drawAgents(
     drawAgentSprite(
       context,
       position,
+      agent.role,
       selectedIds.has(agent.id),
       motion?.isMoving(agent.id) ?? false,
       motion?.getWalkCycle(agent.id) ?? 0,
@@ -853,7 +893,8 @@ const ACTIVITY_COLOURS: Record<AgentGoal, string> = {
   plant_crop: "#86a96d",
   tend_crop: "#9bb77a",
   harvest_crop: "#d1b05f",
-  wait_for_crops: "#9b9d83"
+  wait_for_crops: "#9b9d83",
+  wait: "#9b9d83"
 };
 
 function drawAgentActivities(
@@ -1075,18 +1116,126 @@ export class CanvasWorldRenderer {
   private readonly visibilityCache = new Map<string, { key: string; tiles: GridPoint[] }>();
   private woodLookupTick = -1;
   private woodQuantities = new Map<string, number>();
+  private woodSignature = "";
+  private terrainTiles: Tile[][] | null = null;
+  private baseTerrainCanvas: HTMLCanvasElement | null = null;
+  private readonly terrainDetailChunks = new Map<string, HTMLCanvasElement>();
 
   private getWoodQuantities(world: WorldState): ReadonlyMap<string, number> {
     if (this.woodLookupTick !== world.tick) {
       this.woodQuantities = new Map<string, number>();
+      let signature = 2166136261;
       for (const resource of world.resources) {
         if (resource.kind !== "wood") continue;
         const key = `${resource.x}:${resource.y}`;
-        this.woodQuantities.set(key, (this.woodQuantities.get(key) ?? 0) + resource.quantity);
+        const quantity = (this.woodQuantities.get(key) ?? 0) + resource.quantity;
+        this.woodQuantities.set(key, quantity);
+        signature = Math.imul(signature ^ resource.x, 16777619);
+        signature = Math.imul(signature ^ resource.y, 16777619);
+        signature = Math.imul(signature ^ resource.quantity, 16777619);
       }
+      const nextSignature = String(signature >>> 0);
+      if (this.woodSignature && nextSignature !== this.woodSignature) {
+        this.terrainDetailChunks.clear();
+      }
+      this.woodSignature = nextSignature;
       this.woodLookupTick = world.tick;
     }
     return this.woodQuantities;
+  }
+
+  private ensureBaseTerrain(world: WorldState): HTMLCanvasElement | null {
+    if (typeof document === "undefined") return null;
+    if (this.terrainTiles !== world.tiles) {
+      this.terrainTiles = world.tiles;
+      this.baseTerrainCanvas = null;
+      this.terrainDetailChunks.clear();
+    }
+    if (this.baseTerrainCanvas) return this.baseTerrainCanvas;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = world.width;
+    canvas.height = world.height;
+    const offscreen = canvas.getContext("2d", { alpha: false });
+    if (!offscreen) return null;
+
+    const image = offscreen.createImageData(world.width, world.height);
+    for (let y = 0; y < world.height; y += 1) {
+      const row = world.tiles[y];
+      if (!row) continue;
+      for (let x = 0; x < world.width; x += 1) {
+        const tile = row[x];
+        if (!tile) continue;
+        const colour = getTerrainBaseColour(tile, x, y);
+        const offset = (y * world.width + x) * 4;
+        image.data[offset] = Number.parseInt(colour.slice(1, 3), 16);
+        image.data[offset + 1] = Number.parseInt(colour.slice(3, 5), 16);
+        image.data[offset + 2] = Number.parseInt(colour.slice(5, 7), 16);
+        image.data[offset + 3] = 255;
+      }
+    }
+    offscreen.putImageData(image, 0, 0);
+    this.baseTerrainCanvas = canvas;
+    return canvas;
+  }
+
+  private getTerrainDetailChunk(
+    world: WorldState,
+    chunkX: number,
+    chunkY: number,
+    woodQuantities: ReadonlyMap<string, number>
+  ): HTMLCanvasElement | null {
+    const chunkSize = 16;
+    const pixelsPerTile = 8;
+    const key = `${chunkX}:${chunkY}`;
+    const cached = this.terrainDetailChunks.get(key);
+    if (cached) return cached;
+    const left = chunkX * chunkSize;
+    const top = chunkY * chunkSize;
+    const width = Math.min(chunkSize, world.width - left);
+    const height = Math.min(chunkSize, world.height - top);
+    if (width <= 0 || height <= 0 || typeof document === "undefined") return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width * pixelsPerTile;
+    canvas.height = height * pixelsPerTile;
+    const detail = canvas.getContext("2d");
+    if (!detail) return null;
+    detail.scale(pixelsPerTile, pixelsPerTile);
+    drawTerrainDetails(detail, world, {
+      left, top, right: left + width, bottom: top + height
+    }, 12, woodQuantities);
+    this.terrainDetailChunks.set(key, canvas);
+    return canvas;
+  }
+
+  private drawCachedTerrain(
+    world: WorldState,
+    context: CanvasRenderingContext2D,
+    bounds: WorldBounds,
+    zoom: number,
+    woodQuantities: ReadonlyMap<string, number>
+  ): boolean {
+    const base = this.ensureBaseTerrain(world);
+    if (!base || typeof context.drawImage !== "function") return false;
+    context.save();
+    context.imageSmoothingEnabled = false;
+    context.drawImage(base, 0, 0);
+    if (zoom >= 11.5) {
+      const chunkSize = 16;
+      const firstX = Math.max(0, Math.floor(bounds.left / chunkSize));
+      const firstY = Math.max(0, Math.floor(bounds.top / chunkSize));
+      const lastX = Math.min(Math.ceil(world.width / chunkSize) - 1, Math.floor((bounds.right - 1) / chunkSize));
+      const lastY = Math.min(Math.ceil(world.height / chunkSize) - 1, Math.floor((bounds.bottom - 1) / chunkSize));
+      for (let chunkY = firstY; chunkY <= lastY; chunkY += 1) {
+        for (let chunkX = firstX; chunkX <= lastX; chunkX += 1) {
+          const chunk = this.getTerrainDetailChunk(world, chunkX, chunkY, woodQuantities);
+          if (chunk) context.drawImage(chunk, chunkX * chunkSize, chunkY * chunkSize, chunk.width / 8, chunk.height / 8);
+        }
+      }
+    }
+    context.restore();
+    return true;
   }
 
   render(
@@ -1117,7 +1266,10 @@ export class CanvasWorldRenderer {
     const bounds = clampBounds(getVisibleWorldBounds(camera, viewport), world);
 
     if (layers.terrain !== false) {
-      drawTerrain(context, world, bounds, camera.zoom, this.getWoodQuantities(world));
+      const woodQuantities = this.getWoodQuantities(world);
+      if (!this.drawCachedTerrain(world, context, bounds, camera.zoom, woodQuantities)) {
+        drawTerrain(context, world, bounds, camera.zoom, woodQuantities);
+      }
     }
 
     if (layers.resourceDensity) {
