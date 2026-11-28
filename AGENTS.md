@@ -31,6 +31,7 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 - Survival timers, starvation/dehydration damage, gradual health recovery, death records, inventory drops, local resource recovery timers, visible forest clearings/saplings and the initial freshwater-bank fishing loop are now in source; keep tuning evidence-based and test all state changes.
 - One simulation tick is one displayed world minute. Current initial need rates are hunger +0.08/minute and thirst +0.12/minute; these are tuning values, not universal truths.
 - Fish resources are local patches, not full moving animal populations. Fishing/catching/eating is implemented; cooking, boats, fisheries management and ecosystem reproduction remain future work.
+- Adaptive workforce reviews now reassign available workers for food and shelter shortages on a calm review interval; a minimum tenure reduces churn. First skill growth exists for foraging, fishing, hauling and building. Do not mistake this for the future full occupation/economy system.
 
 ## Development rules
 
@@ -45,4 +46,4 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 
 ## Current development priority
 
-See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer, local persistence, PWA app shell and first survival/resource-pressure mechanics now have initial implementations; verify them before extending them. Next priorities are full ecology (trees, fish populations and wildlife), farming/hunting/cooking, production chains and emergent settlement behaviour.
+See [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). The observer, local persistence, PWA app shell, first survival/resource-pressure mechanics and initial adaptive work/skills now have implementations; verify them before extending them. The 2026-11-28 map-geography pass adds deterministic terrain presentation, a dismissible map key, richer world-creation context and minimap building markers. Inspect it at world, settlement and close zoom before moving on to full ecology, farming/hunting/cooking, production chains and deeper society.
