@@ -50,4 +50,15 @@ describe("agent motion animation", () => {
 
     expect(animator.getPosition("agent-1", { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
   });
+
+  it("keeps the last travel direction so a villager can face the way they walk", () => {
+    const animator = new AgentMotionAnimator(200);
+    animator.enqueue("agent-1", { x: 2, y: 3 }, { x: 3, y: 3 });
+    expect(animator.getFacing("agent-1")).toEqual({ x: 1, y: 0 });
+
+    animator.enqueue("agent-1", { x: 3, y: 3 }, { x: 3, y: 4 });
+    expect(animator.getFacing("agent-1")).toEqual({ x: 1, y: 0 });
+    animator.advance(200);
+    expect(animator.getFacing("agent-1")).toEqual({ x: 0, y: 1 });
+  });
 });
