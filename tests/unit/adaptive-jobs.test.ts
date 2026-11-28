@@ -69,7 +69,8 @@ describe("adaptive work allocation", () => {
 
     expect(world.agents.filter((agent) => agent.role === "forager")).toHaveLength(1);
     expect(world.agents.filter((agent) => agent.role === "generalist")).toHaveLength(1);
-    expect(first.skills?.foraging).toBeGreaterThan(0);
+    const assignedForager = world.agents.find((agent) => agent.role === "forager");
+    expect(assignedForager?.skills?.foraging).toBeGreaterThan(0);
     expect(world.events.some((event) => event.kind === "job_changed")).toBe(true);
     expect(world.events.some((event) => event.kind === "gather_food")).toBe(true);
   });
@@ -87,6 +88,7 @@ describe("adaptive work allocation", () => {
 
     world.stockpile.inventory.wood = 5;
     world.stockpile.inventory.stone = 2;
+    world.stockpile.inventory.food = 20;
     world.tick = 239;
     stepWorld(world);
 
