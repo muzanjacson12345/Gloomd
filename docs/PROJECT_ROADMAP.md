@@ -1,6 +1,6 @@
 # GLOOMD — project roadmap and durable decisions
 
-**Last reviewed:** 2026-11-27  
+**Last reviewed:** 2026-11-28  
 **Status:** Living project plan; update as milestones are delivered.  
 **Main repository:** https://github.com/muzanjacson12345/Gloomd  
 **Live site:** https://muzanjacson12345.github.io/Gloomd/
@@ -103,11 +103,12 @@ These should emerge from needs, knowledge, geography, resource pressure and rela
 - Start with 30–50 meaningful agents. Increase toward 100–200 only after measurements on the user's actual PC. Never promise millions without benchmark evidence.
 - No external remote assets required for normal play.
 
-## Current implementation baseline (verified by source audit on 2026-11-27)
+## Current implementation baseline (verified by source audit on 2026-11-28)
 
 Already implemented:
 - deterministic seeded terrain generation and configurable map sizes;
 - coast, ocean, freshwater, lakes, rivers, grassland, forests, hills and mountains;
+- moisture/elevation-informed deterministic terrain palette, zoom-gated shore/grass/forest/hill/mountain detail, and shared minimap terrain colours;
 - four-direction grid pathfinding and blocked terrain/buildings;
 - agents with hunger, thirst, energy, health, traits, inventories and simple forager/fisher/hauler/builder roles;
 - wild food gathering/eating, fishing and fish consumption, freshwater drinking and resting;
@@ -115,7 +116,8 @@ Already implemented:
 - haulers that physically gather wood/stone and deliver them to one communal stockpile;
 - one shelter recipe (5 wood + 2 stone) and construction work over 12 ticks;
 - full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
-- terrain/resource/people/buildings/stockpile layers;
+- terrain/resource/people/buildings/stockpile layers, map field guide, terrain composition preview and nearby start-area resource/water context;
+- minimap markers for settlement buildings;
 - individual NPC click/inspector, follow mode and live activity roster;
 - pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;
 - GitHub Pages static hosting.
@@ -128,7 +130,8 @@ Implemented in source in the current work session (fresh build/browser verificat
 - minimap with camera viewport, click-to-jump, fit-world and a wider opening zoom;
 - Hide UI / restore interface mode;
 - versioned world-save format v1, validated JSON export/import, IndexedDB rolling autosave, 15-second active-tab checkpoints, save on pause/hidden, and auto-resume on startup;
-- web-app manifest, SVG icon and service worker for offline app-shell caching.
+- web-app manifest, SVG icon and service worker for offline app-shell caching;
+- adaptive workforce reviews that reassign available villagers in response to food and shelter shortages, with job-change events and initial experience growth for foraging, fishing, hauling and building.
 
 Still not implemented:
 - directional walking, distinct carrying/work/rest animations and movement speed changes for heavy loads or difficult terrain;
@@ -137,10 +140,23 @@ Still not implemented:
 - ageing, birth and population growth;
 - full forest ecology with visible tree/sapling populations and wildlife herds; fish are currently represented as local fish patches, not full animal populations;
 - hunting, farming, cooking, crafting, food preservation/spoilage and multi-stage production;
-- adaptive jobs/skills, memories, relationships, families, communication or social learning;
+- deeper skill specialisation, personal memories, relationships, families, communication or social learning;
 - multiple settlements, stockpiles, migration/splitting, trade, governance, conflict, technology or culture.
 
 ## Development order
+
+### Stage 0.5 — map geography and field guide
+
+**Progress:** first map readability and observer-context pass implemented on 2026-11-28; fresh CI and live-browser visual review pending.
+
+1. [x] Derive stable terrain colours from existing moisture/elevation data; distinguish ocean, freshwater and river surfaces.
+2. [x] Add zoom-gated surface detail for shorelines, grass, sand, forest canopies, hill contours, water ripples and mountain peaks.
+3. [x] Add a dismissible map key for geography, resources, inhabitants, buildings and the stockpile.
+4. [x] Show actual land/water/forest/highland percentages and selected-start resource/freshwater context in world creation.
+5. [x] Use the shared terrain palette and show buildings on the minimap.
+6. [ ] Inspect the live map at world, settlement and close zoom; tune decoration density and check that observation panels never obstruct the map.
+
+**Acceptance:** map geography is understandable at multiple zoom levels; the key explains terrain and symbols; starting-area details reflect actual world data; rendering remains deterministic and leaves simulation state unchanged.
 
 ### Stage 1 — observer experience and movement
 
@@ -184,20 +200,22 @@ Still not implemented:
 
 ### Stage 4 — jobs, logistics and production chains
 
-**Progress:** first fishing loop implemented on 2026-11-27; fresh build/browser verification pending.
+**Progress:** fishing and first adaptive worker/skill systems are implemented in source on 2026-11-28; fresh build/browser verification pending.
 
 1. [x] Freshwater-bank fish patches with limited quantities and local recovery.
 2. [x] Fisher role; agents can travel, catch fish, carry them and eat them.
-3. [ ] Goal selection and adaptive job allocation beyond initial role assignment.
-4. [ ] Farming and hunting.
-5. [ ] Food storage, cooking, spoilage and preservation.
-6. [ ] Crafting and tool durability.
-7. [ ] Multiple stockpiles, transport routes and storage capacity.
+3. [x] Periodic workforce reviews reassign available villagers according to food reserves and shelter needs; tenure prevents constant job switching.
+4. [x] Initial experience growth and work-skill scoring for foraging, fishing, hauling and building.
+5. [ ] Expand goal selection and workforce planning to farming, hunting, crafting, cooking and multiple production chains.
+6. [ ] Farming and hunting.
+7. [ ] Food storage, cooking, spoilage and preservation.
+8. [ ] Crafting and tool durability.
+9. [ ] Multiple stockpiles, transport routes and storage capacity.
 
 **Acceptance:** every input/output can be accounted for; production only occurs with materials and labour; the settlement's work priorities respond to shortages.
 
 ### Stage 5 — society and emergent settlements
-1. Experience-based skills and personal memory.
+1. Deeper experience-based specialisation and personal memory.
 2. Relationships, households, families and cooperation.
 3. Information sharing, teaching and trade.
 4. New camps, migration and settlement splits.
