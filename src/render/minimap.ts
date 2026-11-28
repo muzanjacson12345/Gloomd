@@ -1,5 +1,6 @@
 import type { WorldState } from "../core/types";
 import type { Camera, ViewportSize } from "./camera";
+import { getTerrainBaseColour } from "./terrain-style";
 
 export interface MiniMapPoint { x: number; y: number; }
 export interface MiniMapWorldSize { width: number; height: number; }
@@ -79,14 +80,15 @@ export function drawMiniMap(
       const worldX = Math.min(world.width - 1, Math.floor(pixelX / transform.scale));
       const tile = row[worldX];
       if (!tile) continue;
-      context.fillStyle = tile.terrain === "water" ? "#294d59"
-        : tile.terrain === "river" ? "#3d7180"
-          : tile.terrain === "beach" ? "#a79772"
-            : tile.terrain === "forest" ? "#385541"
-              : tile.terrain === "hill" ? "#777854"
-                : tile.terrain === "mountain" ? "#858980" : "#657b57";
+      context.fillStyle = getTerrainBaseColour(tile, worldX, worldY);
       context.fillRect(transform.offsetX + pixelX, transform.offsetY + pixelY, 1, 1);
     }
+  }
+
+  for (const building of world.buildings) {
+    const point = worldToMiniMap({ x: building.x + 0.5, y: building.y + 0.5 }, world, { width, height });
+    context.fillStyle = building.status === "complete" ? "#e0cea0" : "#a98a6b";
+    context.fillRect(point.x - 1.15, point.y - 1.15, 2.3, 2.3);
   }
 
   context.fillStyle = "#d2bd8b";
