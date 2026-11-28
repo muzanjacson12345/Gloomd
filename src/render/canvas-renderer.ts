@@ -5,6 +5,7 @@ import type { Camera, ViewportSize } from "./camera";
 import { computeVisibleTiles } from "../core/vision";
 import type { WorldSelectionRect } from "../ui/selection";
 import type { AgentMotionAnimator } from "./motion";
+import { getTerrainBaseColour, terrainVariation } from "./terrain-style";
 
 export interface RenderLayers {
   terrain?: boolean;
@@ -25,29 +26,242 @@ export interface RenderLayers {
   selectionRect?: WorldSelectionRect | null;
 }
 
-const TERRAIN_COLOURS: Record<Tile["terrain"], string> = {
-  water: "#294650",
-  river: "#365f69",
-  beach: "#a79772",
-  grassland: "#586d4e",
-  forest: "#385541",
-  hill: "#777854",
-  mountain: "#777a73"
-};
+function drawForestTree(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  variation: number,
+  scale: number
+): void {
+  const centreX = x + 0.5 + (variation - 0.5) * 0.12;
+  const centreY = y + 0.48 + (terrainVariation(x, y, 23) - 0.5) * 0.1;
+  const canopy = Math.max(0.58, Math.min(1, scale));
 
-const VARIATION_COLOURS = ["#00000000", "#ffffff08", "#00000008", "#ffffff0c"] as const;
+  context.save();
+  context.fillStyle = "#1b3025";
+  context.beginPath();
+  context.ellipse(centreX + 0.04, y + 0.84, 0.31 * canopy, 0.11, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "#8d7854";
+  context.fillRect(centreX - 0.045, centreY + 0.13, 0.09, 0.26);
 
-function clampBounds(bounds: WorldBounds, world: WorldState): WorldBounds {
-  return {
-    left: Math.max(0, bounds.left - 1),
-    top: Math.max(0, bounds.top - 1),
-    right: Math.min(world.width, bounds.right + 1),
-    bottom: Math.min(world.height, bounds.bottom + 1)
-  };
+  if (variation < 0.58) {
+    context.fillStyle = "#294533";
+    context.beginPath();
+    context.arc(centreX, centreY - 0.06, 0.31 * canopy, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#416849";
+    context.beginPath();
+    context.arc(centreX - 0.1, centreY - 0.13, 0.19 * canopy, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#5a7950";
+    context.beginPath();
+    context.arc(centreX + 0.11, centreY - 0.04, 0.15 * canopy, 0, Math.PI * 2);
+    context.fill();
+  } else {
+    context.fillStyle = "#243f31";
+    context.beginPath();
+    context.moveTo(centreX, y + 0.13);
+    context.lineTo(centreX - 0.34 * canopy, y + 0.79);
+    context.lineTo(centreX + 0.34 * canopy, y + 0.79);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#3d6143";
+    context.beginPath();
+    context.moveTo(centreX, y + 0.29);
+    context.lineTo(centreX - 0.25 * canopy, y + 0.69);
+    context.lineTo(centreX + 0.25 * canopy, y + 0.69);
+    context.closePath();
+    context.fill();
+  }
+  context.restore();
 }
 
-function isInsideBounds(x: number, y: number, bounds: WorldBounds): boolean {
-  return x >= bounds.left && x < bounds.right && y >= bounds.top && y < bounds.bottom;
+function drawForestTile(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  stock: number | undefined
+): void {
+  if (stock === 0) {
+    context.fillStyle = "#665641";
+    context.fillRect(x + 0.17, y + 0.73, 0.66, 0.13);
+    context.fillStyle = "#927b56";
+    context.fillRect(x + 0.37, y + 0.57, 0.26, 0.2);
+    context.fillStyle = "#c1a77a";
+    context.fillRect(x + 0.4, y + 0.55, 0.18, 0.05);
+    return;
+  }
+
+  if (stock !== undefined && stock <= 2) {
+    context.fillStyle = "#4d754e";
+    context.beginPath();
+    context.moveTo(x + 0.5, y + 0.42);
+    context.lineTo(x + 0.27, y + 0.82);
+    context.lineTo(x + 0.73, y + 0.82);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#9a8b62";
+    context.fillRect(x + 0.46, y + 0.73, 0.08, 0.15);
+    return;
+  }
+
+  const variation = terrainVariation(x, y, 5);
+  const canopyScale = stock === undefined ? 1 : Math.min(1, 0.58 + stock * 0.07);
+  drawForestTree(context, x, y, variation, canopyScale);
+}
+
+function drawGrassTexture(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  tile: Tile
+): void {
+  const variation = terrainVariation(x, y, 9);
+  if (variation > 0.72) return;
+
+  context.save();
+  context.globalAlpha = 0.2 + Math.min(0.14, tile.moisture * 0.12);
+  context.strokeStyle = tile.moisture < 0.32 ? "#d5c18a" : "#b4c18b";
+  context.lineWidth = 0.035;
+  context.beginPath();
+  const startX = x + 0.18 + terrainVariation(x, y, 11) * 0.52;
+  const startY = y + 0.34 + terrainVariation(x, y, 13) * 0.38;
+  context.moveTo(startX, startY + 0.08);
+  context.lineTo(startX - 0.035, startY - 0.05);
+  context.moveTo(startX, startY + 0.08);
+  context.lineTo(startX + 0.055, startY - 0.04);
+  context.stroke();
+  context.restore();
+}
+
+function drawBeachTexture(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number
+): void {
+  if (terrainVariation(x, y, 31) > 0.68) return;
+  context.save();
+  context.globalAlpha = 0.34;
+  context.fillStyle = "#e0d0a5";
+  context.beginPath();
+  context.arc(x + 0.24 + terrainVariation(x, y, 33) * 0.46, y + 0.28 + terrainVariation(x, y, 35) * 0.48, 0.035, 0, Math.PI * 2);
+  context.arc(x + 0.67, y + 0.72, 0.025, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawHillContours(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  elevation: number
+): void {
+  context.save();
+  context.globalAlpha = 0.26;
+  context.strokeStyle = "#d0c59a";
+  context.lineWidth = 0.035;
+  context.beginPath();
+  context.moveTo(x + 0.08, y + 0.7);
+  context.lineTo(x + 0.27, y + 0.55);
+  context.lineTo(x + 0.72, y + 0.55);
+  context.lineTo(x + 0.92, y + 0.7);
+  if (elevation > 0.74) {
+    context.moveTo(x + 0.17, y + 0.83);
+    context.lineTo(x + 0.36, y + 0.7);
+    context.lineTo(x + 0.66, y + 0.7);
+    context.lineTo(x + 0.84, y + 0.83);
+  }
+  context.stroke();
+  context.restore();
+}
+
+function drawMountainPeak(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  elevation: number
+): void {
+  const peakX = x + 0.48 + (terrainVariation(x, y, 41) - 0.5) * 0.12;
+  const peakY = y + 0.12 + (1 - elevation) * 0.35;
+  context.fillStyle = "#505b56";
+  context.beginPath();
+  context.moveTo(peakX - 0.38, y + 0.84);
+  context.lineTo(peakX, peakY);
+  context.lineTo(peakX + 0.39, y + 0.84);
+  context.closePath();
+  context.fill();
+  context.fillStyle = "#9fa69e";
+  context.beginPath();
+  context.moveTo(peakX - 0.18, y + 0.56);
+  context.lineTo(peakX, peakY);
+  context.lineTo(peakX + 0.2, y + 0.58);
+  context.lineTo(peakX + 0.06, y + 0.55);
+  context.closePath();
+  context.fill();
+
+  if (elevation > 0.9) {
+    context.fillStyle = "#d8ddd3";
+    context.beginPath();
+    context.moveTo(peakX - 0.1, peakY + 0.17);
+    context.lineTo(peakX, peakY);
+    context.lineTo(peakX + 0.12, peakY + 0.18);
+    context.lineTo(peakX + 0.035, peakY + 0.13);
+    context.closePath();
+    context.fill();
+  }
+}
+
+function drawShoreline(
+  context: CanvasRenderingContext2D,
+  world: WorldState,
+  x: number,
+  y: number,
+  zoom: number
+): void {
+  if (zoom < 3.5) return;
+  const edges = [
+    { neighbor: world.tiles[y - 1]?.[x], x1: x, y1: y, x2: x + 1, y2: y },
+    { neighbor: world.tiles[y]?.[x + 1], x1: x + 1, y1: y, x2: x + 1, y2: y + 1 },
+    { neighbor: world.tiles[y + 1]?.[x], x1: x, y1: y + 1, x2: x + 1, y2: y + 1 },
+    { neighbor: world.tiles[y]?.[x - 1], x1: x, y1: y, x2: x, y2: y + 1 }
+  ];
+  if (!edges.some((edge) => edge.neighbor?.waterKind === "none")) return;
+
+  context.save();
+  context.globalAlpha = 0.42;
+  context.strokeStyle = "#b5cbbb";
+  context.lineWidth = 0.065;
+  for (const edge of edges) {
+    if (edge.neighbor?.waterKind !== "none") continue;
+    context.beginPath();
+    context.moveTo(edge.x1, edge.y1);
+    context.lineTo(edge.x2, edge.y2);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawWaterTexture(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  tile: Tile,
+  zoom: number
+): void {
+  if (zoom < 5.5 || terrainVariation(x, y, 53) > 0.62) return;
+  const offset = terrainVariation(x, y, 59) * 0.48;
+  context.save();
+  context.globalAlpha = tile.waterKind === "ocean" ? 0.18 : 0.24;
+  context.strokeStyle = "#b1d1c8";
+  context.lineWidth = 0.035;
+  context.beginPath();
+  context.moveTo(x + 0.16 + offset, y + 0.32);
+  context.lineTo(x + 0.46 + offset, y + 0.32);
+  context.moveTo(x + 0.25, y + 0.7 - offset * 0.25);
+  context.lineTo(x + 0.56, y + 0.7 - offset * 0.25);
+  context.stroke();
+  context.restore();
 }
 
 function drawTerrain(
@@ -65,64 +279,33 @@ function drawTerrain(
       const tile = row[x];
       if (!tile) continue;
 
-      context.fillStyle = TERRAIN_COLOURS[tile.terrain];
+      context.fillStyle = getTerrainBaseColour(tile, x, y);
       context.fillRect(x, y, 1.01, 1.01);
 
-      const variation = VARIATION_COLOURS[(x * 13 + y * 7) % VARIATION_COLOURS.length];
-      if (variation && variation !== "#00000000") {
-        context.fillStyle = variation;
-        context.fillRect(x, y, 1.01, 1.01);
-      }
-
-      if (zoom >= 7 && tile.terrain === "forest") {
-        const stock = woodQuantities.get(`${x}:${y}`);
-        if (stock === 0) {
-          // An exhausted wood patch leaves a visible stump and a small clearing.
-          context.fillStyle = "#665641";
-          context.fillRect(x + 0.2, y + 0.69, 0.6, 0.16);
-          context.fillStyle = "#8f7952";
-          context.fillRect(x + 0.39, y + 0.57, 0.22, 0.18);
-          context.fillStyle = "#c1a77a";
-          context.fillRect(x + 0.42, y + 0.55, 0.16, 0.05);
-        } else if (stock !== undefined && stock <= 2) {
-          // Early recovery appears as a small sapling rather than a mature tree.
-          context.fillStyle = "#58744c";
-          context.beginPath();
-          context.moveTo(x + 0.5, y + 0.42);
-          context.lineTo(x + 0.28, y + 0.82);
-          context.lineTo(x + 0.72, y + 0.82);
-          context.closePath();
-          context.fill();
-          context.fillStyle = "#9a8b62";
-          context.fillRect(x + 0.46, y + 0.73, 0.08, 0.15);
-        } else {
-          const offset = ((x * 17 + y * 11) % 5) * 0.06;
-          const canopyScale = stock === undefined ? 1 : Math.min(1, 0.58 + stock * 0.07);
-          context.fillStyle = "#243f31";
-          context.beginPath();
-          context.moveTo(x + 0.5, y + 0.18 + offset);
-          context.lineTo(x + 0.5 - 0.33 * canopyScale, y + 0.82);
-          context.lineTo(x + 0.5 + 0.33 * canopyScale, y + 0.82);
-          context.closePath();
-          context.fill();
-          context.fillStyle = "#9a8b62";
-          context.fillRect(x + 0.46, y + 0.72, 0.08, 0.2);
+      if (tile.waterKind !== "none") {
+        drawShoreline(context, world, x, y, zoom);
+        drawWaterTexture(context, x, y, tile, zoom);
+      } else if (zoom >= 5.5) {
+        switch (tile.terrain) {
+          case "grassland":
+            drawGrassTexture(context, x, y, tile);
+            break;
+          case "beach":
+            drawBeachTexture(context, x, y);
+            break;
+          case "forest":
+            if (zoom >= 7) drawForestTile(context, x, y, woodQuantities.get(`${x}:${y}`));
+            break;
+          case "hill":
+            drawHillContours(context, x, y, tile.elevation);
+            break;
+          case "mountain":
+            if (zoom >= 6.5) drawMountainPeak(context, x, y, tile.elevation);
+            break;
+          case "water":
+          case "river":
+            break;
         }
-      } else if (zoom >= 8 && tile.terrain === "mountain") {
-        context.fillStyle = "#a7aaa1";
-        context.beginPath();
-        context.moveTo(x + 0.18, y + 0.83);
-        context.lineTo(x + 0.55, y + 0.2);
-        context.lineTo(x + 0.87, y + 0.83);
-        context.closePath();
-        context.fill();
-      } else if (zoom >= 9 && tile.terrain === "water") {
-        context.strokeStyle = "#ffffff18";
-        context.lineWidth = 0.035;
-        context.beginPath();
-        context.moveTo(x + 0.2, y + 0.35);
-        context.lineTo(x + 0.7, y + 0.35);
-        context.stroke();
       }
     }
   }
