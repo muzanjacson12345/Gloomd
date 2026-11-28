@@ -12,6 +12,7 @@ interface MotionTrack {
   segments: MotionSegment[];
   trail: GridPoint[];
   animationTimeMs: number;
+  facing: GridPoint;
 }
 
 /**
@@ -50,7 +51,8 @@ export class AgentMotionAnimator {
         position: { ...from },
         segments: [],
         trail: [{ ...from }],
-        animationTimeMs: 0
+        animationTimeMs: 0,
+        facing: { x: 0, y: -1 }
       };
       this.tracks.set(agentId, track);
     }
@@ -97,6 +99,10 @@ export class AgentMotionAnimator {
 
         if (progress >= 1) {
           track.position = { ...segment.to };
+          const dx = segment.to.x - segment.from.x;
+          const dy = segment.to.y - segment.from.y;
+          const length = Math.hypot(dx, dy);
+          if (length > 0) track.facing = { x: dx / length, y: dy / length };
           track.segments.shift();
           track.trail.push({ ...segment.to });
           if (track.trail.length > this.trailLimit) {
@@ -110,6 +116,22 @@ export class AgentMotionAnimator {
   getPosition(agentId: string, fallback: GridPoint): GridPoint {
     const position = this.tracks.get(agentId)?.position;
     return position ? { ...position } : { ...fallback };
+  }
+
+  /** Direction of the active step, or the last direction travelled. */
+  getFacing(agentId: string): GridPoint {
+    const track = this.tracks.get(agentId);
+    if (!track) return { x: 0, y: -1 };
+
+    const segment = track.segments[0];
+    if (segment) {
+      const dx = segment.to.x - segment.from.x;
+      const dy = segment.to.y - segment.from.y;
+      const length = Math.hypot(dx, dy);
+      if (length > 0) return { x: dx / length, y: dy / length };
+    }
+
+    return { ...track.facing };
   }
 
   getTrail(agentId: string): GridPoint[] {
