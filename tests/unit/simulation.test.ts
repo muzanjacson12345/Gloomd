@@ -376,7 +376,7 @@ describe("autonomous agents and consequential actions", () => {
 
   it("spends shelter materials once and gives the builder a home after twelve work ticks", () => {
     const world = makeWorld();
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
@@ -418,7 +418,7 @@ describe("autonomous agents and consequential actions", () => {
         tile.walkable = false;
       }
     }
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
@@ -442,7 +442,7 @@ describe("autonomous agents and consequential actions", () => {
       maxQuantity: 1,
       regrowEveryTicks: null
     });
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const builder = makeBuilder({ currentGoal: "build_shelter" });
     const neighbour = makeAgent({ id: "neighbour", name: "Bo", x: 1, y: 2 });
     world.agents.push(builder, neighbour);
@@ -460,7 +460,7 @@ describe("autonomous agents and consequential actions", () => {
 
   it("does not let competing builders spend the same shared shelter recipe twice", () => {
     const world = makeWorld();
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const first = makeBuilder({ id: "builder-a", name: "Ari" });
     const second = makeBuilder({ id: "builder-b", name: "Bo", x: 1, y: 2 });
     world.agents.push(first, second);
@@ -475,7 +475,7 @@ describe("autonomous agents and consequential actions", () => {
 
   it("does not start a shelter when the shared stockpile is missing part of the recipe", () => {
     const world = makeWorld();
-    world.stockpile.inventory = { wood: 4, stone: 2 };
+    world.stockpile.inventory = { wood: 4, stone: 2, food: 0, fish: 0 };
     world.agents.push(makeBuilder());
 
     stepWorld(world);
@@ -491,7 +491,7 @@ describe("autonomous agents and consequential actions", () => {
     water.terrain = "river";
     water.waterKind = "freshwater";
     water.walkable = false;
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const builder = makeBuilder({ currentGoal: "build_shelter" });
     world.agents.push(builder);
 
@@ -559,7 +559,7 @@ describe("autonomous agents and consequential actions", () => {
       const tile = world.tiles[y]?.[x];
       if (tile) tile.walkable = false;
     }
-    world.stockpile.inventory = { wood: 5, stone: 2 };
+    world.stockpile.inventory = { wood: 5, stone: 2, food: 0, fish: 0 };
     const builder = makeBuilder();
     world.agents.push(builder);
     stepWorld(world);
