@@ -824,4 +824,111 @@ describe("autonomous agents and consequential actions", () => {
     expect(agent.needs.thirst).toBeCloseTo(22.4, 5);
   });
 
+
+  it("lets foragers physically deliver gathered food to the communal reserve", () => {
+    const world = makeWorld();
+    world.stockpile.x = 3;
+    world.stockpile.y = 1;
+    world.tiles[1]![3]!.walkable = false;
+    world.resources.push({
+      id: "communal-food",
+      kind: "wild_food",
+      x: 2,
+      y: 1,
+      quantity: 2,
+      maxQuantity: 2,
+      regrowEveryTicks: 240
+    });
+    const forager = makeAgent({
+      x: 1,
+      y: 1,
+      role: "forager",
+      needs: { hunger: 20, thirst: 0, energy: 100, health: 100 }
+    });
+    world.agents.push(forager);
+
+    stepWorld(world, 3);
+
+    expect(world.stockpile.inventory.food).toBe(1);
+    expect(forager.inventory.food).toBe(0);
+    expect(world.resources[0]?.quantity).toBe(1);
+    expect(world.events.some((event) => event.kind === "gather_food")).toBe(true);
+    expect(world.events.some((event) => event.kind === "deliver_food")).toBe(true);
+  });
+
+  it("lets a hungry inhabitant collect and eat a ration from the communal stockpile", () => {
+    const world = makeWorld();
+    world.stockpile.x = 3;
+    world.stockpile.y = 1;
+    world.tiles[1]![3]!.walkable = false;
+    world.stockpile.inventory.food = 1;
+    const agent = makeAgent({
+      x: 1,
+      y: 1,
+      needs: { hunger: 64.95, thirst: 0, energy: 100, health: 100 }
+    });
+    world.agents.push(agent);
+
+    stepWorld(world, 2);
+
+    expect(agent.x).toBe(2);
+    expect(agent.inventory.food).toBe(1);
+    expect(world.stockpile.inventory.food).toBe(0);
+    expect(world.events.some((event) => event.kind === "collect_ration")).toBe(true);
+
+    stepWorld(world);
+
+    expect(agent.inventory.food).toBe(0);
+    expect(agent.needs.hunger).toBeLessThan(35);
+    expect(world.events.some((event) => event.kind === "eat")).toBe(true);
+  });
+
+  it("keeps freshwater drinking ahead of collecting a communal food ration", () => {
+    const world = makeWorld();
+    world.stockpile.inventory.food = 1;
+    const water = world.tiles[1]?.[2];
+    if (!water) throw new Error("Test freshwater tile was not created");
+    water.terrain = "river";
+    water.waterKind = "freshwater";
+    water.walkable = false;
+    const agent = makeAgent({
+      needs: { hunger: 64.95, thirst: 64.95, energy: 100, health: 100 }
+    });
+    world.agents.push(agent);
+
+    stepWorld(world);
+
+    expect(agent.needs.thirst).toBeLessThan(25);
+    expect(world.stockpile.inventory.food).toBe(1);
+    expect(agent.inventory.food).toBe(0);
+    expect(world.events.some((event) => event.kind === "drink")).toBe(true);
+    expect(world.events.some((event) => event.kind === "collect_ration")).toBe(false);
+  });
+
+  it("does not distribute one stored ration to more than one hungry inhabitant", () => {
+    const world = makeWorld();
+    world.stockpile.x = 3;
+    world.stockpile.y = 1;
+    world.tiles[1]![3]!.walkable = false;
+    world.stockpile.inventory.food = 1;
+    const first = makeAgent({
+      id: "hungry-a",
+      x: 1,
+      y: 1,
+      needs: { hunger: 64.95, thirst: 0, energy: 100, health: 100 }
+    });
+    const second = makeAgent({
+      id: "hungry-b",
+      x: 1,
+      y: 2,
+      needs: { hunger: 64.95, thirst: 0, energy: 100, health: 100 }
+    });
+    world.agents.push(first, second);
+
+    stepWorld(world, 2);
+
+    expect(first.inventory.food + second.inventory.food).toBe(1);
+    expect(world.stockpile.inventory.food).toBe(0);
+    expect(world.events.filter((event) => event.kind === "collect_ration")).toHaveLength(1);
+  });
 });
