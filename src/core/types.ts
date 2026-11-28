@@ -17,16 +17,23 @@ export type BuildingStatus = "under_construction" | "complete";
 
 export type BuildingMaterial = "wood" | "stone";
 
+export type StoredFoodKind = "food" | "fish";
+
 export interface MaterialBundle {
   wood: number;
   stone: number;
+}
+
+export interface StockpileInventory extends MaterialBundle {
+  food: number;
+  fish: number;
 }
 
 export interface Stockpile {
   id: string;
   x: number;
   y: number;
-  inventory: MaterialBundle;
+  inventory: StockpileInventory;
   capacityPerResource: number;
 }
 
@@ -54,6 +61,9 @@ export type AgentGoal =
   | "gather_wood"
   | "gather_stone"
   | "deliver_resources"
+  | "deliver_food"
+  | "seek_shared_food"
+  | "collect_ration"
   | "search_resources"
   | "wait_for_materials"
   | "find_build_site"
