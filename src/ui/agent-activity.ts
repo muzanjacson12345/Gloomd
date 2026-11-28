@@ -71,7 +71,6 @@ export function renderAgentActivity(
     name.textContent = agent.name;
     role.className = "activity-role";
     role.textContent = ROLE_VISUALS[agent.role].label;
-    role.style.setProperty("--role-colour", ROLE_VISUALS[agent.role].color);
     task.className = "activity-task";
     task.textContent = formatAgentGoal(agent.currentGoal);
 

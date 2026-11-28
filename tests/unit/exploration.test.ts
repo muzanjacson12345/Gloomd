@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findNearestUnexploredRoute, hasExploredTile, recordAgentExploration } from "../../src/core/exploration";
+import { findNearestUnexploredRoute, getTileKnowledgeState, hasExploredTile, publishAgentExploration, recordAgentExploration } from "../../src/core/exploration";
 import { createWorld } from "../../src/core/world-generation";
 import type { Agent } from "../../src/core/types";
 
@@ -64,16 +64,26 @@ describe("inhabitant exploration memory", () => {
     expect(agent.explorationComplete).toBe(true);
   });
 
-  it("shares discoveries so another inhabitant does not scout already known tiles", () => {
+  it("keeps discoveries private until an inhabitant returns and publishes them", () => {
     const world = flatWorld(91);
     const first = makeAgent(8, 8);
     const second = makeAgent(8, 8);
+    world.agents = [first, second];
     recordAgentExploration(world, first);
-    const known = new Set(world.exploredTiles ?? []);
-    expect(known.size).toBeGreaterThan(1);
+
+    const privateIndex = first.exploredTiles?.[0] ?? -1;
+    expect(world.exploredTiles).toEqual([]);
+    expect(getTileKnowledgeState(world, privateIndex)).toBe("personal");
+    expect(hasExploredTile(second, privateIndex, world)).toBe(false);
+
+    const published = publishAgentExploration(world, first);
+    expect(published).toBeGreaterThan(1);
+    expect(getTileKnowledgeState(world, privateIndex)).toBe("shared");
+    expect(hasExploredTile(second, privateIndex, world)).toBe(true);
+
     const route = findNearestUnexploredRoute(world, second);
     expect(route).not.toBeNull();
-    expect(known.has(route!.point.y * world.width + route!.point.x)).toBe(false);
+    expect(world.exploredTiles).not.toContain(route!.point.y * world.width + route!.point.x);
   });
 
   it("expands memory after moving into a different area", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createWorld } from "../../src/core/world-generation";
 import { createStarterAgents } from "../../src/core/agents";
+import type { WorldState } from "../../src/core/types";
 import {
   createWorldSave,
   parseWorldSave,
@@ -29,7 +30,7 @@ describe("versioned world saves", () => {
     const save = createWorldSave(world, start, 1000);
     const restored = parseWorldSave(serializeWorldSave(save));
 
-    expect(restored.schemaVersion).toBe(1);
+    expect(restored.schemaVersion).toBe(2);
     expect(restored.savedAt).toBe(1000);
     expect(restored.startingPoint).toEqual(start);
     expect(restored.world).toEqual(world);
@@ -76,15 +77,39 @@ describe("versioned world saves", () => {
     agent.explorationTarget = { ...start };
     agent.explorationComplete = false;
     agent.explorationRecordIndex = agent.y * world.width + agent.x;
+    agent.explorationPublishedCount = 1;
+    agent.explorationPhase = "returning";
 
     const restored = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1000)));
     expect(restored.world.agents[0]?.exploredTiles).toEqual(agent.exploredTiles);
     expect(restored.world.agents[0]?.explorationTarget).toEqual(agent.explorationTarget);
     expect(restored.world.agents[0]?.explorationComplete).toBe(false);
     expect(restored.world.agents[0]?.explorationRecordIndex).toBe(agent.explorationRecordIndex);
+    expect(restored.world.agents[0]?.explorationPublishedCount).toBe(1);
+    expect(restored.world.agents[0]?.explorationPhase).toBe("returning");
     world.exploredTiles = [start.y * world.width + start.x];
     const withSharedMap = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1001)));
     expect(withSharedMap.world.exploredTiles).toEqual(world.exploredTiles);
+  });
+
+  it("does not persist temporary worksite reservations", () => {
+    const { world, start } = makeSavedWorld();
+    world.agents = createStarterAgents(world, 1);
+    const agent = world.agents[0];
+    if (!agent) throw new Error("Test worker was not created");
+    world.workReservations = [{
+      id: "resource:wood-node",
+      agentId: agent.id,
+      kind: "resource",
+      targetId: "wood-node",
+      x: 3,
+      y: 4
+    }];
+
+    const save = createWorldSave(world, start, 1000);
+    expect(save.world.workReservations).toBeUndefined();
+    const restored = parseWorldSave(serializeWorldSave(save));
+    expect(restored.world.workReservations).toBeUndefined();
   });
 
   it("round-trips prepared and growing fields plus the remaining seed reserve", () => {
@@ -136,7 +161,11 @@ describe("versioned world saves", () => {
   it("upgrades older version-one saves that predate fish inventory", () => {
     const { world, start } = makeSavedWorld();
     world.agents = createStarterAgents(world, 2);
-    const legacy = createWorldSave(world, start, 1000);
+    const legacy = JSON.parse(serializeWorldSave(createWorldSave(world, start, 1000))) as {
+      schemaVersion: number;
+      world: WorldState;
+    };
+    legacy.schemaVersion = 1;
     for (const agent of legacy.world.agents) {
       delete (agent.inventory as Partial<typeof agent.inventory>).fish;
     }
@@ -152,7 +181,7 @@ describe("versioned world saves", () => {
       delete agent.explorationRecordIndex;
     }
 
-    const restored = parseWorldSave(serializeWorldSave(legacy));
+    const restored = parseWorldSave(JSON.stringify(legacy));
 
     expect(restored.world.agents).toHaveLength(2);
     expect(restored.world.agents.every((agent) => agent.inventory.fish === 0)).toBe(true);
@@ -165,6 +194,8 @@ describe("versioned world saves", () => {
     expect(restored.world.agents.every((agent) => agent.explorationTarget === null)).toBe(true);
     expect(restored.world.agents.every((agent) => agent.explorationComplete === false)).toBe(true);
     expect(restored.world.agents.every((agent) => agent.explorationRecordIndex === -1)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.explorationPublishedCount === 0)).toBe(true);
+    expect(restored.world.agents.every((agent) => agent.explorationPhase === "idle")).toBe(true);
     expect(restored.world.exploredTiles).toEqual([]);
   });
 

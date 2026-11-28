@@ -1,5 +1,4 @@
-import type { Agent, AgentGoal, AgentRole, Building, FarmPlot, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
-import { ROLE_VISUALS } from "../core/role-visuals";
+import type { Agent, AgentGoal, Building, FarmPlot, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -16,6 +15,7 @@ export interface RenderLayers {
   stockpile?: boolean;
   resourceDensity?: boolean;
   activities?: boolean;
+  knowledge?: boolean;
   startingPoint?: GridPoint;
   selectedAgentId?: string | null;
   selectedAgentIds?: readonly string[];
@@ -665,7 +665,6 @@ function drawStockpile(
 function drawAgentSprite(
   context: CanvasRenderingContext2D,
   position: GridPoint,
-  role: AgentRole,
   selected: boolean,
   moving: boolean,
   walkPhase: number,
@@ -715,7 +714,7 @@ function drawAgentSprite(
   context.lineTo(x + 0.62 + legSwing, y + 0.82);
   context.stroke();
 
-  context.fillStyle = ROLE_VISUALS[role].color;
+  context.fillStyle = "#879783";
   context.beginPath();
   context.ellipse(x + 0.5, y + 0.53 - bob, 0.19, 0.24, 0, 0, Math.PI * 2);
   context.fill();
@@ -732,21 +731,6 @@ function drawAgentSprite(
 
   context.restore();
 
-  // Keep the occupation letter upright even when the inhabitant faces sideways.
-  context.save();
-  context.fillStyle = ROLE_VISUALS[role].color;
-  context.strokeStyle = "#17221c";
-  context.lineWidth = 0.045;
-  context.beginPath();
-  context.arc(position.x + 0.5, position.y + 0.02 - bob, 0.2, 0, Math.PI * 2);
-  context.fill();
-  context.stroke();
-  context.fillStyle = "#17221c";
-  context.font = "bold 0.23px sans-serif";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(ROLE_VISUALS[role].symbol, position.x + 0.5, position.y + 0.02 - bob);
-  context.restore();
 }
 
 function getCargoColour(agent: Agent): string | null {
@@ -782,7 +766,7 @@ function drawAgentClusters(
     const selected = cluster.some((entry) => selectedIds.has(entry.agent.id));
 
     if (cluster.length === 1) {
-      context.fillStyle = selected ? "#e5d5a3" : ROLE_VISUALS[cluster[0]!.agent.role].color;
+      context.fillStyle = selected ? "#e5d5a3" : "#b9b39b";
       context.beginPath();
       context.arc(centerX, centerY, 0.32, 0, Math.PI * 2);
       context.fill();
@@ -791,18 +775,11 @@ function drawAgentClusters(
       context.beginPath();
       context.arc(centerX, centerY, 0.32, 0, Math.PI * 2);
       context.fill();
-      const roleCounts = new Map<AgentRole, number>();
-      for (const entry of cluster) roleCounts.set(entry.agent.role, (roleCounts.get(entry.agent.role) ?? 0) + 1);
-      let angle = -Math.PI / 2;
-      for (const [role, count] of roleCounts) {
-        const nextAngle = angle + (count / cluster.length) * Math.PI * 2;
-        context.strokeStyle = ROLE_VISUALS[role].color;
-        context.lineWidth = 0.13;
-        context.beginPath();
-        context.arc(centerX, centerY, 0.38, angle, nextAngle);
-        context.stroke();
-        angle = nextAngle;
-      }
+      context.strokeStyle = selected ? "#e5d5a3" : "#b9b39b";
+      context.lineWidth = 0.13;
+      context.beginPath();
+      context.arc(centerX, centerY, 0.38, 0, Math.PI * 2);
+      context.stroke();
       context.fillStyle = "#e5e7d9";
       context.font = "bold 0.3px sans-serif";
       context.textAlign = "center";
@@ -858,7 +835,6 @@ function drawAgents(
     drawAgentSprite(
       context,
       position,
-      agent.role,
       selectedIds.has(agent.id),
       motion?.isMoving(agent.id) ?? false,
       motion?.getWalkCycle(agent.id) ?? 0,
@@ -1120,6 +1096,74 @@ export class CanvasWorldRenderer {
   private terrainTiles: Tile[][] | null = null;
   private baseTerrainCanvas: HTMLCanvasElement | null = null;
   private readonly terrainDetailChunks = new Map<string, HTMLCanvasElement>();
+  private knowledgeWorld: WorldState | null = null;
+  private knowledgeSharedSource: number[] | null = null;
+  private knowledgeSharedLength = -1;
+  private knowledgeAgentSources: Array<{ agent: Agent; source: number[] | undefined; length: number }> = [];
+  private knowledgeCanvas: HTMLCanvasElement | null = null;
+
+  private ensureKnowledgeOverlay(world: WorldState): HTMLCanvasElement | null {
+    if (typeof document === "undefined") return null;
+    const sharedSource = world.exploredTiles ?? [];
+    const livingAgents = world.agents.filter((agent) => agent.alive);
+    const cacheMatches = this.knowledgeWorld === world &&
+      this.knowledgeSharedSource === sharedSource &&
+      this.knowledgeSharedLength === sharedSource.length &&
+      this.knowledgeAgentSources.length === livingAgents.length &&
+      livingAgents.every((agent, index) => {
+        const prior = this.knowledgeAgentSources[index];
+        const source = agent.exploredTiles;
+        return prior?.agent === agent && prior.source === source && prior.length === (source?.length ?? 0);
+      });
+    if (cacheMatches && this.knowledgeCanvas) return this.knowledgeCanvas;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = world.width;
+    canvas.height = world.height;
+    const offscreen = canvas.getContext("2d");
+    if (!offscreen) return null;
+    const shared = new Set(sharedSource);
+    const personal = new Set<number>();
+    this.knowledgeAgentSources = livingAgents.map((agent) => ({
+      agent,
+      source: agent.exploredTiles,
+      length: agent.exploredTiles?.length ?? 0
+    }));
+    for (const agent of livingAgents) {
+      for (const index of agent.exploredTiles ?? []) {
+        if (!shared.has(index)) personal.add(index);
+      }
+    }
+
+    const image = offscreen.createImageData(world.width, world.height);
+    for (let index = 0; index < world.width * world.height; index += 1) {
+      const offset = index * 4;
+      const colour = shared.has(index)
+        ? [91, 130, 93, 72]
+        : personal.has(index)
+          ? [176, 132, 69, 150]
+          : [8, 14, 11, 226];
+      image.data[offset] = colour[0] ?? 0;
+      image.data[offset + 1] = colour[1] ?? 0;
+      image.data[offset + 2] = colour[2] ?? 0;
+      image.data[offset + 3] = colour[3] ?? 0;
+    }
+    offscreen.putImageData(image, 0, 0);
+    this.knowledgeWorld = world;
+    this.knowledgeSharedSource = sharedSource;
+    this.knowledgeSharedLength = sharedSource.length;
+    this.knowledgeCanvas = canvas;
+    return canvas;
+  }
+
+  private drawKnowledgeOverlay(world: WorldState, context: CanvasRenderingContext2D): void {
+    const overlay = this.ensureKnowledgeOverlay(world);
+    if (!overlay || typeof context.drawImage !== "function") return;
+    context.save();
+    context.imageSmoothingEnabled = false;
+    context.drawImage(overlay, 0, 0);
+    context.restore();
+  }
 
   private getWoodQuantities(world: WorldState): ReadonlyMap<string, number> {
     if (this.woodLookupTick !== world.tick) {
@@ -1281,6 +1325,7 @@ export class CanvasWorldRenderer {
     }
 
     drawFarmPlots(context, world.farmPlots ?? [], bounds, camera.zoom);
+    if (layers.knowledge) this.drawKnowledgeOverlay(world, context);
 
     if (layers.buildings !== false) {
       drawBuildings(context, world.buildings, bounds, camera.zoom);

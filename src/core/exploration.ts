@@ -44,9 +44,7 @@ export function recordAgentExploration(world: WorldState, agent: Agent): boolean
   const radius = Math.max(0, Math.floor(agent.sightRadius ?? 7));
   const visible = computeVisibleTiles(world, { x: agent.x, y: agent.y }, radius);
   const personalList = agent.exploredTiles ?? (agent.exploredTiles = []);
-  const settlementList = world.exploredTiles ?? (world.exploredTiles = []);
   const personal = getKnownTiles(agent, personalList, agentKnowledge);
-  const shared = getKnownTiles(world, settlementList, settlementKnowledge);
   let discovered = false;
   for (const point of visible) {
     const index = point.y * world.width + point.x;
@@ -56,15 +54,29 @@ export function recordAgentExploration(world: WorldState, agent: Agent): boolean
       personal.size = personalList.length;
       discovered = true;
     }
-    if (!shared.values.has(index)) {
-      shared.values.add(index);
-      settlementList.push(index);
-      shared.size = settlementList.length;
-    }
   }
   agent.explorationRecordIndex = originIndex;
   if (discovered) agent.explorationComplete = false;
   return discovered;
+}
+
+/** Publish private field notes to the settlement map when the inhabitant returns home. */
+export function publishAgentExploration(world: WorldState, agent: Agent): number {
+  const personalList = agent.exploredTiles ?? (agent.exploredTiles = []);
+  const settlementList = world.exploredTiles ?? (world.exploredTiles = []);
+  const shared = getKnownTiles(world, settlementList, settlementKnowledge);
+  const start = Math.min(personalList.length, Math.max(0, agent.explorationPublishedCount ?? 0));
+  let published = 0;
+  for (let index = start; index < personalList.length; index += 1) {
+    const tileIndex = personalList[index];
+    if (tileIndex === undefined || shared.values.has(tileIndex)) continue;
+    shared.values.add(tileIndex);
+    settlementList.push(tileIndex);
+    shared.size = settlementList.length;
+    published += 1;
+  }
+  agent.explorationPublishedCount = personalList.length;
+  return published;
 }
 
 /** Find the closest walkable tile outside this agent's remembered line of sight. */
@@ -130,4 +142,20 @@ export function findNearestUnexploredRoute(
   agent.explorationComplete = true;
   agent.explorationTarget = null;
   return null;
+}
+
+export type TileKnowledgeState = "unknown" | "personal" | "shared";
+
+/** The settlement's public map, with private discoveries shown separately. */
+export function getTileKnowledgeState(world: WorldState, tileIndex: number): TileKnowledgeState {
+  if (getKnownTiles(world, world.exploredTiles ?? (world.exploredTiles = []), settlementKnowledge).values.has(tileIndex)) {
+    return "shared";
+  }
+  for (const agent of world.agents) {
+    if (!agent.alive) continue;
+    if (getKnownTiles(agent, agent.exploredTiles ?? (agent.exploredTiles = []), agentKnowledge).values.has(tileIndex)) {
+      return "personal";
+    }
+  }
+  return "unknown";
 }

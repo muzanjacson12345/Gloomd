@@ -15,6 +15,8 @@ import type { MapDragRect } from "../ui/map-input";
 import { createAppShell } from "../ui/app-shell";
 import { updateHud } from "../ui/hud";
 import { renderAgentInspector } from "../ui/agent-inspector";
+import { findWorldObjectAtPoint, renderWorldObjectInspector } from "../ui/world-inspector";
+import type { WorldObjectSelection } from "../ui/world-inspector";
 import { renderEventLog } from "../ui/event-log";
 import { renderAgentActivity } from "../ui/agent-activity";
 import { selectAgentsInWorldRect } from "../ui/selection";
@@ -41,6 +43,7 @@ type MapLayerPreferences = {
   stockpile: boolean;
   resourceDensity: boolean;
   activities: boolean;
+  knowledge: boolean;
 };
 
 function loadMapLayerPreferences(): MapLayerPreferences {
@@ -51,7 +54,8 @@ function loadMapLayerPreferences(): MapLayerPreferences {
     buildings: true,
     stockpile: true,
     resourceDensity: false,
-    activities: false
+    activities: false,
+    knowledge: true
   };
   try {
     const stored = window.localStorage.getItem(LAYER_PREFERENCE_KEY);
@@ -135,6 +139,7 @@ function startWorld(
   let speed = 1;
   let selectedAgentId: string | null = null;
   let selectedAgentIds = new Set<string>();
+  let selectedWorldObject: WorldObjectSelection | null = null;
   let followingAgentId: string | null = null;
   let selectionMode = false;
   let selectionRect: WorldSelectionRect | null = null;
@@ -252,6 +257,7 @@ function startWorld(
   };
 
   const setSelectedAgents = (agentIds: readonly string[]): void => {
+    selectedWorldObject = null;
     selectedAgentIds = new Set(
       agentIds.filter((id) => world.agents.some((agent) => agent.id === id && agent.alive))
     );
@@ -272,6 +278,20 @@ function startWorld(
 
   const selectAgent = (agentId: string | null): void => {
     setSelectedAgents(agentId ? [agentId] : []);
+  };
+
+  const selectWorldObject = (selection: WorldObjectSelection): void => {
+    selectedWorldObject = selection;
+    selectedAgentIds.clear();
+    selectedAgentId = null;
+    followingAgentId = null;
+    selectionMode = false;
+    selectionRect = null;
+    renderAgentInspector(shell, null);
+    renderWorldObjectInspector(shell, world, selection);
+    shell.activityPanel.hidden = true;
+    updateReadouts();
+    draw();
   };
 
   const screenRectToWorld = (rect: MapDragRect): WorldSelectionRect => {
@@ -343,8 +363,10 @@ function startWorld(
         );
         if (selectionMode) {
           toggleAgentInGroup(agent?.id ?? null);
+        } else if (agent) {
+          selectAgent(agent.id);
         } else {
-          selectAgent(agent?.id ?? null);
+          selectWorldObject(findWorldObjectAtPoint(world, worldPoint));
         }
       },
       onSelectionPreview(rect) {
@@ -666,13 +688,14 @@ function startWorld(
       lastHudTick = world.tick;
       updateReadouts();
     }
-    if (selectedAgentId && world.tick !== lastInspectorTick) {
+    if ((selectedAgentId || selectedWorldObject) && world.tick !== lastInspectorTick) {
       lastInspectorTick = world.tick;
-      const current = selectedAgent();
-      if (current) {
-        renderAgentInspector(shell, current);
+      if (selectedWorldObject) {
+        renderWorldObjectInspector(shell, world, selectedWorldObject);
       } else {
-        selectAgent(null);
+        const current = selectedAgent();
+        if (current) renderAgentInspector(shell, current);
+        else selectAgent(null);
       }
     }
 
