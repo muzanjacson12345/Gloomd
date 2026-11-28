@@ -50,7 +50,7 @@ describe("communal stockpile accounting", () => {
 
   it("rejects invalid bundle amounts without mutation", () => {
     const world = createWorld(18, { width: 16, height: 16 });
-    world.stockpile.inventory = { wood: 7, stone: 4 };
+    world.stockpile.inventory = { wood: 7, stone: 4, food: 0, fish: 0 };
 
     expect(withdrawMaterialBundle(world, { wood: 1.5, stone: 2 })).toBe(false);
     expect(withdrawMaterialBundle(world, { wood: -1, stone: 2 })).toBe(false);
