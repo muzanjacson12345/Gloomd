@@ -59,7 +59,15 @@ function shade(hex: string, amount: number): string {
 }
 
 /** The same base palette is used by the main map and the minimap. */
+const terrainColourCache = new WeakMap<Tile, Map<string, { signature: string; colour: string }>>();
+
 export function getTerrainBaseColour(tile: Tile, x: number, y: number): string {
+  const positionKey = `${x}:${y}`;
+  const signature = `${tile.terrain}|${tile.waterKind}|${tile.moisture}|${tile.elevation}`;
+  let tileCache = terrainColourCache.get(tile);
+  const cached = tileCache?.get(positionKey);
+  if (cached?.signature === signature) return cached.colour;
+
   const moisture = clamp(tile.moisture);
   const elevation = clamp(tile.elevation);
   let base: string;
@@ -95,5 +103,11 @@ export function getTerrainBaseColour(tile: Tile, x: number, y: number): string {
   }
 
   const variation = (terrainVariation(x, y, 17) - 0.5) * 0.075;
-  return shade(base, variation);
+  const colour = shade(base, variation);
+  if (!tileCache) {
+    tileCache = new Map<string, { signature: string; colour: string }>();
+    terrainColourCache.set(tile, tileCache);
+  }
+  tileCache.set(positionKey, { signature, colour });
+  return colour;
 }
