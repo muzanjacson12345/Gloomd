@@ -65,24 +65,28 @@ export function createStarterAgents(
 
     const number = index + 1;
     const name = STARTER_NAMES[index % STARTER_NAMES.length] ?? "Ari";
-    const role: Exclude<AgentRole, "generalist"> = number % 5 === 0
-      ? "builder"
-      : number % 5 === 2
-        ? "hauler"
-        : number % 7 === 4
-          ? "fisher"
-          : "forager";
+    const role: Exclude<AgentRole, "generalist"> = number % 12 === 1
+      ? "farmer"
+      : number % 5 === 0
+        ? "builder"
+        : number % 5 === 2
+          ? "hauler"
+          : number % 7 === 4
+            ? "fisher"
+            : "forager";
     const skills: AgentSkills = {
       foraging: random.int(0, 8),
       fishing: random.int(0, 8),
       hauling: random.int(0, 8),
-      building: random.int(0, 8)
+      building: random.int(0, 8),
+      farming: random.int(0, 8)
     };
     const starterSpecialties: Record<Exclude<AgentRole, "generalist">, keyof AgentSkills> = {
       forager: "foraging",
       fisher: "fishing",
       hauler: "hauling",
-      builder: "building"
+      builder: "building",
+      farmer: "farming"
     };
     skills[starterSpecialties[role]] = random.int(18, 28);
 
@@ -103,7 +107,7 @@ export function createStarterAgents(
       skills,
       roleChangedTick: 0,
       currentGoal: "explore",
-      perceptionRadius: role === "hauler" ? 24 : role === "fisher" ? 18 : 12,
+      perceptionRadius: role === "hauler" ? 24 : role === "fisher" ? 18 : role === "farmer" ? 16 : 12,
       sightRadius: 7,
       destination: null,
       plannedPath: [],

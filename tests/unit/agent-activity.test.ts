@@ -20,7 +20,12 @@ describe("readable inhabitant activity", () => {
     ["build_shelter", "Building a shelter"],
     ["search_resources", "Searching for building materials"],
     ["wait_for_materials", "Waiting for building supplies"],
-    ["find_build_site", "Finding a building site"]
+    ["find_build_site", "Finding a building site"],
+    ["prepare_field", "Preparing a field"],
+    ["plant_crop", "Planting crops"],
+    ["tend_crop", "Tending crops"],
+    ["harvest_crop", "Harvesting crops"],
+    ["wait_for_crops", "Waiting for crops to grow"]
   ];
 
   it.each(cases)("translates %s into a clear current activity", (goal, label) => {

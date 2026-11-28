@@ -13,6 +13,8 @@ function makeWorld(): WorldState {
     }
   }
   world.resources = [];
+  world.farmPlots = [];
+  world.farmSeedBank = 0;
   world.agents = [];
   world.stockpile.inventory = { wood: 0, stone: 0, food: 0, fish: 0 };
   return world;
@@ -28,7 +30,7 @@ function makeWorker(id: string, role: AgentRole, homeId: string | null): Agent {
     traits: { curiosity: 0.5, diligence: 0.7, sociability: 0.5 },
     needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
     inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
-    skills: { foraging: 0, fishing: 0, hauling: 0, building: 0 },
+    skills: { foraging: 0, fishing: 0, hauling: 0, building: 0, farming: 0 },
     roleChangedTick: 0,
     role,
     currentGoal: "explore",

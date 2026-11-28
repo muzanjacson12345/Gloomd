@@ -67,6 +67,23 @@ describe("versioned world saves", () => {
     expect(() => parseWorldSave(JSON.stringify(corrupted))).toThrow(/starting point/i);
     expect(() => parseWorldSave("{not json")).toThrow();
   });
+  it("round-trips prepared and growing fields plus the remaining seed reserve", () => {
+    const { world, start } = makeSavedWorld();
+    world.farmPlots = [{
+      id: "farm-save-test",
+      x: start.x,
+      y: start.y,
+      stage: "growing",
+      growthProgress: 123,
+      lastTendedTick: 456
+    }];
+    world.farmSeedBank = 5;
+
+    const restored = parseWorldSave(serializeWorldSave(createWorldSave(world, start, 1000)));
+    expect(restored.world.farmPlots).toEqual(world.farmPlots);
+    expect(restored.world.farmSeedBank).toBe(5);
+  });
+
   it("round-trips fisher roles and fish in resource nodes and agent inventories", () => {
     const { world, start } = makeSavedWorld();
     world.agents = createStarterAgents(world, 1);
@@ -105,6 +122,11 @@ describe("versioned world saves", () => {
     }
     delete (legacy.world.stockpile.inventory as Partial<typeof legacy.world.stockpile.inventory>).food;
     delete (legacy.world.stockpile.inventory as Partial<typeof legacy.world.stockpile.inventory>).fish;
+    delete legacy.world.farmPlots;
+    delete legacy.world.farmSeedBank;
+    for (const agent of legacy.world.agents) {
+      if (agent.skills) delete (agent.skills as Partial<typeof agent.skills>).farming;
+    }
 
     const restored = parseWorldSave(serializeWorldSave(legacy));
 
@@ -112,6 +134,9 @@ describe("versioned world saves", () => {
     expect(restored.world.agents.every((agent) => agent.inventory.fish === 0)).toBe(true);
     expect(restored.world.stockpile.inventory.food).toBe(0);
     expect(restored.world.stockpile.inventory.fish).toBe(0);
+    expect(restored.world.farmPlots).toEqual([]);
+    expect(restored.world.farmSeedBank).toBe(6);
+    expect(restored.world.agents.every((agent) => agent.skills?.farming === 0)).toBe(true);
   });
 
 });

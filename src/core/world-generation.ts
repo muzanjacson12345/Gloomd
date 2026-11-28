@@ -613,7 +613,9 @@ export function createWorld(seed: number, options: WorldOptions = {}): WorldStat
     buildings: [],
     agents: [],
     tick: 0,
-    events: []
+    events: [],
+    farmPlots: [],
+    farmSeedBank: 6
   };
 }
 

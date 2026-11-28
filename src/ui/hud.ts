@@ -28,7 +28,7 @@ export function updateHud(shell: AppShell, world: WorldState, playing: boolean, 
   shell.deathCount.textContent = deaths.toString().padStart(2, "0");
   shell.homeCount.textContent = completedHomes.toString().padStart(2, "0");
   shell.resourceSummary.textContent = `FOOD ${totals.wild_food} · FISH ${totals.fish} · WOOD ${totals.wood} · STONE ${totals.stone}`;
-  shell.stockpileSummary.textContent = `FOOD ${world.stockpile.inventory.food} · FISH ${world.stockpile.inventory.fish} · WOOD ${world.stockpile.inventory.wood} · STONE ${world.stockpile.inventory.stone}`;
+  shell.stockpileSummary.textContent = `FOOD ${world.stockpile.inventory.food} · FISH ${world.stockpile.inventory.fish} · SEEDS ${world.farmSeedBank ?? 0} · FIELDS ${world.farmPlots?.length ?? 0} · WOOD ${world.stockpile.inventory.wood} · STONE ${world.stockpile.inventory.stone}`;
   shell.zoomLevel.textContent = `${zoom.toFixed(1)}×`;
   shell.playButton.textContent = playing ? "Ⅱ  PAUSE" : "▶  RESUME";
   shell.playButton.setAttribute("aria-label", playing ? "Pause simulation" : "Resume simulation");

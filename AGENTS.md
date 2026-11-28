@@ -31,7 +31,7 @@ Use AgentArenaAI as the main visual and simulation reference, but distinguish ch
 - Survival timers, starvation/dehydration damage, gradual health recovery, death records, inventory drops, local resource recovery timers, visible forest clearings/saplings and the initial freshwater-bank fishing loop are now in source; keep tuning evidence-based and test all state changes.
 - One simulation tick is one displayed world minute. Current initial need rates are hunger +0.08/minute and thirst +0.12/minute; these are tuning values, not universal truths.
 - Fish resources are local patches, not full moving animal populations. Fishing/catching/eating is implemented; cooking, boats, fisheries management and ecosystem reproduction remain future work.
-- Adaptive workforce reviews now reassign available workers for food and shelter shortages on a calm review interval; a minimum tenure reduces churn. First skill growth exists for foraging, fishing, hauling and building. Do not mistake this for the future full occupation/economy system.
+- Adaptive workforce reviews now reassign available workers for food and shelter shortages on a calm review interval; a minimum tenure reduces churn. First skill growth exists for foraging, fishing, farming, hauling and building. A small autonomous crop loop uses real field state, limited seeds, gradual moisture-weighted growth, tending and harvested food; seasons, soil depletion, irrigation and crop varieties remain future work. Do not mistake this for the future full occupation/economy system.
 
 ## Development rules
 

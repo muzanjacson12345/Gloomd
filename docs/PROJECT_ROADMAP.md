@@ -110,7 +110,7 @@ Already implemented:
 - coast, ocean, freshwater, lakes, rivers, grassland, forests, hills and mountains;
 - moisture/elevation-informed deterministic terrain palette, zoom-gated shore/grass/forest/hill/mountain detail, shared main-map/minimap colours and resource/person/building key;
 - four-direction grid pathfinding and blocked terrain/buildings;
-- agents with hunger, thirst, energy, health, traits, inventories and simple forager/fisher/hauler/builder roles;
+- agents with hunger, thirst, energy, health, traits, inventories and simple forager/fisher/farmer/hauler/builder roles;
 - wild food gathering/eating, fishing and fish consumption, freshwater drinking and resting;
 - finite wood/stone resource nodes, wild-food recovery, and local fish patches on freshwater banks;
 - haulers that physically gather wood/stone and deliver them to one communal stockpile;
@@ -131,7 +131,8 @@ Implemented in source and verified by GitHub Actions on 2026-11-28 (manual brows
 - Hide UI / restore interface mode;
 - versioned world-save format v1, validated JSON export/import, IndexedDB rolling autosave, 15-second active-tab checkpoints, save on pause/hidden, and auto-resume on startup;
 - web-app manifest, SVG icon and service worker for offline app-shell caching;
-- adaptive workforce reviews that reassign available villagers in response to food and shelter shortages, with job-change events and initial experience growth for foraging, fishing, hauling and building.
+- adaptive workforce reviews that reassign available villagers in response to food and shelter shortages, with job-change events and initial experience growth for foraging, fishing, farming, hauling and building;
+- a first autonomous crop-farming cycle: farmers prepare suitable grassland near the stockpile, use a finite starter seed reserve, plant, tend, wait for moisture-weighted growth and harvest four food units while recycling one seed.
 
 Still not implemented:
 - directional walking, distinct carrying/work/rest animations and movement speed changes for heavy loads or difficult terrain;
@@ -202,17 +203,18 @@ Still not implemented:
 
 ### Stage 4 — jobs, logistics and production chains
 
-**Progress:** fishing and first adaptive worker/skill systems are implemented in source on 2026-11-28; fresh build/browser verification pending.
+**Progress:** fishing, first adaptive worker/skill systems and the initial autonomous farming cycle are implemented in source on 2026-11-28; fresh build/browser verification pending.
 
 1. [x] Freshwater-bank fish patches with limited quantities and local recovery.
 2. [x] Fisher role; agents can travel, catch fish, carry them and eat them.
 3. [x] Periodic workforce reviews reassign available villagers according to food reserves and shelter needs; tenure prevents constant job switching.
 4. [x] Initial experience growth and work-skill scoring for foraging, fishing, hauling and building.
-5. [ ] Expand goal selection and workforce planning to farming, hunting, crafting, cooking and multiple production chains.
-6. [ ] Farming and hunting.
-7. [ ] Food storage, cooking, spoilage and preservation.
-8. [ ] Crafting and tool durability.
-9. [ ] Multiple stockpiles, transport routes and storage capacity.
+5. [x] Add the first autonomous farming loop with finite seeds, prepared grassland plots, moisture-weighted crop growth, periodic tending, real harvest inventory and recycled seed.
+6. [ ] Expand farms with seasonal crops, irrigation, soil fertility, crop failures and more than one crop variety.
+7. [ ] Hunting and wildlife-based food production.
+8. [ ] Food storage, cooking, spoilage and preservation.
+9. [ ] Crafting and tool durability.
+10. [ ] Multiple stockpiles, transport routes and storage capacity.
 
 **Acceptance:** every input/output can be accounted for; production only occurs with materials and labour; the settlement's work priorities respond to shortages.
 

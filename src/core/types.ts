@@ -11,7 +11,7 @@ export type WaterKind = "none" | "ocean" | "freshwater";
 
 export type ResourceKind = "wild_food" | "fish" | "wood" | "stone";
 
-export type AgentRole = "forager" | "fisher" | "hauler" | "builder" | "generalist";
+export type AgentRole = "forager" | "fisher" | "farmer" | "hauler" | "builder" | "generalist";
 
 export type BuildingStatus = "under_construction" | "complete";
 
@@ -24,6 +24,7 @@ export interface AgentSkills {
   fishing: number;
   hauling: number;
   building: number;
+  farming: number;
 }
 export interface MaterialBundle {
   wood: number;
@@ -41,6 +42,17 @@ export interface Stockpile {
   y: number;
   inventory: StockpileInventory;
   capacityPerResource: number;
+}
+
+export type FarmPlotStage = "prepared" | "growing" | "ready";
+
+export interface FarmPlot {
+  id: string;
+  x: number;
+  y: number;
+  stage: FarmPlotStage;
+  growthProgress: number;
+  lastTendedTick: number;
 }
 
 export interface Building {
@@ -73,7 +85,12 @@ export type AgentGoal =
   | "search_resources"
   | "wait_for_materials"
   | "find_build_site"
-  | "build_shelter";
+  | "build_shelter"
+  | "prepare_field"
+  | "plant_crop"
+  | "tend_crop"
+  | "harvest_crop"
+  | "wait_for_crops";
 
 export interface GridPoint {
   x: number;
@@ -164,6 +181,8 @@ export interface WorldState {
   agents: Agent[];
   tick: number;
   events: WorldEvent[];
+  farmPlots?: FarmPlot[];
+  farmSeedBank?: number;
 }
 
 export interface WorldOptions {

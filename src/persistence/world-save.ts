@@ -1,4 +1,4 @@
-import type { Agent, AgentSkills, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
+import type { Agent, AgentSkills, FarmPlot, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
 
 export const WORLD_SAVE_FORMAT = "gloomd-world-save" as const;
 export const WORLD_SAVE_VERSION = 1 as const;
@@ -70,7 +70,7 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
   const needNames = ["hunger", "thirst", "energy", "health"] as const;
   const inventoryNames = ["food", "fish", "wood", "stone"] as const;
   const traitNames = ["curiosity", "diligence", "sociability"] as const;
-  const skillNames = ["foraging", "fishing", "hauling", "building"] as const;
+  const skillNames = ["foraging", "fishing", "hauling", "building", "farming"] as const;
 
   return typeof value.id === "string" &&
     typeof value.name === "string" &&
@@ -82,7 +82,7 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     traitNames.every((name) => isFiniteNumber(traits[name]) && traits[name] >= 0 && traits[name] <= 1) &&
     isRecord(skills) && skillNames.every((name) => isFiniteNumber(skills[name]) && skills[name] >= 0 && skills[name] <= 100) &&
     (value.roleChangedTick === undefined || (isInteger(value.roleChangedTick) && value.roleChangedTick >= 0)) &&
-    ["forager", "fisher", "hauler", "builder", "generalist"].includes(String(value.role)) &&
+    ["forager", "fisher", "farmer", "hauler", "builder", "generalist"].includes(String(value.role)) &&
     typeof value.currentGoal === "string" &&
     isFiniteNumber(value.perceptionRadius) && value.perceptionRadius >= 0 &&
     (value.sightRadius === undefined || (isFiniteNumber(value.sightRadius) && value.sightRadius >= 0)) &&
@@ -97,6 +97,16 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     typeof value.alive === "boolean" &&
     (value.homeId === null || typeof value.homeId === "string") &&
     (value.buildingId === null || typeof value.buildingId === "string");
+}
+
+function isFarmPlot(value: unknown, width: number, height: number): value is FarmPlot {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" &&
+    isInteger(value.x) && value.x >= 0 && value.x < width &&
+    isInteger(value.y) && value.y >= 0 && value.y < height &&
+    ["prepared", "growing", "ready"].includes(String(value.stage)) &&
+    isFiniteNumber(value.growthProgress) && value.growthProgress >= 0 && value.growthProgress <= 360 &&
+    isInteger(value.lastTendedTick) && value.lastTendedTick >= 0;
 }
 
 function isWorldState(value: unknown): value is WorldState {
@@ -117,6 +127,10 @@ function isWorldState(value: unknown): value is WorldState {
 
   if (!Array.isArray(value.agents) ||
       !value.agents.every((agent) => isAgent(agent, width, height))) return false;
+  if (value.farmPlots !== undefined &&
+      (!Array.isArray(value.farmPlots) || !value.farmPlots.every((plot) => isFarmPlot(plot, width, height)))) return false;
+  if (value.farmSeedBank !== undefined &&
+      (!isInteger(value.farmSeedBank) || value.farmSeedBank < 0 || value.farmSeedBank > 24)) return false;
 
   if (!Array.isArray(value.buildings) || !value.buildings.every((building) => {
     if (!isRecord(building)) return false;
@@ -196,6 +210,9 @@ function migrateWorldSave(parsed: unknown): unknown {
   const migrated = JSON.parse(JSON.stringify(parsed)) as unknown;
   if (!isRecord(migrated) || !isRecord(migrated.world)) return migrated;
 
+  if (!Array.isArray(migrated.world.farmPlots)) migrated.world.farmPlots = [];
+  if (!isInteger(migrated.world.farmSeedBank) || migrated.world.farmSeedBank < 0) migrated.world.farmSeedBank = 6;
+
   const stockpile = migrated.world.stockpile;
   if (isRecord(stockpile) && isRecord(stockpile.inventory)) {
     if (stockpile.inventory.food === undefined) stockpile.inventory.food = 0;
@@ -206,8 +223,9 @@ function migrateWorldSave(parsed: unknown): unknown {
     for (const agent of migrated.world.agents) {
       if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
       if (agent.inventory.fish === undefined) agent.inventory.fish = 0;
+      if (isRecord(agent.skills) && agent.skills.farming === undefined) agent.skills.farming = 0;
       if (!isRecord(agent.skills)) {
-        const skills: AgentSkills = { foraging: 0, fishing: 0, hauling: 0, building: 0 };
+        const skills: AgentSkills = { foraging: 0, fishing: 0, hauling: 0, building: 0, farming: 0 };
         const roleSkill: keyof AgentSkills | undefined = agent.role === "forager"
           ? "foraging"
           : agent.role === "fisher"
@@ -216,7 +234,9 @@ function migrateWorldSave(parsed: unknown): unknown {
               ? "hauling"
               : agent.role === "builder"
                 ? "building"
-                : undefined;
+                : agent.role === "farmer"
+                  ? "farming"
+                  : undefined;
         if (roleSkill) skills[roleSkill] = 18;
         agent.skills = skills;
       }

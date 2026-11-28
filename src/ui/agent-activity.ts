@@ -20,7 +20,12 @@ const GOAL_LABELS: Record<AgentGoal, string> = {
   search_resources: "Searching for building materials",
   wait_for_materials: "Waiting for building supplies",
   find_build_site: "Finding a building site",
-  build_shelter: "Building a shelter"
+  build_shelter: "Building a shelter",
+  prepare_field: "Preparing a field",
+  plant_crop: "Planting crops",
+  tend_crop: "Tending crops",
+  harvest_crop: "Harvesting crops",
+  wait_for_crops: "Waiting for crops to grow"
 };
 
 export function formatAgentGoal(goal: AgentGoal): string {

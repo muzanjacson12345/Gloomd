@@ -1,4 +1,4 @@
-import type { Agent, AgentGoal, Building, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
+import type { Agent, AgentGoal, Building, FarmPlot, GridPoint, ResourceKind, ResourceNode, Stockpile, Tile, WorldState } from "../core/types";
 import { getCappedPixelRatio, getVisibleWorldBounds } from "./geometry";
 import type { WorldBounds } from "./geometry";
 import type { Camera, ViewportSize } from "./camera";
@@ -476,6 +476,62 @@ function drawResourceDensity(
 }
 
 
+function drawFarmPlots(
+  context: CanvasRenderingContext2D,
+  farmPlots: readonly FarmPlot[],
+  bounds: WorldBounds,
+  zoom: number
+): void {
+  if (zoom < 2) return;
+  for (const plot of farmPlots) {
+    if (!isInsideBounds(plot.x, plot.y, bounds)) continue;
+    const x = plot.x, y = plot.y;
+    if (zoom < 4) {
+      context.fillStyle = plot.stage === "ready" ? "#c5a45f" : plot.stage === "growing" ? "#77966b" : "#806d50";
+      context.globalAlpha = 0.85;
+      context.fillRect(x + 0.22, y + 0.22, 0.56, 0.56);
+      context.globalAlpha = 1;
+      continue;
+    }
+    context.save();
+    context.fillStyle = "#766344";
+    context.fillRect(x + 0.08, y + 0.12, 0.84, 0.76);
+    context.strokeStyle = "#a48a5e";
+    context.lineWidth = 0.055;
+    for (let row = 0; row < 3; row += 1) {
+      const lineY = y + 0.29 + row * 0.22;
+      context.beginPath();
+      context.moveTo(x + 0.15, lineY);
+      context.lineTo(x + 0.85, lineY);
+      context.stroke();
+    }
+    if (plot.stage !== "prepared") {
+      const ready = plot.stage === "ready";
+      context.strokeStyle = ready ? "#d6b65f" : "#83a76f";
+      context.fillStyle = ready ? "#d8bd70" : "#789c68";
+      context.lineWidth = 0.065;
+      for (let row = 0; row < 3; row += 1) {
+        for (let column = 0; column < 3; column += 1) {
+          const stemX = x + 0.25 + column * 0.25;
+          const stemY = y + 0.24 + row * 0.22;
+          context.beginPath();
+          context.moveTo(stemX, stemY + 0.1);
+          context.lineTo(stemX - 0.035, stemY - (ready ? 0.13 : 0.07));
+          context.moveTo(stemX, stemY + 0.04);
+          context.lineTo(stemX + 0.06, stemY - 0.015);
+          context.stroke();
+          if (ready) {
+            context.beginPath();
+            context.arc(stemX - 0.035, stemY - 0.13, 0.045, 0, Math.PI * 2);
+            context.fill();
+          }
+        }
+      }
+    }
+    context.restore();
+  }
+}
+
 function drawBuildings(
   context: CanvasRenderingContext2D,
   buildings: readonly Building[],
@@ -792,7 +848,12 @@ const ACTIVITY_COLOURS: Record<AgentGoal, string> = {
   search_resources: "#a2ad8d",
   wait_for_materials: "#a2ad8d",
   find_build_site: "#d2a46f",
-  build_shelter: "#d28e69"
+  build_shelter: "#d28e69",
+  prepare_field: "#987d54",
+  plant_crop: "#86a96d",
+  tend_crop: "#9bb77a",
+  harvest_crop: "#d1b05f",
+  wait_for_crops: "#9b9d83"
 };
 
 function drawAgentActivities(
@@ -1066,6 +1127,8 @@ export class CanvasWorldRenderer {
     if (layers.resources !== false) {
       drawResources(context, world.resources, bounds, camera.zoom);
     }
+
+    drawFarmPlots(context, world.farmPlots ?? [], bounds, camera.zoom);
 
     if (layers.buildings !== false) {
       drawBuildings(context, world.buildings, bounds, camera.zoom);

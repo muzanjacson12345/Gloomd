@@ -1,4 +1,5 @@
 import { createRandom } from "./random";
+import { advanceFarmPlots, canPrepareFarmPlot, FARM_TEND_INTERVAL_TICKS, getFarmPlots, getFarmSeedBank, harvestFarmPlot, MAX_FARM_PLOTS, plantFarmPlot, prepareFarmPlot, tendFarmPlot } from "./farming";
 import { takeResource } from "./resources";
 import { depositFoodToStockpile, depositToStockpile, withdrawFoodFromStockpile, withdrawMaterialBundle } from "./stockpile";
 import { findPath, isWalkableTile } from "./pathfinding";
@@ -7,6 +8,7 @@ import type {
   AgentRole,
   AgentSkills,
   Building,
+  FarmPlot,
   GridPoint,
   ResourceKind,
   ResourceNode,
@@ -33,6 +35,7 @@ const FOOD_BUFFER_PER_INHABITANT = 1;
 const JOB_REVIEW_INTERVAL_TICKS = 60;
 const MINIMUM_JOB_TENURE_TICKS = 120;
 const MAX_STORED_EVENTS = 120;
+const MAX_FARMING_DISTANCE_FROM_STOCKPILE = 18;
 
 interface Target {
   point: GridPoint;
@@ -528,9 +531,15 @@ function gatherMealUnit(
 }
 
 function deliverCarriedFood(world: WorldState, agent: Agent, emitted: WorldEvent[]): void {
+  if (agent.inventory.food <= 0 && agent.inventory.fish <= 0) return;
   const hasFood = agent.inventory.food > 0 && world.stockpile.inventory.food < world.stockpile.capacityPerResource;
   const hasFish = agent.inventory.fish > 0 && world.stockpile.inventory.fish < world.stockpile.capacityPerResource;
-  if (!hasFood && !hasFish) return;
+  agent.currentGoal = "deliver_food";
+  if (!hasFood && !hasFish) {
+    agent.destination = null;
+    agent.plannedPath = [];
+    return;
+  }
 
   const target = nearestStockpileAccess(world, agent);
   if (!target) {
@@ -580,6 +589,108 @@ function collectSharedRation(world: WorldState, agent: Agent, emitted: WorldEven
   return true;
 }
 
+function nearestFarmPlot(world: WorldState, agent: Agent, stage: FarmPlot["stage"], tendingOnly = false): (Target & { farmPlot: FarmPlot }) | null {
+  let best: (Target & { farmPlot: FarmPlot }) | null = null;
+  for (const farmPlot of getFarmPlots(world)) {
+    if (farmPlot.stage !== stage) continue;
+    if (tendingOnly && world.tick - farmPlot.lastTendedTick < FARM_TEND_INTERVAL_TICKS) continue;
+    const point = { x: farmPlot.x, y: farmPlot.y };
+    if (distance(agent, point) > agent.perceptionRadius) continue;
+    const path = findPath(world, agent, point);
+    if (path === null) continue;
+    if (!best || path.length < best.path.length ||
+        (path.length === best.path.length && farmPlot.id.localeCompare(best.farmPlot.id) < 0)) {
+      best = { point, path, farmPlot };
+    }
+  }
+  return best;
+}
+
+function nearestFarmableTile(world: WorldState, agent: Agent): Target | null {
+  const candidates: GridPoint[] = [];
+  for (let y = Math.max(0, world.stockpile.y - MAX_FARMING_DISTANCE_FROM_STOCKPILE);
+       y <= Math.min(world.height - 1, world.stockpile.y + MAX_FARMING_DISTANCE_FROM_STOCKPILE); y += 1) {
+    for (let x = Math.max(0, world.stockpile.x - MAX_FARMING_DISTANCE_FROM_STOCKPILE);
+         x <= Math.min(world.width - 1, world.stockpile.x + MAX_FARMING_DISTANCE_FROM_STOCKPILE); x += 1) {
+      const point = { x, y };
+      if (distance(point, world.stockpile) > MAX_FARMING_DISTANCE_FROM_STOCKPILE ||
+          distance(point, agent) > agent.perceptionRadius) continue;
+      if (canPrepareFarmPlot(world, point, agent.id)) candidates.push(point);
+    }
+  }
+  candidates.sort((a, b) =>
+    distance(agent, a) - distance(agent, b) ||
+    distance(a, world.stockpile) - distance(b, world.stockpile) ||
+    a.y - b.y || a.x - b.x
+  );
+  for (const point of candidates) {
+    const path = findPath(world, agent, point);
+    if (path !== null) return { point, path };
+  }
+  return null;
+}
+
+function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): void {
+  const foodNeeded = committedFoodUnits(world) < sharedFoodReserveTarget(world);
+  const ready = foodNeeded ? nearestFarmPlot(world, agent, "ready") : null;
+  if (ready) {
+    agent.currentGoal = "harvest_crop";
+    if (!moveToward(world, agent, ready)) return;
+    const harvested = harvestFarmPlot(world, ready.farmPlot.id);
+    if (harvested > 0) {
+      agent.inventory.food += harvested;
+      increaseSkill(agent, "farming", 0.5);
+      emit(world, emitted, agent, "crop_harvested",
+        `${agent.name} harvested ${harvested} meals from the field and saved a seed for the next planting.`);
+    }
+    return;
+  }
+
+  const prepared = getFarmSeedBank(world) > 0 ? nearestFarmPlot(world, agent, "prepared") : null;
+  if (prepared) {
+    agent.currentGoal = "plant_crop";
+    if (!moveToward(world, agent, prepared)) return;
+    if (plantFarmPlot(world, prepared.farmPlot.id)) {
+      increaseSkill(agent, "farming", 0.25);
+      emit(world, emitted, agent, "crop_planted", `${agent.name} planted a crop in a prepared field.`);
+    }
+    return;
+  }
+
+  const growing = nearestFarmPlot(world, agent, "growing", true);
+  if (growing) {
+    agent.currentGoal = "tend_crop";
+    if (!moveToward(world, agent, growing)) return;
+    if (tendFarmPlot(world, growing.farmPlot.id)) {
+      increaseSkill(agent, "farming", 0.15);
+      if (growing.farmPlot.stage === "ready") {
+        emit(world, emitted, null, "crop_ready", "A tended crop is ready to harvest.");
+      } else {
+        emit(world, emitted, agent, "crop_tended", `${agent.name} tended a growing field.`);
+      }
+    }
+    return;
+  }
+
+  if (getFarmSeedBank(world) > 0 && getFarmPlots(world).length < MAX_FARM_PLOTS) {
+    const site = nearestFarmableTile(world, agent);
+    if (site) {
+      agent.currentGoal = "prepare_field";
+      if (!moveToward(world, agent, site)) return;
+      const plot = prepareFarmPlot(world, site.point, agent.id);
+      if (plot) {
+        increaseSkill(agent, "farming", 0.25);
+        emit(world, emitted, agent, "field_prepared", `${agent.name} prepared a patch of grassland for planting.`);
+      }
+      return;
+    }
+  }
+
+  agent.currentGoal = "wait_for_crops";
+  agent.destination = null;
+  agent.plannedPath = [];
+}
+
 function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
   // Stable ordering makes the same world state produce the same building site.
   const candidates: readonly GridPoint[] = [
@@ -620,8 +731,8 @@ function hasShelterMaterials(world: WorldState): boolean {
 type WorkSkill = keyof AgentSkills;
 
 function increaseSkill(agent: Agent, skill: WorkSkill, amount: number): void {
-  const skills = agent.skills ?? { foraging: 0, fishing: 0, hauling: 0, building: 0 };
-  skills[skill] = Math.max(0, Math.min(100, skills[skill] + amount));
+  const skills = agent.skills ?? { foraging: 0, fishing: 0, hauling: 0, building: 0, farming: 0 };
+  skills[skill] = Math.max(0, Math.min(100, (skills[skill] ?? 0) + amount));
   agent.skills = skills;
 }
 
@@ -631,6 +742,7 @@ function skillForRole(role: AgentRole): WorkSkill | null {
     case "fisher": return "fishing";
     case "hauler": return "hauling";
     case "builder": return "building";
+    case "farmer": return "farming";
     case "generalist": return null;
   }
 }
@@ -683,6 +795,9 @@ function reviewWorkforce(world: WorldState, emitted: WorldEvent[]): void {
   const foodWorkers = foodDeficit > 0
     ? Math.min(living.length, Math.max(1, Math.ceil(foodDeficit / 4), Math.ceil(living.length * 0.3)))
     : 0;
+  const farmerWorkers = getFarmSeedBank(world) > 0 || getFarmPlots(world).length > 0
+    ? Math.min(2, Math.max(1, Math.ceil(living.length / 18)))
+    : 0;
   const reachableFishers = living.filter((agent) => agent.role === "fisher" && !remaining.has(agent)).length +
     available.filter((agent) => nearestFish(world, agent) !== null).length;
   const fisherWorkers = Math.min(Math.floor(foodWorkers / 4), reachableFishers);
@@ -717,6 +832,7 @@ function reviewWorkforce(world: WorldState, emitted: WorldEvent[]): void {
 
   fillRole("fisher", fisherWorkers, "the communal meal reserve is low and reachable fish are available",
     (agent) => nearestFish(world, agent) !== null);
+  fillRole("farmer", farmerWorkers, "the settlement has seeds and suitable land for growing food");
   fillRole("forager", Math.max(0, foodWorkers - fisherWorkers), "the communal meal reserve is below its target");
   fillRole("hauler", haulerWorkers, "the settlement needs wood or stone for shelter construction");
   fillRole("builder", builderWorkers, "stored materials and unhoused residents make shelter building possible");
@@ -975,6 +1091,11 @@ function stepAgent(
     return;
   }
 
+  if (agent.role === "farmer") {
+    workOnFarm(world, agent, emitted);
+    return;
+  }
+
   agent.currentGoal = "explore";
   explore(world, agent, random);
 }
@@ -1028,6 +1149,10 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
           );
         }
       }
+    }
+
+    for (const plot of advanceFarmPlots(world)) {
+      emit(world, emitted, null, "crop_ready", `A field at ${plot.x + 1}, ${plot.y + 1} is ready to harvest.`);
     }
 
     for (const agent of world.agents) {
