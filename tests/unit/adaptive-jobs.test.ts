@@ -69,8 +69,6 @@ describe("adaptive work allocation", () => {
 
     expect(world.agents.filter((agent) => agent.role === "forager")).toHaveLength(1);
     expect(world.agents.filter((agent) => agent.role === "generalist")).toHaveLength(1);
-    const assignedForager = world.agents.find((agent) => agent.role === "forager");
-    expect(assignedForager?.skills?.foraging).toBeGreaterThan(0);
     expect(world.events.some((event) => event.kind === "job_changed")).toBe(true);
     expect(world.events.some((event) => event.kind === "gather_food")).toBe(true);
   });
@@ -84,7 +82,7 @@ describe("adaptive work allocation", () => {
 
     stepWorld(world);
     expect(worker.role).toBe("hauler");
-    expect(world.events.some((event) => event.kind === "job_changed" && event.message.includes("materials"))).toBe(true);
+    expect(world.events.some((event) => event.kind === "job_changed" && event.message.includes("wood or stone"))).toBe(true);
 
     world.stockpile.inventory.wood = 5;
     world.stockpile.inventory.stone = 2;
@@ -95,6 +93,28 @@ describe("adaptive work allocation", () => {
     expect(worker.role).toBe("builder");
     expect(worker.buildingId).not.toBeNull();
     expect(world.events.some((event) => event.kind === "job_changed" && event.message.includes("building"))).toBe(true);
+  });
+
+  it("gains foraging experience when a forager actually gathers a resource", () => {
+    const world = makeWorld();
+    const worker = makeWorker("worker-a", "forager", "home-a");
+    worker.needs.hunger = 65;
+    world.agents.push(worker);
+    world.resources.push({
+      id: "meal-at-feet",
+      kind: "wild_food",
+      x: worker.x,
+      y: worker.y,
+      quantity: 2,
+      maxQuantity: 2,
+      regrowEveryTicks: 240
+    });
+
+    stepWorld(world);
+
+    expect(worker.skills?.foraging).toBeGreaterThan(0);
+    expect(worker.inventory.food).toBe(1);
+    expect(world.events.some((event) => event.kind === "gather_food")).toBe(true);
   });
 
   it("does not interrupt a recent assignment just because another job becomes slightly more useful", () => {
