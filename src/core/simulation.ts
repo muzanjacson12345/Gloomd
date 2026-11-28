@@ -1,6 +1,6 @@
 import { createRandom } from "./random";
 import { takeResource } from "./resources";
-import { depositToStockpile, withdrawMaterialBundle } from "./stockpile";
+import { depositFoodToStockpile, depositToStockpile, withdrawFoodFromStockpile, withdrawMaterialBundle } from "./stockpile";
 import { findPath, isWalkableTile } from "./pathfinding";
 import type {
   Agent,
@@ -27,6 +27,7 @@ const RESTORE_ENERGY = 20;
 const SHELTER_MATERIALS = { wood: 5, stone: 2 } as const;
 const SHELTER_WORK_TICKS = 12;
 const HAULER_LOAD_CAPACITY = 3;
+const FOOD_BUFFER_PER_INHABITANT = 1;
 const MAX_STORED_EVENTS = 120;
 
 interface Target {
@@ -464,6 +465,113 @@ function deliverCarriedMaterials(
   }
 }
 
+function sharedFoodUnits(world: WorldState): number {
+  return world.stockpile.inventory.food + world.stockpile.inventory.fish;
+}
+
+function committedFoodUnits(world: WorldState): number {
+  return sharedFoodUnits(world) + world.agents.reduce(
+    (total, agent) => total + (agent.alive ? agent.inventory.food + agent.inventory.fish : 0),
+    0
+  );
+}
+
+function sharedFoodReserveTarget(world: WorldState): number {
+  const livingPopulation = world.agents.filter((agent) => agent.alive).length;
+  return Math.min(world.stockpile.capacityPerResource, livingPopulation * FOOD_BUFFER_PER_INHABITANT);
+}
+
+/** Gather one real meal unit. A true result means the agent acted or is travelling. */
+function gatherMealUnit(
+  world: WorldState,
+  agent: Agent,
+  emitted: WorldEvent[]
+): boolean {
+  const fishTarget = agent.role === "fisher" ? nearestFish(world, agent) : null;
+  const target = fishTarget ?? nearestFood(world, agent);
+  if (!target?.resource) return false;
+
+  const caughtFish = target.resource.kind === "fish";
+  agent.currentGoal = caughtFish ? "seek_fish" : "seek_food";
+  if (!moveToward(world, agent, target)) return true;
+
+  const gathered = takeResource(world, target.resource.id, 1);
+  if (gathered <= 0) {
+    agent.currentGoal = "explore";
+    return true;
+  }
+
+  if (caughtFish) {
+    agent.inventory.fish += gathered;
+    agent.currentGoal = "fish";
+    emit(world, emitted, agent, "fish", agent.name + " caught " + gathered + " fish for the settlement.");
+  } else {
+    agent.inventory.food += gathered;
+    agent.currentGoal = "gather";
+    emit(world, emitted, agent, "gather_food", agent.name + " gathered " + gathered + " wild food for the settlement.");
+  }
+  agent.destination = { x: agent.x, y: agent.y };
+  agent.plannedPath = [];
+
+  if (target.resource.quantity === 0) {
+    const label = caughtFish ? "local fish" : "wild-food";
+    emit(world, emitted, null, "resource_depleted", "A " + label + " patch has been exhausted and must recover before it can be harvested again.");
+  }
+  return true;
+}
+
+function deliverCarriedFood(world: WorldState, agent: Agent, emitted: WorldEvent[]): void {
+  const hasFood = agent.inventory.food > 0 && world.stockpile.inventory.food < world.stockpile.capacityPerResource;
+  const hasFish = agent.inventory.fish > 0 && world.stockpile.inventory.fish < world.stockpile.capacityPerResource;
+  if (!hasFood && !hasFish) return;
+
+  const target = nearestStockpileAccess(world, agent);
+  if (!target) {
+    agent.currentGoal = "deliver_food";
+    return;
+  }
+  agent.currentGoal = "deliver_food";
+  if (!moveToward(world, agent, target)) return;
+
+  const food = depositFoodToStockpile(world, "food", agent.inventory.food);
+  const fish = depositFoodToStockpile(world, "fish", agent.inventory.fish);
+  agent.inventory.food -= food;
+  agent.inventory.fish -= fish;
+
+  if (food > 0 || fish > 0) {
+    const details = [
+      ...(food > 0 ? [food + " food"] : []),
+      ...(fish > 0 ? [fish + " fish"] : [])
+    ].join(" and ");
+    emit(world, emitted, agent, "deliver_food", agent.name + " stored " + details + " in the communal food reserve.");
+  }
+}
+
+/** Walk to shared storage and withdraw exactly one meal when stock exists. */
+function collectSharedRation(world: WorldState, agent: Agent, emitted: WorldEvent[]): boolean {
+  if (sharedFoodUnits(world) <= 0) return false;
+  const target = nearestStockpileAccess(world, agent);
+  if (!target) return false;
+
+  agent.currentGoal = "seek_shared_food";
+  if (!moveToward(world, agent, target)) return true;
+
+  let kind: "food" | "fish" = "food";
+  let collected = withdrawFoodFromStockpile(world, kind, 1);
+  if (collected === 0) {
+    kind = "fish";
+    collected = withdrawFoodFromStockpile(world, kind, 1);
+  }
+  if (collected <= 0) return false;
+
+  agent.inventory[kind] += collected;
+  agent.currentGoal = "collect_ration";
+  agent.destination = null;
+  agent.plannedPath = [];
+  emit(world, emitted, agent, "collect_ration", agent.name + " collected one " + kind + " ration from the communal stockpile.");
+  return true;
+}
+
 function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
   // Stable ordering makes the same world state produce the same building site.
   const candidates: readonly GridPoint[] = [
@@ -661,57 +769,12 @@ function stepAgent(
   }
 
   if (agent.needs.hunger >= NEED_THRESHOLD) {
-    const fishTarget = agent.role === "fisher" ? nearestFish(world, agent) : null;
-    const target = fishTarget ?? nearestFood(world, agent);
-    agent.currentGoal = target?.resource?.kind === "fish" ? "seek_fish" : "seek_food";
-
-    if (!target?.resource) {
+    if (collectSharedRation(world, agent, emitted)) return;
+    if (!gatherMealUnit(world, agent, emitted)) {
       if (applySurvivalDamage(world, agent, emitted)) return;
       agent.currentGoal = "explore";
       explore(world, agent, random);
       return;
-    }
-
-    if (moveToward(world, agent, target)) {
-      const gathered = takeResource(world, target.resource.id, 1);
-      if (gathered > 0) {
-        const caughtFish = target.resource.kind === "fish";
-        if (caughtFish) {
-          agent.inventory.fish += gathered;
-          agent.currentGoal = "fish";
-          emit(
-            world,
-            emitted,
-            agent,
-            "fish",
-            `${agent.name} caught ${gathered} fish at the freshwater bank.`
-          );
-        } else {
-          agent.inventory.food += gathered;
-          agent.currentGoal = "gather";
-          emit(
-            world,
-            emitted,
-            agent,
-            "gather_food",
-            `${agent.name} gathered ${gathered} wild food.`
-          );
-        }
-        agent.destination = { x: agent.x, y: agent.y };
-        agent.plannedPath = [];
-        if (target.resource.quantity === 0) {
-          const label = caughtFish ? "local fish" : "wild-food";
-          emit(
-            world,
-            emitted,
-            null,
-            "resource_depleted",
-            `A ${label} patch has been exhausted and must recover before it can be harvested again.`
-          );
-        }
-      } else {
-        agent.currentGoal = "explore";
-      }
     }
     if (applySurvivalDamage(world, agent, emitted)) return;
     return;
@@ -729,6 +792,23 @@ function stepAgent(
     return;
   }
 
+  // Food is a shared settlement supply. Carry it physically to the store when there is room.
+  if (agent.inventory.food > 0 || agent.inventory.fish > 0) {
+    deliverCarriedFood(world, agent, emitted);
+    if (agent.currentGoal === "deliver_food") return;
+  }
+
+  // Foragers and fishers maintain one stored ration per living inhabitant.
+  if (
+    (agent.role === "forager" || agent.role === "fisher") &&
+    committedFoodUnits(world) < sharedFoodReserveTarget(world)
+  ) {
+    if (!gatherMealUnit(world, agent, emitted)) {
+      agent.currentGoal = "explore";
+      explore(world, agent, random);
+    }
+    return;
+  }
   // Any carried building material must be delivered before another resource job.
   if (agent.inventory.wood > 0 || agent.inventory.stone > 0) {
     deliverCarriedMaterials(world, agent, random, emitted);
