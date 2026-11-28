@@ -263,7 +263,8 @@ function migrateWorldSave(parsed: unknown): unknown {
         if (roleSkill) skills[roleSkill] = 18;
         agent.skills = skills;
       }
-      if (!Array.isArray(agent.exploredTiles)) agent.exploredTiles = [];
+      const exploredTileList = Array.isArray(agent.exploredTiles) ? agent.exploredTiles : [];
+      if (!Array.isArray(agent.exploredTiles)) agent.exploredTiles = exploredTileList;
       if (agent.explorationTarget === undefined) agent.explorationTarget = null;
       if (typeof agent.explorationComplete !== "boolean") agent.explorationComplete = false;
       if (!isInteger(agent.explorationRecordIndex) || agent.explorationRecordIndex < -1) {
@@ -271,7 +272,7 @@ function migrateWorldSave(parsed: unknown): unknown {
       }
       if (!isInteger(agent.explorationPublishedCount) || agent.explorationPublishedCount < 0) {
         // Version-one exploration was already shared immediately.
-        agent.explorationPublishedCount = sourceVersion === 1 ? agent.exploredTiles.length : 0;
+        agent.explorationPublishedCount = sourceVersion === 1 ? exploredTileList.length : 0;
       }
       if (!["idle", "outbound", "returning"].includes(String(agent.explorationPhase))) {
         agent.explorationPhase = "idle";
