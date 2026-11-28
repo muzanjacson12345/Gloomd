@@ -4,6 +4,8 @@ import { depositFoodToStockpile, depositToStockpile, withdrawFoodFromStockpile, 
 import { findPath, isWalkableTile } from "./pathfinding";
 import type {
   Agent,
+  AgentRole,
+  AgentSkills,
   Building,
   GridPoint,
   ResourceKind,
@@ -28,6 +30,8 @@ const SHELTER_MATERIALS = { wood: 5, stone: 2 } as const;
 const SHELTER_WORK_TICKS = 12;
 const HAULER_LOAD_CAPACITY = 3;
 const FOOD_BUFFER_PER_INHABITANT = 1;
+const JOB_REVIEW_INTERVAL_TICKS = 60;
+const MINIMUM_JOB_TENURE_TICKS = 120;
 const MAX_STORED_EVENTS = 120;
 
 interface Target {
@@ -385,6 +389,7 @@ function gatherHaulerMaterial(
   }
 
   agent.inventory[kind] += gathered;
+  increaseSkill(agent, "hauling", 0.25);
   emit(
     world,
     emitted,
@@ -451,6 +456,7 @@ function deliverCarriedMaterials(
   agent.inventory.stone -= stone;
 
   if (wood > 0 || stone > 0) {
+    increaseSkill(agent, "hauling", 0.2);
     const details = [
       ...(wood > 0 ? [`${wood} wood`] : []),
       ...(stone > 0 ? [`${stone} stone`] : [])
@@ -501,6 +507,7 @@ function gatherMealUnit(
     return true;
   }
 
+  increaseSkill(agent, caughtFish ? "fishing" : "foraging", 0.25);
   if (caughtFish) {
     agent.inventory.fish += gathered;
     agent.currentGoal = "fish";
@@ -539,6 +546,7 @@ function deliverCarriedFood(world: WorldState, agent: Agent, emitted: WorldEvent
   agent.inventory.fish -= fish;
 
   if (food > 0 || fish > 0) {
+    increaseSkill(agent, "hauling", 0.15);
     const details = [
       ...(food > 0 ? [food + " food"] : []),
       ...(fish > 0 ? [fish + " fish"] : [])
@@ -607,6 +615,115 @@ function hasShelterMaterials(world: WorldState): boolean {
     world.stockpile.inventory.wood >= SHELTER_MATERIALS.wood &&
     world.stockpile.inventory.stone >= SHELTER_MATERIALS.stone
   );
+}
+
+type WorkSkill = keyof AgentSkills;
+
+function increaseSkill(agent: Agent, skill: WorkSkill, amount: number): void {
+  const skills = agent.skills ?? { foraging: 0, fishing: 0, hauling: 0, building: 0 };
+  skills[skill] = Math.max(0, Math.min(100, skills[skill] + amount));
+  agent.skills = skills;
+}
+
+function skillForRole(role: AgentRole): WorkSkill | null {
+  switch (role) {
+    case "forager": return "foraging";
+    case "fisher": return "fishing";
+    case "hauler": return "hauling";
+    case "builder": return "building";
+    case "generalist": return null;
+  }
+}
+
+function workScore(agent: Agent, role: AgentRole): number {
+  const skill = skillForRole(role);
+  const experience = skill ? (agent.skills?.[skill] ?? 0) : 0;
+  const incumbentBonus = agent.role === role ? 16 : 0;
+  return experience + agent.traits.diligence * 12 + agent.traits.curiosity * 3 + incumbentBonus;
+}
+
+function assignRole(
+  world: WorldState,
+  agent: Agent,
+  role: AgentRole,
+  reason: string,
+  emitted: WorldEvent[]
+): void {
+  if (agent.role === role) return;
+  const previous = agent.role;
+  agent.role = role;
+  agent.roleChangedTick = world.tick;
+  agent.currentGoal = "explore";
+  agent.destination = null;
+  agent.plannedPath = [];
+  emit(
+    world,
+    emitted,
+    agent,
+    "job_changed",
+    agent.name + " changed from " + previous + " to " + role + " because " + reason + "."
+  );
+}
+
+/** Reallocate available workers from real shortages, while active projects stay assigned. */
+function reviewWorkforce(world: WorldState, emitted: WorldEvent[]): void {
+  if (world.tick % JOB_REVIEW_INTERVAL_TICKS !== 0) return;
+
+  const living = world.agents.filter((agent) => agent.alive);
+  if (living.length === 0) return;
+
+  const available = living.filter((agent) =>
+    agent.buildingId === null &&
+    world.tick - (agent.roleChangedTick ?? 0) >= MINIMUM_JOB_TENURE_TICKS
+  );
+  const remaining = new Set(available);
+  const locked = living.filter((agent) => !remaining.has(agent));
+
+  const foodDeficit = Math.max(0, sharedFoodReserveTarget(world) - committedFoodUnits(world));
+  const foodWorkers = foodDeficit > 0
+    ? Math.min(living.length, Math.max(1, Math.ceil(foodDeficit / 4), Math.ceil(living.length * 0.3)))
+    : 0;
+  const reachableFishers = living.filter((agent) => agent.role === "fisher" && !remaining.has(agent)).length +
+    available.filter((agent) => nearestFish(world, agent) !== null).length;
+  const fisherWorkers = Math.min(Math.floor(foodWorkers / 4), reachableFishers);
+
+  const unhoused = living.filter((agent) => agent.homeId === null).length;
+  const shelterReady = unhoused > 0 && hasShelterMaterials(world);
+  const materialShortage = unhoused > 0 && !shelterReady && materialNeededBySettlement(world) !== null;
+  const haulerWorkers = materialShortage
+    ? Math.min(4, Math.max(1, Math.ceil(unhoused / 12)))
+    : 0;
+  const builderWorkers = shelterReady
+    ? Math.min(Math.max(1, Math.ceil(unhoused / 8)), Math.max(1, Math.ceil(living.length * 0.2)))
+    : 0;
+
+  const fillRole = (
+    role: AgentRole,
+    targetCount: number,
+    reason: string,
+    eligible: (agent: Agent) => boolean = () => true
+  ): void => {
+    const lockedCount = locked.filter((agent) => agent.role === role).length;
+    const slots = Math.max(0, targetCount - lockedCount);
+    if (slots === 0) return;
+    const candidates = [...remaining]
+      .filter(eligible)
+      .sort((left, right) => workScore(right, role) - workScore(left, role) || left.id.localeCompare(right.id));
+    for (const agent of candidates.slice(0, slots)) {
+      assignRole(world, agent, role, reason, emitted);
+      remaining.delete(agent);
+    }
+  };
+
+  fillRole("fisher", fisherWorkers, "the communal meal reserve is low and reachable fish are available",
+    (agent) => nearestFish(world, agent) !== null);
+  fillRole("forager", Math.max(0, foodWorkers - fisherWorkers), "the communal meal reserve is below its target");
+  fillRole("hauler", haulerWorkers, "the settlement needs wood or stone for shelter construction");
+  fillRole("builder", builderWorkers, "stored materials and unhoused residents make shelter building possible");
+
+  for (const agent of remaining) {
+    assignRole(world, agent, "generalist", "the current food and construction needs are covered", emitted);
+  }
 }
 
 function startShelter(
@@ -694,6 +811,7 @@ function workOnShelter(
   if (!moveToward(world, agent, target)) return;
 
   building.workDone = Math.min(building.workRequired, building.workDone + 1);
+  increaseSkill(agent, "building", 0.25);
   agent.needs.energy = Math.max(0, agent.needs.energy - 1);
 
   if (building.workDone >= building.workRequired) {
@@ -871,6 +989,7 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
 
   for (let index = 0; index < ticks; index += 1) {
     world.tick += 1;
+    reviewWorkforce(world, emitted);
 
     for (const resource of world.resources) {
       if (
