@@ -53,14 +53,48 @@ describe("world setup population selection", () => {
 
   it("summarizes land, water, forest and highland coverage from generated tiles", () => {
     const world = createWorld(20261128, { width: 64, height: 48 });
-    const summary = getWorldTerrainSummary(world);
+    for (const row of world.tiles) {
+      for (const tile of row) {
+        tile.terrain = "grassland";
+        tile.waterKind = "none";
+        tile.walkable = true;
+      }
+    }
+    for (let x = 0; x < 16; x += 1) {
+      const ocean = world.tiles[0]?.[x];
+      if (ocean) {
+        ocean.terrain = "water";
+        ocean.waterKind = "ocean";
+        ocean.walkable = false;
+      }
+      const lake = world.tiles[0]?.[x + 16];
+      if (lake) {
+        lake.terrain = "water";
+        lake.waterKind = "freshwater";
+        lake.walkable = false;
+      }
+      const river = world.tiles[0]?.[x + 32];
+      if (river) {
+        river.terrain = "river";
+        river.waterKind = "freshwater";
+        river.walkable = false;
+      }
+      const forest = world.tiles[1]?.[x];
+      if (forest) forest.terrain = "forest";
+      const hill = world.tiles[2]?.[x];
+      if (hill) {
+        hill.terrain = "hill";
+        hill.elevation = 0.82;
+      }
+    }
 
+    const summary = getWorldTerrainSummary(world);
     expect(summary.landPercent + summary.waterPercent).toBe(100);
     expect(summary.oceanPercent).toBeGreaterThan(0);
     expect(summary.freshwaterPercent).toBeGreaterThan(0);
     expect(summary.forestPercent).toBeGreaterThan(0);
     expect(summary.highlandPercent).toBeGreaterThan(0);
-    expect(summary.riverPercent).toBeGreaterThanOrEqual(0);
+    expect(summary.riverPercent).toBeGreaterThan(0);
     expect(summary.riverPercent).toBeLessThanOrEqual(summary.freshwaterPercent);
   });
 
@@ -70,6 +104,6 @@ describe("world setup population selection", () => {
     const description = describeStartingArea(world, start);
 
     expect(description).toMatch(/resource patches within 8 tiles/);
-    expect(description).toMatch(/freshwater (\\d+ tiles away|no freshwater found)/);
+    expect(description).toMatch(/freshwater (\d+ tiles away|no freshwater found)/);
   });
 });
