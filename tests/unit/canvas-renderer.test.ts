@@ -317,4 +317,31 @@ describe("Canvas world renderer", () => {
     });
     expect(calls.arc).toBe(0);
   });
+  it("marks actual stored food and fish at the communal stockpile", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    world.stockpile.inventory.food = 5;
+    world.stockpile.inventory.fish = 3;
+    const calls = { fillRect: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      save() {}, restore() {}, setTransform() {}, translate() {}, scale() {},
+      clearRect() {}, fillRect() { calls.fillRect += 1; },
+      beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc() {}, ellipse() {},
+      fill() {}, stroke() {}, strokeRect() {}, fillText() {}, setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 6);
+    const renderer = new CanvasWorldRenderer();
+    const viewport = { width: 96, height: 96 };
+    const layers = { terrain: false, resources: false, agents: false, buildings: false, stockpile: true };
+
+    renderer.render(world, camera, context, viewport, layers);
+    const withMeals = calls.fillRect;
+
+    world.stockpile.inventory.food = 0;
+    world.stockpile.inventory.fish = 0;
+    calls.fillRect = 0;
+    renderer.render(world, camera, context, viewport, layers);
+
+    expect(withMeals).toBeGreaterThan(calls.fillRect);
+  });
 });
