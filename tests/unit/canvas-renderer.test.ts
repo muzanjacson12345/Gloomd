@@ -344,4 +344,48 @@ describe("Canvas world renderer", () => {
 
     expect(withMeals).toBeGreaterThan(calls.fillRect);
   });
+
+  it("draws shoreline edges and deterministic terrain detail at close map zoom", () => {
+    const world = createWorld(42, { width: 16, height: 16 });
+    for (const row of world.tiles) {
+      for (const tile of row) {
+        tile.terrain = "grassland";
+        tile.waterKind = "none";
+        tile.walkable = true;
+        tile.moisture = 0.5;
+        tile.elevation = 0.45;
+      }
+    }
+    world.tiles[8]![8] = {
+      terrain: "water",
+      elevation: 0.2,
+      moisture: 0.8,
+      waterKind: "freshwater",
+      walkable: false
+    };
+    const calls = { stroke: 0, moveTo: 0 };
+    const context = {
+      canvas: { width: 96, height: 96 },
+      globalAlpha: 1,
+      save() {}, restore() {}, setTransform() {}, translate() {}, scale() {},
+      clearRect() {}, fillRect() {}, beginPath() {}, closePath() {},
+      moveTo() { calls.moveTo += 1; }, lineTo() {}, arc() {}, ellipse() {},
+      fill() {}, stroke() { calls.stroke += 1; }, strokeRect() {},
+      fillText() {}, setLineDash() {}
+    } as unknown as CanvasRenderingContext2D;
+    const camera = createCamera(world.width, world.height, 12);
+    const renderer = new CanvasWorldRenderer();
+
+    renderer.render(world, camera, context, { width: 96, height: 96 }, {
+      terrain: true,
+      resources: false,
+      buildings: false,
+      stockpile: false,
+      agents: false
+    });
+
+    expect(calls.stroke).toBeGreaterThanOrEqual(4);
+    expect(calls.moveTo).toBeGreaterThanOrEqual(4);
+  });
+
 });
