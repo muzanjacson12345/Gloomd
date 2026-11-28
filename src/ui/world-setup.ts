@@ -2,7 +2,8 @@ import { createWorld, findNearestWalkablePoint, relocateStockpileNear } from "..
 import { CanvasWorldRenderer, resizeCanvas } from "../render/canvas-renderer";
 import { createCamera } from "../render/camera";
 import { screenToWorld } from "../render/geometry";
-import type { GridPoint, WorldState } from "../core/types";
+import type { GridPoint, Tile, WorldState } from "../core/types";
+import { TERRAIN_LEGEND_ITEMS } from "../render/terrain-style";
 
 
 export const WORLD_SIZE_PRESETS = [
@@ -17,6 +18,91 @@ export type WorldSizePreset = typeof WORLD_SIZE_PRESETS[number];
 export function clampWaterCoverage(value: number): number {
   if (!Number.isFinite(value)) return 0.38;
   return Math.round(Math.max(0.25, Math.min(0.55, value)) * 100) / 100;
+}
+
+export interface WorldTerrainSummary {
+  landPercent: number;
+  waterPercent: number;
+  oceanPercent: number;
+  freshwaterPercent: number;
+  forestPercent: number;
+  highlandPercent: number;
+  riverPercent: number;
+}
+
+export function getWorldTerrainSummary(world: WorldState): WorldTerrainSummary {
+  const total = Math.max(1, world.width * world.height);
+  let water = 0;
+  let ocean = 0;
+  let freshwater = 0;
+  let forest = 0;
+  let highland = 0;
+  let river = 0;
+
+  for (const row of world.tiles) {
+    for (const tile of row) {
+      if (tile.waterKind !== "none") water += 1;
+      if (tile.waterKind === "ocean") ocean += 1;
+      if (tile.waterKind === "freshwater") freshwater += 1;
+      if (tile.terrain === "forest") forest += 1;
+      if (tile.terrain === "hill" || tile.terrain === "mountain") highland += 1;
+      if (tile.terrain === "river") river += 1;
+    }
+  }
+
+  const percent = (count: number): number => Math.round((count / total) * 100);
+  const waterPercent = percent(water);
+  return {
+    landPercent: 100 - waterPercent,
+    waterPercent,
+    oceanPercent: percent(ocean),
+    freshwaterPercent: percent(freshwater),
+    forestPercent: percent(forest),
+    highlandPercent: percent(highland),
+    riverPercent: percent(river)
+  };
+}
+
+export function describeStartingArea(
+  world: WorldState,
+  point: GridPoint,
+  radius = 8
+): string {
+  const radiusSquared = radius * radius;
+  const nearbyPatches = world.resources.filter((resource) => {
+    if (resource.quantity <= 0) return false;
+    const dx = resource.x - point.x;
+    const dy = resource.y - point.y;
+    return dx * dx + dy * dy <= radiusSquared;
+  });
+  let nearestFreshwater = Number.POSITIVE_INFINITY;
+
+  for (let y = 0; y < world.height; y += 1) {
+    for (let x = 0; x < world.width; x += 1) {
+      if (world.tiles[y]?.[x]?.waterKind !== "freshwater") continue;
+      nearestFreshwater = Math.min(nearestFreshwater, Math.abs(x - point.x) + Math.abs(y - point.y));
+    }
+  }
+
+  const parts = [`${nearbyPatches.length} resource patches within ${radius} tiles`];
+  parts.push(Number.isFinite(nearestFreshwater)
+    ? `freshwater ${nearestFreshwater} tiles away`
+    : "no freshwater found");
+  return parts.join(" · ");
+}
+
+function getTerrainLabel(tile: Tile): string {
+  if (tile.terrain === "water") return tile.waterKind === "ocean" ? "OCEAN" : "FRESHWATER";
+  const labels: Record<Tile["terrain"], string> = {
+    water: "WATER",
+    river: "RIVER",
+    beach: "COAST",
+    grassland: tile.moisture < 0.32 ? "DRY GRASSLAND" : tile.moisture > 0.72 ? "WET GRASSLAND" : "GRASSLAND",
+    forest: "FOREST",
+    hill: "HILLS",
+    mountain: "MOUNTAINS"
+  };
+  return labels[tile.terrain];
 }
 
 export function createRandomWorldSeed(previousSeed: number): number {
@@ -108,7 +194,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
           <div class="selected-location">
             <span class="setup-field-label">STARTING AREA</span>
             <strong id="selected-location">Locating suitable land…</strong>
-            <p>Click anywhere on the terrain preview. Water, mountains and blocked tiles automatically snap to the nearest available land.</p>
+            <p id="selected-location-detail">Click the map to compare nearby resources and freshwater access.</p>
           </div>
 
           <div class="setup-actions">
@@ -124,11 +210,17 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
         <section class="setup-map-section" aria-label="Choose your starting place">
           <div class="preview-heading">
             <div><span class="setup-field-label">TERRAIN PREVIEW</span><strong>Choose your starting ground</strong></div>
-            <span id="terrain-seed" class="seed-label">${128} × ${96}</span>
+            <div class="preview-meta">
+              <span id="terrain-seed" class="seed-label">${128} × ${96}</span>
+              <span id="terrain-summary" class="terrain-summary">LAND · WATER · FOREST · HIGHLANDS</span>
+            </div>
           </div>
           <div class="setup-preview-frame">
             <canvas id="setup-preview" class="setup-preview-map" aria-label="Terrain map preview. Click to choose where inhabitants begin."></canvas>
             <div class="preview-legend"><span><i class="legend-start"></i> STARTING AREA</span><span>CLICK THE MAP TO PLACE YOUR GROUP</span></div>
+          </div>
+          <div class="setup-terrain-key" aria-label="Terrain colour legend">
+            ${TERRAIN_LEGEND_ITEMS.map((item) => `<span class="setup-terrain-key-item"><i style="background:${item.color}"></i>${item.label}</span>`).join("")}
           </div>
         </section>
       </div>
@@ -145,6 +237,8 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   const populationInput = required<HTMLInputElement>("#starting-population");
   const populationValue = required<HTMLElement>("#population-value");
   const selectedLocation = required<HTMLElement>("#selected-location");
+  const selectedLocationDetail = required<HTMLElement>("#selected-location-detail");
+  const terrainSummary = required<HTMLElement>("#terrain-summary");
   const startButton = required<HTMLButtonElement>("#start-world");
   const newTerrainButton = required<HTMLButtonElement>("#new-terrain");
   const returnButton = required<HTMLButtonElement>("#return-world");
@@ -183,6 +277,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
     });
     if (startingPoint) relocateStockpileNear(world, startingPoint);
     seedLabel.textContent = `${world.width} × ${world.height}`;
+    updateTerrainSummary();
     setSelectionText();
     drawPreview();
   };
@@ -195,11 +290,19 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   const setSelectionText = (): void => {
     if (!startingPoint) {
       selectedLocation.textContent = "No walkable land found";
+      selectedLocationDetail.textContent = "Try another map seed or a different map size.";
       startButton.disabled = true;
       return;
     }
-    selectedLocation.textContent = `MAP ${startingPoint.x + 1}, ${startingPoint.y + 1} · ${world.width} × ${world.height}`;
+    const tile = world.tiles[startingPoint.y]?.[startingPoint.x];
+    selectedLocation.textContent = `MAP ${startingPoint.x + 1}, ${startingPoint.y + 1} · ${tile ? getTerrainLabel(tile) : "LAND"}`;
+    selectedLocationDetail.textContent = describeStartingArea(world, startingPoint);
     startButton.disabled = false;
+  };
+
+  const updateTerrainSummary = (): void => {
+    const summary = getWorldTerrainSummary(world);
+    terrainSummary.textContent = `LAND ${summary.landPercent}% · WATER ${summary.waterPercent}% · FOREST ${summary.forestPercent}% · HIGHLANDS ${summary.highlandPercent}%`;
   };
 
   const drawPreview = (): void => {
@@ -302,6 +405,7 @@ export function createWorldSetup(root: HTMLElement, options: WorldSetupOptions):
   sizeInput.value = size.id;
   seedInput.value = String(seed);
   seedLabel.textContent = `${world.width} × ${world.height}`;
+  updateTerrainSummary();
   setSelectionText();
   drawPreview();
 
