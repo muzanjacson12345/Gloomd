@@ -1,14 +1,18 @@
 import type { Agent } from "../core/types";
 import type { AppShell, AgentNeed } from "./app-shell";
 import { formatAgentGoal } from "./agent-activity";
+import { ROLE_VISUALS } from "../core/role-visuals";
 
 const NEEDS: readonly AgentNeed[] = ["hunger", "thirst", "energy", "health"];
 
 export function renderAgentInspector(shell: AppShell, agent: Agent | null): void {
   shell.inspector.hidden = agent === null;
+  shell.inspectorAgentContent.hidden = false;
+  shell.inspectorDetails.hidden = true;
+  shell.inspectorDetails.replaceChildren();
   if (!agent) return;
   shell.inspectorName.textContent = agent.name;
-  shell.inspectorMeta.textContent = `AGE ${agent.ageYears} · ${agent.role.toUpperCase()}`;
+  shell.inspectorMeta.textContent = `AGE ${agent.ageYears} · ${ROLE_VISUALS[agent.role].label}`;
   shell.inspectorGoal.textContent = formatAgentGoal(agent.currentGoal);
   shell.inspectorLocation.textContent = `${agent.x + 1}, ${agent.y + 1}`;
   shell.inspectorHome.textContent = agent.homeId !== null

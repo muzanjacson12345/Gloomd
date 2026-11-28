@@ -3,7 +3,8 @@ import { advanceFarmPlots, canPrepareFarmPlot, FARM_TEND_INTERVAL_TICKS, getFarm
 import { takeResource } from "./resources";
 import { depositFoodToStockpile, depositToStockpile, withdrawFoodFromStockpile, withdrawMaterialBundle } from "./stockpile";
 import { findPath, isWalkableTile } from "./pathfinding";
-import { findNearestUnexploredRoute, hasExploredTile, recordAgentExploration } from "./exploration";
+import { findNearestUnexploredRoute, hasExploredTile, publishAgentExploration, recordAgentExploration } from "./exploration";
+import { isWorksiteReserved, pruneWorksiteReservations, releaseAgentWorksites, releaseWorksite, reserveWorksite } from "./reservations";
 import type {
   Agent,
   AgentRole,
@@ -37,6 +38,7 @@ const JOB_REVIEW_INTERVAL_TICKS = 60;
 const MINIMUM_JOB_TENURE_TICKS = 120;
 const MAX_STORED_EVENTS = 120;
 const MAX_FARMING_DISTANCE_FROM_STOCKPILE = 18;
+const SCOUT_MAX_DISTANCE_FROM_SETTLEMENT = 14;
 
 interface Target {
   point: GridPoint;
@@ -156,6 +158,7 @@ function applySurvivalDamage(
   if (agent.needs.health > 0 || cause === null) return false;
 
   agent.alive = false;
+  releaseAgentWorksites(world, agent.id);
   agent.needs.health = 0;
   agent.destination = null;
   agent.plannedPath = [];
@@ -178,7 +181,7 @@ function nearestResource(
   let best: Target | null = null;
 
   for (const resource of world.resources) {
-    if (resource.kind !== kind || resource.quantity <= 0) continue;
+    if (resource.kind !== kind || resource.quantity <= 0 || isWorksiteReserved(world, "resource", resource.id, agent.id)) continue;
 
     const point = { x: resource.x, y: resource.y };
     if (distance(agent, point) > agent.perceptionRadius) continue;
@@ -335,44 +338,62 @@ function moveAlongExplorationRoute(world: WorldState, agent: Agent): boolean {
   return true;
 }
 
-/** Explore toward the nearest unknown frontier; never choose a random known neighbour. */
-function explore(world: WorldState, agent: Agent): void {
-  recordAgentExploration(world, agent);
-  const currentTarget = agent.explorationTarget;
-  if (currentTarget) {
-    const targetIndex = currentTarget.y * world.width + currentTarget.x;
-    if (!hasExploredTile(agent, targetIndex, world) && agent.plannedPath?.length) {
+/** One unassigned inhabitant surveys for the settlement; other unassigned villagers wait. */
+function selectSettlementScout(world: WorldState): Agent | null {
+  return world.agents.filter((candidate) => candidate.alive && candidate.role === "generalist")
+    .sort((left, right) => left.id.localeCompare(right.id))[0] ?? null;
+}
+
+function runSettlementScout(world: WorldState, agent: Agent, emitted: WorldEvent[]): void {
+  if (agent.explorationComplete && agent.explorationPhase !== "returning") {
+    agent.currentGoal = "wait";
+    agent.destination = null;
+    agent.plannedPath = [];
+    return;
+  }
+  if (agent.explorationPhase === "returning" ||
+      distance(agent, world.stockpile) >= SCOUT_MAX_DISTANCE_FROM_SETTLEMENT) {
+    agent.explorationPhase = "returning";
+    agent.currentGoal = "explore";
+    const home = nearestStockpileAccess(world, agent);
+    if (!home) {
+      agent.currentGoal = "wait";
+      agent.destination = null;
+      agent.plannedPath = [];
+      return;
+    }
+    if (!moveToward(world, agent, home)) return;
+    const published = publishAgentExploration(world, agent);
+    agent.explorationPhase = "idle";
+    agent.explorationTarget = null;
+    agent.destination = null;
+    agent.plannedPath = [];
+    if (published > 0) emit(world, emitted, agent, "map_shared", agent.name + " returned with " + published + " newly mapped tiles for the settlement.");
+    return;
+  }
+  agent.explorationPhase = "outbound";
+  agent.currentGoal = "explore";
+  if (agent.explorationTarget) {
+    const index = agent.explorationTarget.y * world.width + agent.explorationTarget.x;
+    if (!hasExploredTile(agent, index, world) && agent.plannedPath?.length) {
       if (moveAlongExplorationRoute(world, agent)) return;
     }
     agent.explorationTarget = null;
     agent.destination = null;
     agent.plannedPath = [];
   }
-
-  if (agent.explorationComplete) {
-    if (agent.currentGoal === "explore") agent.currentGoal = "wait";
-    agent.destination = null;
-    agent.plannedPath = [];
-    return;
-  }
-
-  const target = findNearestUnexploredRoute(world, agent);
-  if (!target) {
+  const route = findNearestUnexploredRoute(world, agent);
+  if (!route) {
     agent.explorationComplete = true;
-    if (agent.currentGoal === "explore") agent.currentGoal = "wait";
+    agent.explorationPhase = "returning";
     agent.destination = null;
     agent.plannedPath = [];
     return;
   }
-
-  agent.explorationTarget = { ...target.point };
-  agent.destination = { ...target.point };
-  agent.plannedPath = target.path.map((point) => ({ ...point }));
-  if (!moveAlongExplorationRoute(world, agent)) {
-    agent.explorationTarget = null;
-    agent.destination = null;
-    agent.plannedPath = [];
-  }
+  agent.explorationTarget = { ...route.point };
+  agent.destination = { ...route.point };
+  agent.plannedPath = route.path.map((point) => ({ ...point }));
+  moveAlongExplorationRoute(world, agent);
 }
 
 function committedMaterialCount(world: WorldState, kind: "wood" | "stone"): number {
@@ -405,12 +426,15 @@ function gatherHaulerMaterial(
 ): void {
   const target = nearestResource(world, agent, kind);
   if (!target?.resource) {
-    agent.currentGoal = "search_resources";
-    explore(world, agent);
+    agent.currentGoal = "wait_for_materials";
+    agent.destination = null;
+    agent.plannedPath = [];
+    releaseAgentWorksites(world, agent.id);
     return;
   }
 
   agent.currentGoal = kind === "wood" ? "gather_wood" : "gather_stone";
+  if (!reserveWorksite(world, agent.id, "resource", target.resource.id, target.point.x, target.point.y)) return;
   if (!moveToward(world, agent, target)) return;
 
   const committed = committedMaterialCount(world, kind);
@@ -419,8 +443,11 @@ function gatherHaulerMaterial(
   const availableCapacity = Math.max(0, world.stockpile.capacityPerResource - committed);
   const loadAmount = Math.min(HAULER_LOAD_CAPACITY, remainingForRecipe, availableCapacity);
   const gathered = takeResource(world, target.resource.id, loadAmount);
+  releaseWorksite(world, agent.id, "resource", target.resource.id);
   if (gathered <= 0) {
-    agent.currentGoal = "explore";
+    agent.currentGoal = "wait_for_materials";
+    agent.destination = null;
+    agent.plannedPath = [];
     return;
   }
 
@@ -477,8 +504,7 @@ function deliverCarriedMaterials(
 
   const target = nearestStockpileAccess(world, agent);
   if (!target) {
-    agent.currentGoal = "explore";
-    explore(world, agent);
+    agent.currentGoal = "deliver_resources";
     return;
   }
 
@@ -534,11 +560,15 @@ function gatherMealUnit(
 
   const caughtFish = target.resource.kind === "fish";
   agent.currentGoal = caughtFish ? "seek_fish" : "seek_food";
+  if (!reserveWorksite(world, agent.id, "resource", target.resource.id, target.point.x, target.point.y)) return true;
   if (!moveToward(world, agent, target)) return true;
 
   const gathered = takeResource(world, target.resource.id, 1);
+  releaseWorksite(world, agent.id, "resource", target.resource.id);
   if (gathered <= 0) {
-    agent.currentGoal = "explore";
+    agent.currentGoal = "wait";
+    agent.destination = null;
+    agent.plannedPath = [];
     return true;
   }
 
@@ -624,7 +654,7 @@ function collectSharedRation(world: WorldState, agent: Agent, emitted: WorldEven
 function nearestFarmPlot(world: WorldState, agent: Agent, stage: FarmPlot["stage"], tendingOnly = false): (Target & { farmPlot: FarmPlot }) | null {
   let best: (Target & { farmPlot: FarmPlot }) | null = null;
   for (const farmPlot of getFarmPlots(world)) {
-    if (farmPlot.stage !== stage) continue;
+    if (farmPlot.stage !== stage || isWorksiteReserved(world, "farm_plot", farmPlot.id, agent.id)) continue;
     if (tendingOnly && world.tick - farmPlot.lastTendedTick < FARM_TEND_INTERVAL_TICKS) continue;
     const point = { x: farmPlot.x, y: farmPlot.y };
     // Fields are shared settlement assets, not privately owned by their first farmer.
@@ -647,7 +677,8 @@ function nearestFarmableTile(world: WorldState, agent: Agent): Target | null {
       const point = { x, y };
       if (distance(point, world.stockpile) > MAX_FARMING_DISTANCE_FROM_STOCKPILE ||
           distance(point, agent) > agent.perceptionRadius) continue;
-      if (canPrepareFarmPlot(world, point, agent.id)) candidates.push(point);
+      const siteId = `${point.x}:${point.y}`;
+      if (!isWorksiteReserved(world, "farm_site", siteId, agent.id) && canPrepareFarmPlot(world, point, agent.id)) candidates.push(point);
     }
   }
   candidates.sort((a, b) =>
@@ -667,8 +698,10 @@ function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): voi
   const ready = foodNeeded ? nearestFarmPlot(world, agent, "ready") : null;
   if (ready) {
     agent.currentGoal = "harvest_crop";
+    if (!reserveWorksite(world, agent.id, "farm_plot", ready.farmPlot.id, ready.point.x, ready.point.y)) return;
     if (!moveToward(world, agent, ready)) return;
     const harvested = harvestFarmPlot(world, ready.farmPlot.id);
+    releaseWorksite(world, agent.id, "farm_plot", ready.farmPlot.id);
     if (harvested > 0) {
       agent.inventory.food += harvested;
       increaseSkill(agent, "farming", 0.5);
@@ -681,17 +714,20 @@ function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): voi
   const prepared = getFarmSeedBank(world) > 0 ? nearestFarmPlot(world, agent, "prepared") : null;
   if (prepared) {
     agent.currentGoal = "plant_crop";
+    if (!reserveWorksite(world, agent.id, "farm_plot", prepared.farmPlot.id, prepared.point.x, prepared.point.y)) return;
     if (!moveToward(world, agent, prepared)) return;
     if (plantFarmPlot(world, prepared.farmPlot.id)) {
       increaseSkill(agent, "farming", 0.25);
       emit(world, emitted, agent, "crop_planted", `${agent.name} planted a crop in a prepared field.`);
     }
+    releaseWorksite(world, agent.id, "farm_plot", prepared.farmPlot.id);
     return;
   }
 
   const growing = nearestFarmPlot(world, agent, "growing", true);
   if (growing) {
     agent.currentGoal = "tend_crop";
+    if (!reserveWorksite(world, agent.id, "farm_plot", growing.farmPlot.id, growing.point.x, growing.point.y)) return;
     if (!moveToward(world, agent, growing)) return;
     if (tendFarmPlot(world, growing.farmPlot.id)) {
       increaseSkill(agent, "farming", 0.15);
@@ -701,6 +737,7 @@ function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): voi
         emit(world, emitted, agent, "crop_tended", `${agent.name} tended a growing field.`);
       }
     }
+    releaseWorksite(world, agent.id, "farm_plot", growing.farmPlot.id);
     return;
   }
 
@@ -708,8 +745,11 @@ function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): voi
     const site = nearestFarmableTile(world, agent);
     if (site) {
       agent.currentGoal = "prepare_field";
+      const siteId = `${site.point.x}:${site.point.y}`;
+      if (!reserveWorksite(world, agent.id, "farm_site", siteId, site.point.x, site.point.y)) return;
       if (!moveToward(world, agent, site)) return;
       const plot = prepareFarmPlot(world, site.point, agent.id);
+      releaseWorksite(world, agent.id, "farm_site", siteId);
       if (plot) {
         increaseSkill(agent, "farming", 0.25);
         emit(world, emitted, agent, "field_prepared", `${agent.name} prepared a patch of grassland for planting.`);
@@ -721,6 +761,7 @@ function workOnFarm(world: WorldState, agent: Agent, emitted: WorldEvent[]): voi
   agent.currentGoal = "wait_for_crops";
   agent.destination = null;
   agent.plannedPath = [];
+  releaseAgentWorksites(world, agent.id);
 }
 
 function findShelterSite(world: WorldState, agent: Agent): GridPoint | null {
@@ -794,10 +835,12 @@ function assignRole(
   emitted: WorldEvent[]
 ): void {
   if (agent.role === role) return;
+  releaseAgentWorksites(world, agent.id);
   const previous = agent.role;
   agent.role = role;
   agent.roleChangedTick = world.tick;
-  agent.currentGoal = "explore";
+  agent.currentGoal = "wait";
+  agent.explorationPhase = "idle";
   agent.destination = null;
   agent.plannedPath = [];
   agent.explorationTarget = null;
@@ -950,8 +993,9 @@ function workOnShelter(
 ): void {
   const target = nearestShelterWorkTarget(world, agent, building);
   if (!target) {
-    agent.currentGoal = "explore";
-    explore(world, agent);
+    agent.currentGoal = "build_shelter";
+    agent.destination = null;
+    agent.plannedPath = [];
     return;
   }
 
@@ -983,6 +1027,16 @@ function stepAgent(
 ): void {
   if (!agent.alive) return;
   recordAgentExploration(world, agent);
+  if (distance(agent, world.stockpile) <= 1) {
+    const published = publishAgentExploration(world, agent);
+    if (published > 0) emit(world, emitted, agent, "map_shared", agent.name + " returned with " + published + " newly mapped tiles for the settlement.");
+    if (agent.explorationPhase === "returning") {
+      agent.explorationPhase = "idle";
+      agent.explorationTarget = null;
+      agent.destination = null;
+      agent.plannedPath = [];
+    }
+  }
 
   // One simulation tick is one displayed world minute. Needs rise gradually
   // across several world-hours, rather than a full percentage point each minute.
@@ -995,13 +1049,13 @@ function stepAgent(
   // damages health only after a grace period and only when no usable reserve
   // can resolve the immediate need.
   if (agent.needs.thirst >= NEED_THRESHOLD) {
+    releaseAgentWorksites(world, agent.id);
     agent.currentGoal = "seek_water";
     const target = nearestFreshwaterBank(world, agent);
 
     if (!target) {
-      if (applySurvivalDamage(world, agent, emitted)) return;
-      agent.currentGoal = "explore";
-      explore(world, agent);
+      agent.currentGoal = "seek_water";
+      applySurvivalDamage(world, agent, emitted);
       return;
     }
 
@@ -1019,6 +1073,7 @@ function stepAgent(
 
   if (agent.needs.hunger >= NEED_THRESHOLD &&
       (agent.inventory.food > 0 || agent.inventory.fish > 0)) {
+    releaseAgentWorksites(world, agent.id);
     agent.currentGoal = "eat";
     agent.destination = null;
     agent.plannedPath = [];
@@ -1035,11 +1090,13 @@ function stepAgent(
   }
 
   if (agent.needs.hunger >= NEED_THRESHOLD) {
+    releaseAgentWorksites(world, agent.id);
     if (collectSharedRation(world, agent, emitted)) return;
     if (!gatherMealUnit(world, agent, emitted)) {
-      if (applySurvivalDamage(world, agent, emitted)) return;
-      agent.currentGoal = "explore";
-      explore(world, agent);
+      agent.currentGoal = "wait";
+      agent.destination = null;
+      agent.plannedPath = [];
+      applySurvivalDamage(world, agent, emitted);
       return;
     }
     if (applySurvivalDamage(world, agent, emitted)) return;
@@ -1047,6 +1104,7 @@ function stepAgent(
   }
 
   if (agent.needs.energy <= 20) {
+    releaseAgentWorksites(world, agent.id);
     agent.currentGoal = "rest";
     agent.destination = null;
     agent.plannedPath = [];
@@ -1064,8 +1122,9 @@ function stepAgent(
     committedFoodUnits(world) < sharedFoodReserveTarget(world)
   ) {
     if (!gatherMealUnit(world, agent, emitted)) {
-      agent.currentGoal = "explore";
-      explore(world, agent);
+      agent.currentGoal = "wait";
+      agent.destination = null;
+      agent.plannedPath = [];
     }
     return;
   }
@@ -1102,10 +1161,12 @@ function stepAgent(
     if (agent.homeId === null) {
       if (!hasShelterMaterials(world)) {
         agent.currentGoal = "wait_for_materials";
-        explore(world, agent);
+        agent.destination = null;
+        agent.plannedPath = [];
       } else if (!startShelter(world, agent, emitted)) {
         agent.currentGoal = "find_build_site";
-        explore(world, agent);
+        agent.destination = null;
+        agent.plannedPath = [];
       }
       return;
     }
@@ -1114,8 +1175,9 @@ function stepAgent(
   if (agent.role === "hauler") {
     const material = materialNeededBySettlement(world);
     if (!material) {
-      agent.currentGoal = "explore";
-      explore(world, agent);
+      agent.currentGoal = "wait_for_materials";
+      agent.destination = null;
+      agent.plannedPath = [];
       return;
     }
 
@@ -1128,8 +1190,15 @@ function stepAgent(
     return;
   }
 
-  agent.currentGoal = "explore";
-  explore(world, agent);
+  if (agent.role === "generalist" && selectSettlementScout(world)?.id === agent.id) {
+    runSettlementScout(world, agent, emitted);
+    return;
+  }
+  agent.currentGoal = "wait";
+  agent.destination = null;
+  agent.plannedPath = [];
+  agent.explorationTarget = null;
+  releaseAgentWorksites(world, agent.id);
 }
 
 export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
@@ -1143,6 +1212,7 @@ export function stepWorld(world: WorldState, ticks = 1): WorldEvent[] {
   for (let index = 0; index < ticks; index += 1) {
     world.tick += 1;
     reviewWorkforce(world, emitted);
+    pruneWorksiteReservations(world);
 
     for (const resource of world.resources) {
       if (

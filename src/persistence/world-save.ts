@@ -1,7 +1,7 @@
 import type { Agent, AgentSkills, FarmPlot, GridPoint, ResourceNode, Tile, WorldState } from "../core/types";
 
 export const WORLD_SAVE_FORMAT = "gloomd-world-save" as const;
-export const WORLD_SAVE_VERSION = 1 as const;
+export const WORLD_SAVE_VERSION = 2 as const;
 
 export interface WorldSave {
   format: typeof WORLD_SAVE_FORMAT;
@@ -102,6 +102,11 @@ function isAgent(value: unknown, width: number, height: number): value is Agent 
     (value.explorationRecordIndex === undefined ||
       (isInteger(value.explorationRecordIndex) && value.explorationRecordIndex >= -1 &&
         value.explorationRecordIndex < width * height)) &&
+    (value.explorationPublishedCount === undefined ||
+      (isInteger(value.explorationPublishedCount) && value.explorationPublishedCount >= 0 &&
+        (!Array.isArray(value.exploredTiles) || value.explorationPublishedCount <= value.exploredTiles.length))) &&
+    (value.explorationPhase === undefined ||
+      ["idle", "outbound", "returning"].includes(String(value.explorationPhase))) &&
     (value.starvationTicks === undefined || (isInteger(value.starvationTicks) && value.starvationTicks >= 0)) &&
     (value.dehydrationTicks === undefined || (isInteger(value.dehydrationTicks) && value.dehydrationTicks >= 0)) &&
     typeof value.alive === "boolean" &&
@@ -181,7 +186,10 @@ function isWorldState(value: unknown): value is WorldState {
 }
 
 function cloneWorld(world: WorldState): WorldState {
-  return JSON.parse(JSON.stringify(world)) as WorldState;
+  const snapshot = JSON.parse(JSON.stringify(world)) as WorldState;
+  // Worksite reservations are temporary and are always rebuilt after load.
+  delete snapshot.workReservations;
+  return snapshot;
 }
 
 export function createWorldSave(
@@ -222,6 +230,7 @@ function migrateWorldSave(parsed: unknown): unknown {
   // inventories. Add zero-valued fields without changing their world state.
   const migrated = JSON.parse(JSON.stringify(parsed)) as unknown;
   if (!isRecord(migrated) || !isRecord(migrated.world)) return migrated;
+  const sourceVersion = migrated.schemaVersion;
 
   if (!Array.isArray(migrated.world.farmPlots)) migrated.world.farmPlots = [];
   if (!isInteger(migrated.world.farmSeedBank) || migrated.world.farmSeedBank < 0) migrated.world.farmSeedBank = 6;
@@ -254,16 +263,26 @@ function migrateWorldSave(parsed: unknown): unknown {
         if (roleSkill) skills[roleSkill] = 18;
         agent.skills = skills;
       }
-      if (!Array.isArray(agent.exploredTiles)) agent.exploredTiles = [];
+      const exploredTileList = Array.isArray(agent.exploredTiles) ? agent.exploredTiles : [];
+      if (!Array.isArray(agent.exploredTiles)) agent.exploredTiles = exploredTileList;
       if (agent.explorationTarget === undefined) agent.explorationTarget = null;
       if (typeof agent.explorationComplete !== "boolean") agent.explorationComplete = false;
       if (!isInteger(agent.explorationRecordIndex) || agent.explorationRecordIndex < -1) {
         agent.explorationRecordIndex = -1;
       }
+      if (!isInteger(agent.explorationPublishedCount) || agent.explorationPublishedCount < 0) {
+        // Version-one exploration was already shared immediately.
+        agent.explorationPublishedCount = sourceVersion === 1 ? exploredTileList.length : 0;
+      }
+      if (!["idle", "outbound", "returning"].includes(String(agent.explorationPhase))) {
+        agent.explorationPhase = "idle";
+      }
       if (!isInteger(agent.roleChangedTick) || agent.roleChangedTick < 0) agent.roleChangedTick = 0;
     }
   }
 
+  delete migrated.world.workReservations;
+  migrated.schemaVersion = WORLD_SAVE_VERSION;
   return migrated;
 }
 
@@ -278,7 +297,7 @@ export function parseWorldSave(serialized: string): WorldSave {
   if (!isRecord(parsed) || parsed.format !== WORLD_SAVE_FORMAT) {
     throw new TypeError("This file is not a GLOOMD world save.");
   }
-  if (parsed.schemaVersion !== WORLD_SAVE_VERSION) {
+  if (parsed.schemaVersion !== 1 && parsed.schemaVersion !== WORLD_SAVE_VERSION) {
     throw new Error(`Unsupported GLOOMD save version: ${String(parsed.schemaVersion)}.`);
   }
 

@@ -46,6 +46,17 @@ export interface Stockpile {
 
 export type FarmPlotStage = "prepared" | "growing" | "ready";
 
+export type WorkReservationKind = "resource" | "farm_plot" | "farm_site";
+
+export interface WorkReservation {
+  id: string;
+  agentId: string;
+  kind: WorkReservationKind;
+  targetId: string;
+  x: number;
+  y: number;
+}
+
 export interface FarmPlot {
   id: string;
   x: number;
@@ -162,6 +173,10 @@ export interface Agent {
   explorationComplete?: boolean;
   /** Last tile index whose line-of-sight area was added to memory. */
   explorationRecordIndex?: number;
+  /** Number of personal discoveries already published to settlement knowledge. */
+  explorationPublishedCount?: number;
+  /** Only the settlement scout uses outbound/returning expedition states. */
+  explorationPhase?: "idle" | "outbound" | "returning";
   /** Consecutive simulated minutes with critical hunger or dehydration. */
   starvationTicks?: number;
   dehydrationTicks?: number;
@@ -194,6 +209,8 @@ export interface WorldState {
   farmSeedBank?: number;
   /** Settlement-wide map knowledge shared by all inhabitants. */
   exploredTiles?: number[];
+  /** Transient claims on work targets; deliberately excluded from saved worlds. */
+  workReservations?: WorkReservation[];
 }
 
 export interface WorldOptions {

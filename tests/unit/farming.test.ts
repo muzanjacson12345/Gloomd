@@ -153,6 +153,31 @@ describe("real crop farming", () => {
     )).toBe(true);
   });
 
+  it("reserves a shared farm plot while the first farmer is travelling to it", () => {
+    const world = makeFarmWorld();
+    world.farmSeedBank = 0;
+    const first = makeFarmer({ x: 2, y: 2 });
+    first.id = "farmer-a";
+    const second = makeFarmer({ x: 7, y: 9 });
+    second.id = "farmer-b";
+    second.name = "Bo";
+    world.agents.push(first, second);
+    const plot = prepareFarmPlot(world, { x: 8, y: 8 });
+    expect(plot).not.toBeNull();
+    if (!plot) return;
+    plot.stage = "ready";
+    plot.growthProgress = CROP_GROWTH_TICKS;
+
+    stepWorld(world);
+
+    expect(world.workReservations?.filter((claim) =>
+      claim.kind === "farm_plot" && claim.targetId === plot.id
+    )).toHaveLength(1);
+    expect(first.currentGoal).toBe("harvest_crop");
+    expect(second.currentGoal).toBe("wait_for_crops");
+    expect(second.x === plot.x && second.y === plot.y).toBe(false);
+  });
+
   it("lets an autonomous farmer harvest a ripe field into carried food", () => {
     const world = makeFarmWorld();
     const farmer = makeFarmer();

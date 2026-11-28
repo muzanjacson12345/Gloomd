@@ -1,5 +1,4 @@
 import { MAP_SYMBOL_LEGEND_ITEMS, TERRAIN_LEGEND_ITEMS } from "../render/terrain-style";
-import { ROLE_VISUALS } from "../core/role-visuals";
 
 export type AgentNeed = "hunger" | "thirst" | "energy" | "health";
 export interface NeedDisplay { fill: HTMLElement; value: HTMLElement; }
@@ -46,6 +45,8 @@ export interface AppShell {
   eventList: HTMLElement;
   inspector: HTMLElement;
   inspectorName: HTMLElement;
+  inspectorAgentContent: HTMLElement;
+  inspectorDetails: HTMLElement;
   inspectorMeta: HTMLElement;
   inspectorGoal: HTMLElement;
   inspectorLocation: HTMLElement;
@@ -126,15 +127,18 @@ export function createAppShell(root: HTMLElement): AppShell {
           </div>
         </section>
         <section class="map-legend-section">
-          <span class="map-legend-label">OCCUPATIONS · CLOTHING & BADGES</span>
+          <span class="map-legend-label">MAP KNOWLEDGE</span>
           <div class="map-legend-grid">
-            ${Object.values(ROLE_VISUALS).map((role) => `<span class="map-legend-item"><i class="map-legend-swatch is-dot occupation-key-mark" style="background:${role.color}">${role.symbol}</i><span>${role.label}</span></span>`).join("")}
+            <span class="map-legend-item"><i class="map-legend-swatch" style="background:#080e0b"></i><span>UNKNOWN</span></span>
+            <span class="map-legend-item"><i class="map-legend-swatch" style="background:#b08445"></i><span>PERSONAL NOTES</span></span>
+            <span class="map-legend-item"><i class="map-legend-swatch" style="background:#5b825d"></i><span>SHARED MAP</span></span>
           </div>
-          <p class="map-legend-note">Each person's clothing colour and badge show their current occupation.</p>
+          <p class="map-legend-note">Personal notes are known by an inhabitant. They become part of the settlement map when that inhabitant returns to the stockpile.</p>
         </section>
       </aside>
       <nav class="layer-tools" aria-label="Visible map layers">
         <button class="layer-button is-active" data-layer="terrain" type="button" aria-pressed="true">LAND</button>
+        <button class="layer-button is-active" data-layer="knowledge" type="button" aria-pressed="true">MAPPED</button>
         <button class="layer-button is-active" data-layer="resources" type="button" aria-pressed="true">RESOURCES</button>
         <button class="layer-button is-active" data-layer="agents" type="button" aria-pressed="true">PEOPLE</button>
         <button class="layer-button is-active" data-layer="buildings" type="button" aria-pressed="true">HOMES</button>
@@ -161,7 +165,8 @@ export function createAppShell(root: HTMLElement): AppShell {
         <ul id="event-list" class="event-list"><li class="empty-event">The world is waking up.</li></ul>
       </section>
       <aside class="agent-inspector" id="agent-inspector" aria-label="Selected inhabitant" hidden>
-        <div class="inspector-topline"><span>INHABITANT PROFILE</span><button id="close-inspector" class="close-button" type="button" aria-label="Close profile">×</button></div>
+        <div class="inspector-topline"><span>WORLD INSPECTOR</span><button id="close-inspector" class="close-button" type="button" aria-label="Close profile">×</button></div>
+        <div id="inspector-agent-content" class="inspector-agent-content">
         <div class="agent-heading"><div class="agent-avatar">·</div><div><h2 id="inspector-name">Ari</h2><p id="inspector-meta">AGE 24 · FORAGER</p></div></div>
         <div class="inspector-status"><span>CURRENT INTENT</span><strong id="inspector-goal">Exploring</strong></div>
         <div class="inspector-status"><span>LOCATION</span><strong id="inspector-location">—</strong></div>
@@ -173,6 +178,8 @@ export function createAppShell(root: HTMLElement): AppShell {
         <div class="need-row"><div><span>HEALTH</span><strong id="need-health-value">—</strong></div><div class="need-track"><i id="need-health"></i></div></div>
         <div class="inventory-line"><span>INVENTORY</span><strong id="inspector-inventory">—</strong></div>
         <div class="inspector-actions"><button id="follow-agent" class="follow-button" type="button">FOLLOW</button></div>
+      </div>
+      <div id="inspector-details" class="inspector-detail-list" hidden></div>
       </aside>
       <canvas id="minimap" class="minimap" width="180" height="120" aria-label="World minimap; click to move the camera"></canvas>
       <button id="restore-ui" class="restore-ui-button" type="button" hidden>SHOW INTERFACE</button>
@@ -228,6 +235,8 @@ export function createAppShell(root: HTMLElement): AppShell {
     eventList: required("#event-list"),
     inspector: required("#agent-inspector"),
     inspectorName: required("#inspector-name"),
+    inspectorAgentContent: required("#inspector-agent-content"),
+    inspectorDetails: required("#inspector-details"),
     inspectorMeta: required("#inspector-meta"),
     inspectorGoal: required("#inspector-goal"),
     inspectorLocation: required("#inspector-location"),
