@@ -309,9 +309,21 @@ function startWorld(
       setSelectionMode(false);
       shell.overlayPanel.hidden = true;
       shell.overlayToggleButton.setAttribute("aria-expanded", "false");
+      shell.mapLegendPanel.hidden = true;
+      shell.mapKeyToggleButton.setAttribute("aria-expanded", "false");
       shell.storagePanel.hidden = true;
       shell.storageToggleButton.setAttribute("aria-expanded", "false");
     }
+  };
+
+  const setMapLegendOpen = (open: boolean): void => {
+    shell.mapLegendPanel.hidden = !open;
+    shell.mapKeyToggleButton.setAttribute("aria-expanded", String(open));
+    if (!open) return;
+    shell.overlayPanel.hidden = true;
+    shell.overlayToggleButton.setAttribute("aria-expanded", "false");
+    shell.storagePanel.hidden = true;
+    shell.storageToggleButton.setAttribute("aria-expanded", "false");
   };
 
   const detachMapInput = attachMapInput(
@@ -400,6 +412,10 @@ function startWorld(
       setSelectionMode(false);
       return;
     }
+    if (!shell.mapLegendPanel.hidden) {
+      setMapLegendOpen(false);
+      return;
+    }
     if (!shell.storagePanel.hidden) {
       shell.storagePanel.hidden = true;
       shell.storageToggleButton.setAttribute("aria-expanded", "false");
@@ -475,7 +491,12 @@ function startWorld(
   shell.overlayToggleButton.addEventListener("click", () => {
     shell.overlayPanel.hidden = !shell.overlayPanel.hidden;
     shell.overlayToggleButton.setAttribute("aria-expanded", String(!shell.overlayPanel.hidden));
+    if (!shell.overlayPanel.hidden) setMapLegendOpen(false);
   });
+  const toggleMapLegend = (): void => setMapLegendOpen(shell.mapLegendPanel.hidden);
+  const closeMapLegend = (): void => setMapLegendOpen(false);
+  shell.mapKeyToggleButton.addEventListener("click", toggleMapLegend);
+  shell.closeMapLegendButton.addEventListener("click", closeMapLegend);
   for (const input of shell.overlayButtons) {
     input.addEventListener("change", () => {
       const name = input.dataset.overlay as keyof typeof overlays | undefined;
@@ -491,6 +512,7 @@ function startWorld(
   shell.storageToggleButton.addEventListener("click", () => {
     shell.storagePanel.hidden = !shell.storagePanel.hidden;
     shell.storageToggleButton.setAttribute("aria-expanded", String(!shell.storagePanel.hidden));
+    if (!shell.storagePanel.hidden) setMapLegendOpen(false);
   });
   shell.saveNowButton.addEventListener("click", () => {
     void saveCurrentWorld(true).catch(() => undefined);
@@ -688,6 +710,8 @@ function startWorld(
     detachMapInput();
     shell.activityList.removeEventListener("click", onActivitySelect);
     shell.newWorldButton.removeEventListener("click", handleNewWorld);
+    shell.mapKeyToggleButton.removeEventListener("click", toggleMapLegend);
+    shell.closeMapLegendButton.removeEventListener("click", closeMapLegend);
     shell.minimapCanvas.removeEventListener("pointerdown", onMinimapPointerDown);
     shell.importFileInput.removeEventListener("change", importFileChange);
     document.removeEventListener("keydown", onEscape);
