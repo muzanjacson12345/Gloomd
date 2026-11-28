@@ -72,6 +72,15 @@ export function createStarterAgents(
         : number % 7 === 4
           ? "fisher"
           : "forager";
+    const skills = {
+      foraging: random.int(0, 8),
+      fishing: random.int(0, 8),
+      hauling: random.int(0, 8),
+      building: random.int(0, 8)
+    };
+    const starterSpecialty = { forager: "foraging", fisher: "fishing", hauler: "hauling", builder: "building" }[role];
+    skills[starterSpecialty] = random.int(18, 28);
+
     agents.push({
       id: `agent-${number}`,
       name: number > STARTER_NAMES.length ? `${name} ${number}` : name,
@@ -86,6 +95,8 @@ export function createStarterAgents(
       needs: { hunger: 20, thirst: 20, energy: 100, health: 100 },
       inventory: { food: 0, fish: 0, wood: 0, stone: 0 },
       role,
+      skills,
+      roleChangedTick: 0,
       currentGoal: "explore",
       perceptionRadius: role === "hauler" ? 24 : role === "fisher" ? 18 : 12,
       sightRadius: 7,
