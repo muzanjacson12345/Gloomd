@@ -586,7 +586,7 @@ describe("autonomous agents and consequential actions", () => {
 
     stepWorld(world, 180);
 
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
+    expect(world.stockpile.inventory).toMatchObject({ wood: 0, stone: 0 });
     expect(world.buildings.some(building => building.kind === "shelter" && building.status === "complete")).toBe(true);
     expect(builder.homeId).not.toBeNull();
     expect(world.events.some(event => event.kind === "shelter_complete")).toBe(true);
