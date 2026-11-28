@@ -25,6 +25,14 @@ describe("map terrain appearance", () => {
     expect(dry).not.toBe(wet);
   });
 
+  it("refreshes a cached colour when the underlying tile data changes", () => {
+    const grass = tile();
+    const original = getTerrainBaseColour(grass, 8, 8);
+    grass.moisture = 0.98;
+    const changed = getTerrainBaseColour(grass, 8, 8);
+    expect(changed).not.toBe(original);
+  });
+
   it("distinguishes ocean, freshwater and river colours", () => {
     const ocean = getTerrainBaseColour(tile({ terrain: "water", waterKind: "ocean", walkable: false }), 2, 3);
     const lake = getTerrainBaseColour(tile({ terrain: "water", waterKind: "freshwater", walkable: false }), 2, 3);
