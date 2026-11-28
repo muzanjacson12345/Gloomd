@@ -37,7 +37,7 @@ describe("procedural world generation", () => {
     expect(tiles.some((tile: { waterKind: string }) => tile.waterKind === "freshwater")).toBe(true);
     expect(world.resources.length).toBeGreaterThan(0);
     expect(world.buildings).toEqual([]);
-    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0 });
+    expect(world.stockpile.inventory).toEqual({ wood: 0, stone: 0, food: 0, fish: 0 });
     expect(world.stockpile.capacityPerResource).toBe(120);
     expect(world.tiles[world.stockpile.y]?.[world.stockpile.x]?.walkable).toBe(true);
     expect(worldModule.isWalkable(world, world.stockpile.x, world.stockpile.y)).toBe(false);
