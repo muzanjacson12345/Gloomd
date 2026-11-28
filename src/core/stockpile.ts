@@ -1,6 +1,7 @@
 import type {
   BuildingMaterial,
   MaterialBundle,
+  StoredFoodKind,
   WorldState
 } from "./types";
 
@@ -31,6 +32,38 @@ export function depositToStockpile(
 export function withdrawFromStockpile(
   world: WorldState,
   kind: BuildingMaterial,
+  amount: number
+): number {
+  const requested = getWholeUnits(amount);
+  if (requested === 0) return 0;
+
+  const withdrawn = Math.min(requested, Math.max(0, world.stockpile.inventory[kind]));
+  world.stockpile.inventory[kind] -= withdrawn;
+  return withdrawn;
+}
+
+/** Deposit whole food units into communal storage without exceeding its capacity. */
+export function depositFoodToStockpile(
+  world: WorldState,
+  kind: StoredFoodKind,
+  amount: number
+): number {
+  const requested = getWholeUnits(amount);
+  if (requested === 0) return 0;
+
+  const availableCapacity = Math.max(
+    0,
+    world.stockpile.capacityPerResource - world.stockpile.inventory[kind]
+  );
+  const deposited = Math.min(requested, availableCapacity);
+  world.stockpile.inventory[kind] += deposited;
+  return deposited;
+}
+
+/** Withdraw only the available whole meals from communal storage. */
+export function withdrawFoodFromStockpile(
+  world: WorldState,
+  kind: StoredFoodKind,
   amount: number
 ): number {
   const requested = getWholeUnits(amount);
