@@ -33,6 +33,12 @@ function isMaterialBundle(value: unknown): value is { wood: number; stone: numbe
     isFiniteNumber(value.stone) && value.stone >= 0;
 }
 
+function isStockpileInventory(value: unknown): boolean {
+  return isMaterialBundle(value) && isRecord(value) &&
+    isFiniteNumber(value.food) && value.food >= 0 &&
+    isFiniteNumber(value.fish) && value.fish >= 0;
+}
+
 function isTile(value: unknown): value is Tile {
   if (!isRecord(value)) return false;
   const terrain = ["water", "beach", "grassland", "forest", "hill", "mountain", "river"];
@@ -128,7 +134,7 @@ function isWorldState(value: unknown): value is WorldState {
       typeof value.stockpile.id !== "string" ||
       !isInteger(value.stockpile.x) || value.stockpile.x < 0 || value.stockpile.x >= width ||
       !isInteger(value.stockpile.y) || value.stockpile.y < 0 || value.stockpile.y >= height ||
-      !isMaterialBundle(value.stockpile.inventory) ||
+      !isStockpileInventory(value.stockpile.inventory) ||
       !isFiniteNumber(value.stockpile.capacityPerResource) ||
       value.stockpile.capacityPerResource <= 0) return false;
 
@@ -185,18 +191,21 @@ export function serializeWorldSave(save: WorldSave): string {
 }
 
 function migrateWorldSave(parsed: unknown): unknown {
-  // Version-one saves created before the fishing update did not have a fish
-  // inventory field. Treat those inhabitants as carrying zero fish.
+  // Version-one saves created before fish and shared meals used smaller
+  // inventories. Add zero-valued fields without changing their world state.
   const migrated = JSON.parse(JSON.stringify(parsed)) as unknown;
-  if (!isRecord(migrated) || !isRecord(migrated.world) ||
-      !Array.isArray(migrated.world.agents)) {
-    return migrated;
+  if (!isRecord(migrated) || !isRecord(migrated.world)) return migrated;
+
+  const stockpile = migrated.world.stockpile;
+  if (isRecord(stockpile) && isRecord(stockpile.inventory)) {
+    if (stockpile.inventory.food === undefined) stockpile.inventory.food = 0;
+    if (stockpile.inventory.fish === undefined) stockpile.inventory.fish = 0;
   }
 
-  for (const agent of migrated.world.agents) {
-    if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
-    if (agent.inventory.fish === undefined) {
-      agent.inventory.fish = 0;
+  if (Array.isArray(migrated.world.agents)) {
+    for (const agent of migrated.world.agents) {
+      if (!isRecord(agent) || !isRecord(agent.inventory)) continue;
+      if (agent.inventory.fish === undefined) agent.inventory.fish = 0;
     }
   }
 
