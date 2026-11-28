@@ -15,7 +15,7 @@ function makeWorld(rows: string[]): WorldState {
   return {
     seed: 1, randomState: 1, width: rows[0]?.length ?? 0, height: rows.length,
     tiles, resources: [],
-    stockpile: { id: "store", x: -1, y: -1, inventory: { wood: 0, stone: 0 }, capacityPerResource: 120 },
+    stockpile: { id: "store", x: -1, y: -1, inventory: { wood: 0, stone: 0, food: 0, fish: 0 }, capacityPerResource: 120 },
     buildings: [], agents: [], tick: 0, events: []
   };
 }
