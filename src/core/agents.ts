@@ -1,6 +1,6 @@
 import { createRandom } from "./random";
 import { isWalkableTile } from "./pathfinding";
-import type { Agent, GridPoint, WorldState } from "./types";
+import type { Agent, AgentRole, AgentSkills, GridPoint, WorldState } from "./types";
 
 export interface AgentSpawnOptions {
   center?: GridPoint;
@@ -65,21 +65,26 @@ export function createStarterAgents(
 
     const number = index + 1;
     const name = STARTER_NAMES[index % STARTER_NAMES.length] ?? "Ari";
-    const role = number % 5 === 0
+    const role: Exclude<AgentRole, "generalist"> = number % 5 === 0
       ? "builder"
       : number % 5 === 2
         ? "hauler"
         : number % 7 === 4
           ? "fisher"
           : "forager";
-    const skills = {
+    const skills: AgentSkills = {
       foraging: random.int(0, 8),
       fishing: random.int(0, 8),
       hauling: random.int(0, 8),
       building: random.int(0, 8)
     };
-    const starterSpecialty = { forager: "foraging", fisher: "fishing", hauler: "hauling", builder: "building" }[role];
-    skills[starterSpecialty] = random.int(18, 28);
+    const starterSpecialties: Record<Exclude<AgentRole, "generalist">, keyof AgentSkills> = {
+      forager: "foraging",
+      fisher: "fishing",
+      hauler: "hauling",
+      builder: "building"
+    };
+    skills[starterSpecialties[role]] = random.int(18, 28);
 
     agents.push({
       id: `agent-${number}`,
