@@ -792,12 +792,6 @@ function stepAgent(
     return;
   }
 
-  // Food is a shared settlement supply. Carry it physically to the store when there is room.
-  if (agent.inventory.food > 0 || agent.inventory.fish > 0) {
-    deliverCarriedFood(world, agent, emitted);
-    if (agent.currentGoal === "deliver_food") return;
-  }
-
   // Foragers and fishers maintain one stored ration per living inhabitant.
   if (
     (agent.role === "forager" || agent.role === "fisher") &&
@@ -809,6 +803,13 @@ function stepAgent(
     }
     return;
   }
+
+  // Food is a shared settlement supply. Carry it physically to the store when there is room.
+  if (agent.inventory.food > 0 || agent.inventory.fish > 0) {
+    deliverCarriedFood(world, agent, emitted);
+    if (agent.currentGoal === "deliver_food") return;
+  }
+
   // Any carried building material must be delivered before another resource job.
   if (agent.inventory.wood > 0 || agent.inventory.stone > 0) {
     deliverCarriedMaterials(world, agent, random, emitted);
