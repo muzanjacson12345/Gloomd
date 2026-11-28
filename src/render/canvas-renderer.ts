@@ -26,6 +26,19 @@ export interface RenderLayers {
   selectionRect?: WorldSelectionRect | null;
 }
 
+function clampBounds(bounds: WorldBounds, world: WorldState): WorldBounds {
+  return {
+    left: Math.max(0, bounds.left - 1),
+    top: Math.max(0, bounds.top - 1),
+    right: Math.min(world.width, bounds.right + 1),
+    bottom: Math.min(world.height, bounds.bottom + 1)
+  };
+}
+
+function isInsideBounds(x: number, y: number, bounds: WorldBounds): boolean {
+  return x >= bounds.left && x < bounds.right && y >= bounds.top && y < bounds.bottom;
+}
+
 function drawForestTree(
   context: CanvasRenderingContext2D,
   x: number,
