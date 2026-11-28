@@ -20,7 +20,7 @@ function makeWorld(rows: string[]): WorldState {
     height: rows.length,
     tiles,
     resources: [],
-    stockpile: { id: "test-stockpile", x: -1, y: -1, inventory: { wood: 0, stone: 0 }, capacityPerResource: 120 },
+    stockpile: { id: "test-stockpile", x: -1, y: -1, inventory: { wood: 0, stone: 0, food: 0, fish: 0 }, capacityPerResource: 120 },
     buildings: [],
     agents: [],
     tick: 0,
