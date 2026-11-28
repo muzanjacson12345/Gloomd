@@ -116,7 +116,7 @@ Already implemented:
 - haulers that physically gather wood/stone and deliver them to one communal stockpile;
 - one shelter recipe (5 wood + 2 stone) and construction work over 12 ticks;
 - full-window Canvas 2D map, camera pan/zoom, zoom-dependent map detail and visible-region drawing;
-- terrain/resource/people/buildings/stockpile layers, dismissible map field guide, terrain composition preview, nearby start-area resource/water context and minimap building markers;
+- terrain/resource/people/buildings/stockpile layers, dismissible map field guide, terrain composition preview and nearby start-area resource/water context;
 - minimap markers for settlement buildings;
 - individual NPC click/inspector, follow mode and live activity roster;
 - pause, 1x/2x/4x speed and stop simulation time when the tab is hidden;

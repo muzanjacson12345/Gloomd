@@ -24,7 +24,7 @@ The first playable build includes:
 - Haulers search within a larger local radius, collect up to three units per trip (capped at the exact outstanding shelter recipe), physically return to the nearby communal stockpile and deposit them. Source nodes and carrying inventories update as they go.
 - A full-window Canvas 2D map with visible-area drawing, zoom-dependent terrain detail, people clusters when zoomed out and individual silhouettes when zoomed in. Terrain colours reflect moisture and elevation; close zoom adds shorelines, grass, forest canopies, hill contours, water ripples and mountain peaks. The map opens focused on the chosen settlement at a close, readable zoom; Reset View returns to that start area.
 - A shared supply-and-building loop: the stockpile holds up to 120 wood and 120 stone, and builders withdraw 5 wood + 2 stone to start a shelter. Builders visibly report whether they are waiting for supplies, finding a site or constructing. Construction takes 12 work ticks, can be interrupted by urgent survival needs and later resumed, and assigns the completed shelter as the builder's home. Shelters and the stockpile occupy map tiles and block movement. A tested empty-stockpile builder/hauler settlement can gather its first recipe and complete a shelter automatically.
-- Camera pan and zoom, Land / Resources / People / Homes / Stockpile layers, click-to-select, an inhabitant inspector with home status, and follow mode. A live roster shows every living inhabitant's name, role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays resources remaining in on-map nodes separately from materials held in the communal stockpile.
+- Camera pan and zoom, Land / Resources / People / Homes / Stockpile / Resource Heat / Activity layers, click-to-select, an inhabitant inspector with home status, and follow mode. A live roster shows every living inhabitant's name, role and current task without requiring individual selection. Selecting a roster row centres the map and opens the detailed inspector. The HUD displays resources remaining in on-map nodes separately from materials held in the communal stockpile.
 - Continuous visual interpolation between the actual grid steps selected by pathfinding. The world still owns integer tile positions; the renderer animates those real moves and never changes collision or action rules.
 - An explicit **SELECT PEOPLE** mode: normal map dragging still pans and ordinary clicks inspect an inhabitant; only while selection mode is active does a drag draw a rectangle to select multiple inhabitants. Escape exits the mode.
 - An **OBSERVE** panel with optional route, recent travel trail, vision and destination overlays for selected inhabitants. Vision is calculated separately from resource-search radius and blocked by impassable map tiles and buildings. Overlays are off by default.
@@ -63,7 +63,7 @@ The current build is the foundation, not the final civilization simulator. Fishi
 | Follow an inhabitant | Open the inspector and select **Follow** |
 | Pause / resume | Use the playback control |
 | Change speed | Select 1×, 2× or 4× |
-| Show or hide a map layer | Select Land, Resources, People, Homes or Stockpile |
+| Show or hide a map layer | Select Land, Resources, People, Homes, Stockpile, Resource Heat or Activity. |
 
 ## Local development
 
